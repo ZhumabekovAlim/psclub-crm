@@ -45,8 +45,6 @@ services:
     ports:
       - "${APP_PORT}:4000"
     command: [ "./app" ]
-    volumes:
-      - .:/app
 
 volumes:
   dbdata:
