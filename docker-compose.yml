@@ -22,7 +22,7 @@ services:
     depends_on:
       - db
     volumes:
-      - ./migrations:/migrations
+      - ./db/migrations:/migrations
     command: [
       "-path", "/migrations",
       "-database", "mysql://crmuser:crmpass@tcp(db:3306)/psclubcrm?parseTime=true",

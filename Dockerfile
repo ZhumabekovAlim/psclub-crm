@@ -10,7 +10,7 @@ RUN go build -o app ./cmd/web/main.go
 FROM alpine:latest
 WORKDIR /app
 COPY --from=build /app/app .
-COPY --from=build /app/migrations ./migrations
+COPY --from=build /app/db/migrations ./migrations
 ENV GIN_MODE=release
 
 EXPOSE 4000
