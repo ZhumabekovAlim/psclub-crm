@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: psclubcrm-db
+    restart: always
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+
+  migrate:
+    image: migrate/migrate
+    depends_on:
+      - db
+    volumes:
+      - ./migrations:/migrations
+    command: [
+      "-path", "/migrations",
+      "-database", "mysql://crmuser:crmpass@tcp(db:3306)/psclubcrm?parseTime=true",
+      "up"
+    ]
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: psclubcrm-backend
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      DSN: ${DSN}
+      APP_PORT: ${APP_PORT}
+    ports:
+      - "${APP_PORT}:4000"
+    command: [ "./app" ]
+    volumes:
+      - .:/app
+
+volumes:
+  dbdata:

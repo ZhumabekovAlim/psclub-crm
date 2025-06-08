@@ -2,36 +2,28 @@ package config
 
 import (
 	"gopkg.in/yaml.v3"
-	"log"
 	"os"
 )
 
-// Config structure to hold configuration values
 type Config struct {
 	Server struct {
-		Address string `yaml:"address"`
+		Port int `yaml:"port"`
 	} `yaml:"server"`
 	Database struct {
-		Driver string `yaml:"driver"`
-		URL    string `yaml:"url"`
+		DSN string `yaml:"dsn"`
 	} `yaml:"database"`
 }
 
-// LoadConfig loads the configuration from config.yaml
-func LoadConfig() Config {
+func LoadConfig() *Config {
+	f, err := os.Open("C:\\Users\\alimz\\GolandProjects\\clean_mobile_app\\config\\config.yaml")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
 	var cfg Config
-
-	// Read config file
-	data, err := os.ReadFile("C:\\Users\\User\\Desktop\\handyman-main\\config\\config.yaml")
-	if err != nil {
-		log.Fatalf("Failed to read config file: %v", err)
+	decoder := yaml.NewDecoder(f)
+	if err := decoder.Decode(&cfg); err != nil {
+		panic(err)
 	}
-
-	// Unmarshal YAML data into config struct
-	err = yaml.Unmarshal(data, &cfg)
-	if err != nil {
-		log.Fatalf("Failed to unmarshal config data: %v", err)
-	}
-
-	return cfg
+	return &cfg
 }

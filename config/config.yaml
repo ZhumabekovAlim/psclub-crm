@@ -1,6 +1,5 @@
 server:
-  address: ":4000"
+  port: 4000
 
 database:
-  driver: "mysql"
-  url: "root:@tcp(localhost:3306)/table_name?parseTime=true"
+  dsn: "root:@tcp(localhost:3306)/ps_crm?parseTime=true"
