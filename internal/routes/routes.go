@@ -7,6 +7,7 @@ import (
 
 func SetupRoutes(
 	r *gin.Engine,
+	authHandler *handlers.AuthHandler,
 	clientHandler *handlers.ClientHandler,
 	userHandler *handlers.UserHandler,
 	expenseHandler *handlers.ExpenseHandler,
@@ -22,6 +23,14 @@ func SetupRoutes(
 	reportHandler *handlers.ReportHandler,
 ) {
 	api := r.Group("/api")
+
+	// --- Аутентификация
+	auth := api.Group("/auth")
+	{
+		auth.POST("/register", authHandler.Register)
+		auth.POST("/login", authHandler.Login)
+		auth.POST("/refresh", authHandler.Refresh)
+	}
 
 	// --- Клиенты
 	clients := api.Group("/clients")

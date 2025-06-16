@@ -4,11 +4,14 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"psclub-crm/internal/config"
 	"psclub-crm/internal/handlers"
+	"psclub-crm/internal/migrations"
 	"psclub-crm/internal/repositories"
 	"psclub-crm/internal/routes"
 	"psclub-crm/internal/services"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
@@ -25,6 +28,15 @@ func Run() {
 	}
 	defer db.Close()
 
+	// Run database migrations
+	dir := "./db/migrations"
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		dir = "./migrations"
+	}
+	if err := migrations.Run(db, dir); err != nil {
+		log.Fatal("failed to run migrations: ", err)
+	}
+
 	// ========== Инициализация зависимостей ==========
 
 	// Клиенты
@@ -34,8 +46,18 @@ func Run() {
 
 	// Сотрудники (Users)
 	userRepo := repositories.NewUserRepository(db)
+	tokenRepo := repositories.NewTokenRepository(db)
 	userService := services.NewUserService(userRepo)
 	userHandler := handlers.NewUserHandler(userService)
+	authService := services.NewAuthService(
+		userRepo,
+		tokenRepo,
+		cfg.Auth.AccessSecret,
+		cfg.Auth.RefreshSecret,
+		time.Duration(cfg.Auth.AccessTTL)*time.Second,
+		time.Duration(cfg.Auth.RefreshTTL)*time.Second,
+	)
+	authHandler := handlers.NewAuthHandler(authService)
 
 	// Категории столов
 	tableCategoryRepo := repositories.NewTableCategoryRepository(db)
@@ -109,6 +131,7 @@ func Run() {
 
 	routes.SetupRoutes(
 		router,
+		authHandler,
 		clientHandler,
 		userHandler,
 		expenseHandler,
