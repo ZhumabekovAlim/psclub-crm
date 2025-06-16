@@ -65,3 +65,16 @@ func (r *UserRepository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id=?`, id)
 	return err
 }
+
+func (r *UserRepository) GetByPhone(ctx context.Context, phone string) (*models.User, error) {
+	query := `SELECT id, name, phone, password, role, salary_hookah, salary_bar, salary_shift, created_at, updated_at FROM users WHERE phone=?`
+	var u models.User
+	err := r.db.QueryRowContext(ctx, query, phone).Scan(&u.ID, &u.Name, &u.Phone, &u.Password, &u.Role, &u.SalaryHookah, &u.SalaryBar, &u.SalaryShift, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &u, nil
+}

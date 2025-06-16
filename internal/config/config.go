@@ -12,6 +12,12 @@ type Config struct {
 	Database struct {
 		DSN string `yaml:"dsn"`
 	} `yaml:"database"`
+	Auth struct {
+		AccessSecret  string `yaml:"access_secret"`
+		RefreshSecret string `yaml:"refresh_secret"`
+		AccessTTL     int    `yaml:"access_ttl"`
+		RefreshTTL    int    `yaml:"refresh_ttl"`
+	} `yaml:"auth"`
 }
 
 func LoadConfig() *Config {

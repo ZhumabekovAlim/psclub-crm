@@ -3,3 +3,9 @@ server:
 
 database:
   dsn: "root:@tcp(localhost:3306)/ps_crm?parseTime=true"
+
+auth:
+  access_secret: "accesssecret"
+  refresh_secret: "refreshsecret"
+  access_ttl: 900
+  refresh_ttl: 604800
