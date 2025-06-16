@@ -1,0 +1,201 @@
+{
+  "info": {
+    "name": "PS Club CRM API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","auth","register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin\",\n  \"phone\": \"1234567890\",\n  \"password\": \"secret\",\n  \"role\": \"admin\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","auth","login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"1234567890\",\n  \"password\": \"secret\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","auth","refresh"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "item": [
+        {
+          "name": "Create Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{baseUrl}}/api/clients","host": ["{{baseUrl}}"],"path":["api","clients"]},
+            "body": {"mode":"raw","raw": "{\n  \"name\": \"Client\",\n  \"phone\": \"123456\"\n}"}
+          }
+        },
+        {"name":"List Clients","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/clients","host":["{{baseUrl}}"],"path":["api","clients"]}}},
+        {"name":"Get Client","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/clients/:id","host":["{{baseUrl}}"],"path":["api","clients",":id"]}}},
+        {"name":"Update Client","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/clients/:id","host":["{{baseUrl}}"],"path":["api","clients",":id"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"Client\"\n}"}}},
+        {"name":"Delete Client","request":{"method":"DELETE","url":{"raw":"{{baseUrl}}/api/clients/:id","host":["{{baseUrl}}"],"path":["api","clients",":id"]}}}
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {"name":"Create User","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/users","host":["{{baseUrl}}"],"path":["api","users"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"User\",\n  \"phone\": \"123456\",\n  \"password\": \"secret\",\n  \"role\": \"admin\"\n}"}}},
+        {"name":"List Users","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/users","host":["{{baseUrl}}"],"path":["api","users"]}}},
+        {"name":"Get User","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/users/:id","host":["{{baseUrl}}"],"path":["api","users",":id"]}}},
+        {"name":"Update User","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/users/:id","host":["{{baseUrl}}"],"path":["api","users",":id"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"User\"\n}"}}},
+        {"name":"Delete User","request":{"method":"DELETE","url":{"raw":"{{baseUrl}}/api/users/:id","host":["{{baseUrl}}"],"path":["api","users",":id"]}}}
+      ]
+    },
+    {
+      "name": "Table Categories",
+      "item": [
+        {"name":"Create Table Category","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/table-categories","host":["{{baseUrl}}"],"path":["api","table-categories"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"VIP\"\n}"}}},
+        {"name":"List Table Categories","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/table-categories","host":["{{baseUrl}}"],"path":["api","table-categories"]}}},
+        {"name":"Get Table Category","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/table-categories/:id","host":["{{baseUrl}}"],"path":["api","table-categories",":id"]}}},
+        {"name":"Update Table Category","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/table-categories/:id","host":["{{baseUrl}}"],"path":["api","table-categories",":id"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"VIP\"\n}"}}},
+        {"name":"Delete Table Category","request":{"method":"DELETE","url":{"raw":"{{baseUrl}}/api/table-categories/:id","host":["{{baseUrl}}"],"path":["api","table-categories",":id"]}}}
+      ]
+    },
+    {
+      "name": "Tables",
+      "item": [
+        {"name":"Create Table","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/tables","host":["{{baseUrl}}"],"path":["api","tables"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"Table 1\",\n  \"category_id\": 1\n}"}}},
+        {"name":"List Tables","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/tables","host":["{{baseUrl}}"],"path":["api","tables"]}}},
+        {"name":"Get Table","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/tables/:id","host":["{{baseUrl}}"],"path":["api","tables",":id"]}}},
+        {"name":"Update Table","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/tables/:id","host":["{{baseUrl}}"],"path":["api","tables",":id"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"Table 1\"\n}"}}},
+        {"name":"Delete Table","request":{"method":"DELETE","url":{"raw":"{{baseUrl}}/api/tables/:id","host":["{{baseUrl}}"],"path":["api","tables",":id"]}}}
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {"name":"Create Category","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/categories","host":["{{baseUrl}}"],"path":["api","categories"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"Food\"\n}"}}},
+        {"name":"List Categories","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/categories","host":["{{baseUrl}}"],"path":["api","categories"]}}},
+        {"name":"Get Category","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/categories/:id","host":["{{baseUrl}}"],"path":["api","categories",":id"]}}},
+        {"name":"Update Category","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/categories/:id","host":["{{baseUrl}}"],"path":["api","categories",":id"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"Food\"\n}"}}},
+        {"name":"Delete Category","request":{"method":"DELETE","url":{"raw":"{{baseUrl}}/api/categories/:id","host":["{{baseUrl}}"],"path":["api","categories",":id"]}}}
+      ]
+    },
+    {
+      "name": "Subcategories",
+      "item": [
+        {"name":"Create Subcategory","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/subcategories","host":["{{baseUrl}}"],"path":["api","subcategories"]},"body":{"mode":"raw","raw":"{\n  \"category_id\": 1,\n  \"name\": \"Hookahs\"\n}"}}},
+        {"name":"List Subcategories","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/subcategories","host":["{{baseUrl}}"],"path":["api","subcategories"]}}},
+        {"name":"Get Subcategory","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/subcategories/:id","host":["{{baseUrl}}"],"path":["api","subcategories",":id"]}}},
+        {"name":"Update Subcategory","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/subcategories/:id","host":["{{baseUrl}}"],"path":["api","subcategories",":id"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"Hookahs\"\n}"}}},
+        {"name":"Delete Subcategory","request":{"method":"DELETE","url":{"raw":"{{baseUrl}}/api/subcategories/:id","host":["{{baseUrl}}"],"path":["api","subcategories",":id"]}}}
+      ]
+    },
+    {
+      "name": "Price List",
+      "item": [
+        {"name":"Create Price Item","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/pricelist","host":["{{baseUrl}}"],"path":["api","pricelist"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"Item\",\n  \"category_id\": 1,\n  \"subcategory_id\": 1,\n  \"quantity\": 1,\n  \"sale_price\": 0,\n  \"buy_price\": 0\n}"}}},
+        {"name":"List Price Items","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/pricelist","host":["{{baseUrl}}"],"path":["api","pricelist"]}}},
+        {"name":"Get Price Item","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/pricelist/:id","host":["{{baseUrl}}"],"path":["api","pricelist",":id"]}}},
+        {"name":"Update Price Item","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/pricelist/:id","host":["{{baseUrl}}"],"path":["api","pricelist",":id"]},"body":{"mode":"raw","raw":"{\n  \"name\": \"Item\"\n}"}}},
+        {"name":"Delete Price Item","request":{"method":"DELETE","url":{"raw":"{{baseUrl}}/api/pricelist/:id","host":["{{baseUrl}}"],"path":["api","pricelist",":id"]}}}
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {"name":"Create Booking","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/bookings","host":["{{baseUrl}}"],"path":["api","bookings"]},"body":{"mode":"raw","raw":"{\n  \"client_id\": 1,\n  \"table_id\": 1,\n  \"start_time\": \"2024-01-01T18:00:00Z\",\n  \"end_time\": \"2024-01-01T20:00:00Z\"\n}"}}},
+        {"name":"List Bookings","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/bookings","host":["{{baseUrl}}"],"path":["api","bookings"]}}},
+        {"name":"Get Booking","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/bookings/:id","host":["{{baseUrl}}"],"path":["api","bookings",":id"]}}},
+        {"name":"Update Booking","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/bookings/:id","host":["{{baseUrl}}"],"path":["api","bookings",":id"]},"body":{"mode":"raw","raw":"{\n  \"note\": \"Updated\"\n}"}}},
+        {"name":"Delete Booking","request":{"method":"DELETE","url":{"raw":"{{baseUrl}}/api/bookings/:id","host":["{{baseUrl}}"],"path":["api","bookings",":id"]}}}
+      ]
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        {"name":"Create Expense","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/expenses","host":["{{baseUrl}}"],"path":["api","expenses"]},"body":{"mode":"raw","raw":"{\n  \"date\": \"2024-01-01T00:00:00Z\",\n  \"title\": \"Purchase\",\n  \"category\": \"Other\",\n  \"total\": 0\n}"}}},
+        {"name":"List Expenses","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/expenses","host":["{{baseUrl}}"],"path":["api","expenses"]}}},
+        {"name":"Get Expense","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/expenses/:id","host":["{{baseUrl}}"],"path":["api","expenses",":id"]}}},
+        {"name":"Update Expense","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/expenses/:id","host":["{{baseUrl}}"],"path":["api","expenses",":id"]},"body":{"mode":"raw","raw":"{\n  \"title\": \"Purchase\"\n}"}}},
+        {"name":"Delete Expense","request":{"method":"DELETE","url":{"raw":"{{baseUrl}}/api/expenses/:id","host":["{{baseUrl}}"],"path":["api","expenses",":id"]}}}
+      ]
+    },
+    {
+      "name": "Repairs",
+      "item": [
+        {"name":"Create Repair","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/repairs","host":["{{baseUrl}}"],"path":["api","repairs"]},"body":{"mode":"raw","raw":"{\n  \"date\": \"2024-01-01T00:00:00Z\",\n  \"vin\": \"VIN\",\n  \"description\": \"desc\"\n}"}}},
+        {"name":"List Repairs","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/repairs","host":["{{baseUrl}}"],"path":["api","repairs"]}}},
+        {"name":"Get Repair","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/repairs/:id","host":["{{baseUrl}}"],"path":["api","repairs",":id"]}}},
+        {"name":"Update Repair","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/repairs/:id","host":["{{baseUrl}}"],"path":["api","repairs",":id"]},"body":{"mode":"raw","raw":"{\n  \"description\": \"desc\"\n}"}}},
+        {"name":"Delete Repair","request":{"method":"DELETE","url":{"raw":"{{baseUrl}}/api/repairs/:id","host":["{{baseUrl}}"],"path":["api","repairs",":id"]}}}
+      ]
+    },
+    {
+      "name": "Cashbox",
+      "item": [
+        {"name":"Get Cashbox","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/cashbox","host":["{{baseUrl}}"],"path":["api","cashbox"]}}},
+        {"name":"Update Cashbox","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/cashbox/1","host":["{{baseUrl}}"],"path":["api","cashbox","1"]},"body":{"mode":"raw","raw":"{\n  \"amount\": 0\n}"}}}
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {"name":"Get Settings","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/settings","host":["{{baseUrl}}"],"path":["api","settings"]}}},
+        {"name":"Update Settings","request":{"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"url":{"raw":"{{baseUrl}}/api/settings/1","host":["{{baseUrl}}"],"path":["api","settings","1"]},"body":{"mode":"raw","raw":"{\n  \"payment_type\": \"cash\"\n}"}}}
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {"name":"Summary","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/reports/summary?from=2024-01-01&to=2024-01-07","host":["{{baseUrl}}"],"path":["api","reports","summary"],"query":[{"key":"from","value":"2024-01-01"},{"key":"to","value":"2024-01-07"}]}}},
+        {"name":"Admins","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/reports/admins?from=2024-01-01&to=2024-01-07","host":["{{baseUrl}}"],"path":["api","reports","admins"],"query":[{"key":"from","value":"2024-01-01"},{"key":"to","value":"2024-01-07"}]}}},
+        {"name":"Sales","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/reports/sales?from=2024-01-01&to=2024-01-07","host":["{{baseUrl}}"],"path":["api","reports","sales"],"query":[{"key":"from","value":"2024-01-01"},{"key":"to","value":"2024-01-07"}]}}},
+        {"name":"Analytics","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/reports/analytics?from=2024-01-01&to=2024-01-07","host":["{{baseUrl}}"],"path":["api","reports","analytics"],"query":[{"key":"from","value":"2024-01-01"},{"key":"to","value":"2024-01-07"}]}}},
+        {"name":"Discounts","request":{"method":"GET","url":{"raw":"{{baseUrl}}/api/reports/discounts?from=2024-01-01&to=2024-01-07","host":["{{baseUrl}}"],"path":["api","reports","discounts"],"query":[{"key":"from","value":"2024-01-01"},{"key":"to","value":"2024-01-07"}]}}}
+      ]
+    }
+  ]
+}
