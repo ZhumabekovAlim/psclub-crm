@@ -81,7 +81,7 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	if err != nil {
 		return err
 	}
-	limit := current.StartTime.Add(time.Duration(settings.BlockTime) * time.Minute)
+	limit := current.EndTime.Add(time.Duration(settings.BlockTime) * time.Minute)
 	if time.Now().After(limit) {
 		return errors.New("booking can no longer be modified")
 	}
@@ -97,7 +97,7 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	if err != nil {
 		return err
 	}
-	limit := b.StartTime.Add(time.Duration(settings.BlockTime) * time.Minute)
+	limit := b.EndTime.Add(time.Duration(settings.BlockTime) * time.Minute)
 	if time.Now().After(limit) {
 		return errors.New("booking can no longer be removed")
 	}
