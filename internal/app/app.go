@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"psclub-crm/internal/config"
 	"psclub-crm/internal/handlers"
+	"psclub-crm/internal/migrations"
 	"psclub-crm/internal/repositories"
 	"psclub-crm/internal/routes"
 	"psclub-crm/internal/services"
@@ -25,6 +27,15 @@ func Run() {
 		log.Fatal("Failed to connect to DB: ", err)
 	}
 	defer db.Close()
+
+	// Run database migrations
+	dir := "./db/migrations"
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		dir = "./migrations"
+	}
+	if err := migrations.Run(db, dir); err != nil {
+		log.Fatal("failed to run migrations: ", err)
+	}
 
 	// ========== Инициализация зависимостей ==========
 

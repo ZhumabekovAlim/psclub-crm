@@ -1,29 +1,29 @@
 -- 1. Клиенты
 CREATE TABLE IF NOT EXISTS clients (
-                                       id INT AUTO_INCREMENT PRIMARY KEY,
-                                       name VARCHAR(100) NOT NULL,
-                                       phone VARCHAR(30) NOT NULL,
-                                       date_of_birth DATE,
-                                       channel VARCHAR(50),
-                                       bonus INT DEFAULT 0,
-                                       visits INT DEFAULT 0,
-                                       income INT DEFAULT 0,
-                                       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    phone VARCHAR(30) NOT NULL,
+    date_of_birth DATE,
+    channel VARCHAR(50),
+    bonus INT DEFAULT 0,
+    visits INT DEFAULT 0,
+    income INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- 2. Сотрудники (Users/Admins)
 CREATE TABLE IF NOT EXISTS users (
-                                     id INT AUTO_INCREMENT PRIMARY KEY,
-                                     name VARCHAR(100) NOT NULL,
-                                     phone VARCHAR(30) NOT NULL,
-                                     password VARCHAR(255) NOT NULL,
-                                     permissions TEXT,
-                                     percent_hookah INT DEFAULT 0,
-                                     percent_bar INT DEFAULT 0,
-                                     shift_salary INT DEFAULT 0,
-                                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    phone VARCHAR(30) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    salary_hookah DOUBLE DEFAULT 0,
+    salary_bar DOUBLE DEFAULT 0,
+    salary_shift INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- 3. Категории и подкатегории товаров/услуг
@@ -41,17 +41,35 @@ CREATE TABLE IF NOT EXISTS subcategories (
 
 -- 4. Прайс-лист (товары/услуги)
 CREATE TABLE IF NOT EXISTS price_items (
-                                           id INT AUTO_INCREMENT PRIMARY KEY,
-                                           name VARCHAR(100) NOT NULL,
-                                           sale_price INT NOT NULL,
-                                           category_id INT NOT NULL,
-                                           subcategory_id INT,
-                                           quantity INT DEFAULT 0,
-                                           buy_price INT DEFAULT 0,
-                                           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                                           FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
-                                           FOREIGN KEY (subcategory_id) REFERENCES subcategories(id) ON DELETE SET NULL
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    category_id INT NOT NULL,
+    subcategory_id INT,
+    quantity INT DEFAULT 0,
+    sale_price DOUBLE NOT NULL,
+    buy_price DOUBLE DEFAULT 0,
+    is_set TINYINT(1) DEFAULT 0,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+    FOREIGN KEY (subcategory_id) REFERENCES subcategories(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS price_sets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    category_id INT NOT NULL,
+    subcategory_id INT,
+    price INT NOT NULL,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+    FOREIGN KEY (subcategory_id) REFERENCES subcategories(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS set_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    price_set_id INT NOT NULL,
+    item_id INT NOT NULL,
+    quantity INT NOT NULL,
+    FOREIGN KEY (price_set_id) REFERENCES price_sets(id) ON DELETE CASCADE,
+    FOREIGN KEY (item_id) REFERENCES price_items(id) ON DELETE CASCADE
 );
 
 -- 5. Категории и столы
@@ -101,58 +119,56 @@ CREATE TABLE IF NOT EXISTS booking_items (
 
 -- 7. Расходы
 CREATE TABLE IF NOT EXISTS expenses (
-                                        id INT AUTO_INCREMENT PRIMARY KEY,
-                                        date DATETIME NOT NULL,
-                                        title VARCHAR(100) NOT NULL,
-                                        category VARCHAR(50),
-                                        total INT NOT NULL,
-                                        description VARCHAR(300),
-                                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    date DATETIME NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    category VARCHAR(50),
+    total DOUBLE NOT NULL,
+    description VARCHAR(300),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 8. Ремонты
 CREATE TABLE IF NOT EXISTS repairs (
-                                       id INT AUTO_INCREMENT PRIMARY KEY,
-                                       date DATETIME NOT NULL,
-                                       color VARCHAR(30),
-                                       vin VARCHAR(50),
-                                       description VARCHAR(300),
-                                       price INT DEFAULT 0,
-                                       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    date DATETIME NOT NULL,
+    color VARCHAR(30),
+    vin VARCHAR(50),
+    description VARCHAR(300),
+    price DOUBLE DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- 9. История закупа/прихода на склад
 CREATE TABLE IF NOT EXISTS price_item_history (
-                                                  id INT AUTO_INCREMENT PRIMARY KEY,
-                                                  date DATETIME NOT NULL,
-                                                  item_id INT NOT NULL,
-                                                  quantity INT NOT NULL,
-                                                  buy_price INT NOT NULL,
-                                                  total_price INT NOT NULL,
-                                                  user_id INT,
-                                                  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                                  FOREIGN KEY (item_id) REFERENCES price_items(id) ON DELETE CASCADE,
-                                                  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    price_item_id INT NOT NULL,
+    operation VARCHAR(20) NOT NULL,
+    quantity INT NOT NULL,
+    buy_price DOUBLE DEFAULT 0,
+    total DOUBLE NOT NULL,
+    user_id INT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (price_item_id) REFERENCES price_items(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- 10. Касса
 CREATE TABLE IF NOT EXISTS cashbox (
-                                       id INT AUTO_INCREMENT PRIMARY KEY,
-                                       amount INT NOT NULL DEFAULT 0,
-                                       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    amount DOUBLE NOT NULL DEFAULT 0
 );
 INSERT IGNORE INTO cashbox (id, amount) VALUES (1, 0);
 
 -- 11. Глобальные настройки
 CREATE TABLE IF NOT EXISTS settings (
-                                        id INT AUTO_INCREMENT PRIMARY KEY,
-                                        payment_type VARCHAR(30),
-                                        block_booking_time INT DEFAULT 0,
-                                        bonus_percent INT DEFAULT 0,
-                                        work_time_from TIME,
-                                        work_time_to TIME,
-                                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    payment_type VARCHAR(30),
+    block_time INT DEFAULT 0,
+    bonus_percent INT DEFAULT 0,
+    work_time_from TIME,
+    work_time_to TIME
 );
 
 -- 12. Типы оплат
