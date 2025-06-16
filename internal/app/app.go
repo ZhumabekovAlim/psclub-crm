@@ -9,6 +9,7 @@ import (
 	"psclub-crm/internal/repositories"
 	"psclub-crm/internal/routes"
 	"psclub-crm/internal/services"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
@@ -34,8 +35,18 @@ func Run() {
 
 	// Сотрудники (Users)
 	userRepo := repositories.NewUserRepository(db)
+	tokenRepo := repositories.NewTokenRepository(db)
 	userService := services.NewUserService(userRepo)
 	userHandler := handlers.NewUserHandler(userService)
+	authService := services.NewAuthService(
+		userRepo,
+		tokenRepo,
+		cfg.Auth.AccessSecret,
+		cfg.Auth.RefreshSecret,
+		time.Duration(cfg.Auth.AccessTTL)*time.Second,
+		time.Duration(cfg.Auth.RefreshTTL)*time.Second,
+	)
+	authHandler := handlers.NewAuthHandler(authService)
 
 	// Категории столов
 	tableCategoryRepo := repositories.NewTableCategoryRepository(db)
@@ -109,6 +120,7 @@ func Run() {
 
 	routes.SetupRoutes(
 		router,
+		authHandler,
 		clientHandler,
 		userHandler,
 		expenseHandler,
