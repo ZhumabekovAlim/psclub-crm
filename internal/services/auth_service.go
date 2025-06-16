@@ -53,6 +53,10 @@ func (s *AuthService) Register(ctx context.Context, u *models.User) (string, str
 	if existing != nil {
 		return "", "", errors.New("user already exists")
 	}
+	if u.Role == "admin" && len(u.Permissions) == 0 {
+		u.Permissions = []string{"bar", "hookah", "sets"}
+	}
+
 	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", "", err

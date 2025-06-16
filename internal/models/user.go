@@ -8,6 +8,7 @@ type User struct {
 	Phone        string    `json:"phone"`
 	Password     string    `json:"-"`
 	Role         string    `json:"role"`
+	Permissions  []string  `json:"permissions"`
 	SalaryHookah float64   `json:"salary_hookah"`
 	SalaryBar    float64   `json:"salary_bar"`
 	SalaryShift  int       `json:"salary_shift"`

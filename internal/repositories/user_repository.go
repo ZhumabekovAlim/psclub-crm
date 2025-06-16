@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"strings"
+
 	"psclub-crm/internal/models"
 )
 
@@ -16,9 +18,9 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 func (r *UserRepository) Create(ctx context.Context, u *models.User) (int, error) {
 	query := `
-        INSERT INTO users (name, phone, password, role, salary_hookah, salary_bar, salary_shift, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`
-	res, err := r.db.ExecContext(ctx, query, u.Name, u.Phone, u.Password, u.Role, u.SalaryHookah, u.SalaryBar, u.SalaryShift)
+        INSERT INTO users (name, phone, password, role, permissions, salary_hookah, salary_bar, salary_shift, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`
+	res, err := r.db.ExecContext(ctx, query, u.Name, u.Phone, u.Password, u.Role, strings.Join(u.Permissions, ","), u.SalaryHookah, u.SalaryBar, u.SalaryShift)
 	if err != nil {
 		return 0, err
 	}
@@ -27,7 +29,7 @@ func (r *UserRepository) Create(ctx context.Context, u *models.User) (int, error
 }
 
 func (r *UserRepository) GetAll(ctx context.Context) ([]models.User, error) {
-	query := `SELECT id, name, phone, password, role, salary_hookah, salary_bar, salary_shift, created_at, updated_at FROM users ORDER BY id`
+	query := `SELECT id, name, phone, password, role, permissions, salary_hookah, salary_bar, salary_shift, created_at, updated_at FROM users ORDER BY id`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -36,9 +38,13 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		err := rows.Scan(&u.ID, &u.Name, &u.Phone, &u.Password, &u.Role, &u.SalaryHookah, &u.SalaryBar, &u.SalaryShift, &u.CreatedAt, &u.UpdatedAt)
+		var permStr sql.NullString
+		err := rows.Scan(&u.ID, &u.Name, &u.Phone, &u.Password, &u.Role, &permStr, &u.SalaryHookah, &u.SalaryBar, &u.SalaryShift, &u.CreatedAt, &u.UpdatedAt)
 		if err != nil {
 			return nil, err
+		}
+		if permStr.Valid && permStr.String != "" {
+			u.Permissions = strings.Split(permStr.String, ",")
 		}
 		users = append(users, u)
 	}
@@ -46,18 +52,22 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]models.User, error) {
 }
 
 func (r *UserRepository) GetByID(ctx context.Context, id int) (*models.User, error) {
-	query := `SELECT id, name, phone, password, role, salary_hookah, salary_bar, salary_shift, created_at, updated_at FROM users WHERE id=?`
+	query := `SELECT id, name, phone, password, role, permissions, salary_hookah, salary_bar, salary_shift, created_at, updated_at FROM users WHERE id=?`
 	var u models.User
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Name, &u.Phone, &u.Password, &u.Role, &u.SalaryHookah, &u.SalaryBar, &u.SalaryShift, &u.CreatedAt, &u.UpdatedAt)
+	var permStr sql.NullString
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Name, &u.Phone, &u.Password, &u.Role, &permStr, &u.SalaryHookah, &u.SalaryBar, &u.SalaryShift, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		return nil, err
+	}
+	if permStr.Valid && permStr.String != "" {
+		u.Permissions = strings.Split(permStr.String, ",")
 	}
 	return &u, nil
 }
 
 func (r *UserRepository) Update(ctx context.Context, u *models.User) error {
-	query := `UPDATE users SET name=?, phone=?, password=?, role=?, salary_hookah=?, salary_bar=?, salary_shift=?, updated_at=NOW() WHERE id=?`
-	_, err := r.db.ExecContext(ctx, query, u.Name, u.Phone, u.Password, u.Role, u.SalaryHookah, u.SalaryBar, u.SalaryShift, u.ID)
+	query := `UPDATE users SET name=?, phone=?, password=?, role=?, permissions=?, salary_hookah=?, salary_bar=?, salary_shift=?, updated_at=NOW() WHERE id=?`
+	_, err := r.db.ExecContext(ctx, query, u.Name, u.Phone, u.Password, u.Role, strings.Join(u.Permissions, ","), u.SalaryHookah, u.SalaryBar, u.SalaryShift, u.ID)
 	return err
 }
 
@@ -67,14 +77,18 @@ func (r *UserRepository) Delete(ctx context.Context, id int) error {
 }
 
 func (r *UserRepository) GetByPhone(ctx context.Context, phone string) (*models.User, error) {
-	query := `SELECT id, name, phone, password, role, salary_hookah, salary_bar, salary_shift, created_at, updated_at FROM users WHERE phone=?`
+	query := `SELECT id, name, phone, password, role, permissions, salary_hookah, salary_bar, salary_shift, created_at, updated_at FROM users WHERE phone=?`
 	var u models.User
-	err := r.db.QueryRowContext(ctx, query, phone).Scan(&u.ID, &u.Name, &u.Phone, &u.Password, &u.Role, &u.SalaryHookah, &u.SalaryBar, &u.SalaryShift, &u.CreatedAt, &u.UpdatedAt)
+	var permStr sql.NullString
+	err := r.db.QueryRowContext(ctx, query, phone).Scan(&u.ID, &u.Name, &u.Phone, &u.Password, &u.Role, &permStr, &u.SalaryHookah, &u.SalaryBar, &u.SalaryShift, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
+	}
+	if permStr.Valid && permStr.String != "" {
+		u.Permissions = strings.Split(permStr.String, ",")
 	}
 	return &u, nil
 }
