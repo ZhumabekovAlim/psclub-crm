@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"golang.org/x/crypto/bcrypt"
 	"psclub-crm/internal/models"
 )
 
@@ -89,11 +90,39 @@ func (r *UserRepository) Update(ctx context.Context, u *models.User) error {
 		return err
 	}
 
-	query := `UPDATE users SET name=?, phone=?, password=?, role=?, permissions=?, salary_hookah=?, salary_bar=?, salary_shift=?, updated_at=NOW() WHERE id=?`
-	_, err = r.db.ExecContext(ctx, query,
-		u.Name, u.Phone, u.Password, u.Role, permissionsJSON,
-		u.SalaryHookah, u.SalaryBar, u.SalaryShift, u.ID)
+	var query string
+	var args []interface{}
 
+	if u.Password == "" {
+		query = `
+			UPDATE users 
+			SET name=?, phone=?, role=?, permissions=?, 
+				salary_hookah=?, salary_bar=?, salary_shift=?, updated_at=NOW() 
+			WHERE id=?`
+		args = []interface{}{
+			u.Name, u.Phone, u.Role, permissionsJSON,
+			u.SalaryHookah, u.SalaryBar, u.SalaryShift, u.ID,
+		}
+	} else {
+
+		hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), 12)
+		if err != nil {
+			return err
+		}
+		u.Password = string(hashed)
+
+		query = `
+			UPDATE users 
+			SET name=?, phone=?, password=?, role=?, permissions=?, 
+				salary_hookah=?, salary_bar=?, salary_shift=?, updated_at=NOW() 
+			WHERE id=?`
+		args = []interface{}{
+			u.Name, u.Phone, u.Password, u.Role, permissionsJSON,
+			u.SalaryHookah, u.SalaryBar, u.SalaryShift, u.ID,
+		}
+	}
+
+	_, err = r.db.ExecContext(ctx, query, args...)
 	return err
 }
 
