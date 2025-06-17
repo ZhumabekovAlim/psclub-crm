@@ -17,14 +17,14 @@ func NewSettingsRepository(db *sql.DB) *SettingsRepository {
 func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) {
 	// Получить текущие настройки + имя текущей платежной системы
 	query := `
-		SELECT s.id, s.payment_type, s.block_time, s.bonus_percent, s.work_time_from, s.work_time_to, pt.name 
+		SELECT s.id, s.payment_type, s.block_time, s.bonus_percent, s.work_time_from, s.work_time_to
 		FROM settings s 	
 		JOIN payment_types pt ON s.payment_type = pt.id
 		LIMIT 1
 	`
 	var s models.Settings
 	err := r.db.QueryRowContext(ctx, query).Scan(
-		&s.ID, &s.PaymentType, &s.BlockTime, &s.BonusPercent, &s.WorkTimeFrom, &s.WorkTimeTo, &s.PaymentName,
+		&s.ID, &s.PaymentType, &s.BlockTime, &s.BonusPercent, &s.WorkTimeFrom, &s.WorkTimeTo,
 	)
 	if err != nil {
 		return nil, err
