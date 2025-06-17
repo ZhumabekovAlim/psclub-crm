@@ -118,3 +118,26 @@ func (r *PriceSetRepository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM price_sets WHERE id=?`, id)
 	return err
 }
+
+// GetByItem returns all sets that include the given item.
+func (r *PriceSetRepository) GetByItem(ctx context.Context, itemID int) ([]models.PriceSet, error) {
+	query := `SELECT ps.id, ps.name, ps.category_id, ps.subcategory_id, ps.price
+                 FROM price_sets ps
+                 JOIN set_items si ON ps.id = si.price_set_id
+                 WHERE si.item_id = ?`
+	rows, err := r.db.QueryContext(ctx, query, itemID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var sets []models.PriceSet
+	for rows.Next() {
+		var s models.PriceSet
+		if err := rows.Scan(&s.ID, &s.Name, &s.CategoryID, &s.SubcategoryID, &s.Price); err != nil {
+			return nil, err
+		}
+		s.Items, _ = r.getItems(ctx, s.ID)
+		sets = append(sets, s)
+	}
+	return sets, nil
+}

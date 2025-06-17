@@ -89,13 +89,19 @@ func (r *PriceItemRepository) DecreaseStock(ctx context.Context, id int, amount 
 	return nil
 }
 
+// SetStock overrides the current quantity with the provided value.
+func (r *PriceItemRepository) SetStock(ctx context.Context, id int, quantity int) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE price_items SET quantity=? WHERE id=?`, quantity, id)
+	return err
+}
+
 func (r *PriceItemRepository) GetByCategory(ctx context.Context, categoryID int) ([]models.PriceItem, error) {
 
 	query := `SELECT pi.id, pi.name, pi.category_id, subcategory_id, quantity, sale_price, buy_price, is_set, s.name AS subcategory_name
                 FROM price_items pi
                 JOIN subcategories s ON pi.subcategory_id = s.id
                 WHERE pi.category_id = ? ORDER BY id`
-  
+
 	rows, err := r.db.QueryContext(ctx, query, categoryID)
 	if err != nil {
 		return nil, err
