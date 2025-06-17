@@ -21,7 +21,7 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
-	f, err := os.Open("C:\\Users\\alimz\\GolandProjects\\clean_mobile_app\\config\\config.yaml")
+	f, err := os.Open("./config/config.yaml")
 	if err != nil {
 		panic(err)
 	}

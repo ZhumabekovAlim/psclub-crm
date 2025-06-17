@@ -2,7 +2,7 @@ server:
   port: 4000
 
 database:
-  dsn: "root:@tcp(localhost:3306)/ps_crm?parseTime=true"
+  dsn: "crmuser:crmpass@tcp(db:3306)/psclub?parseTime=true"
 
 auth:
   access_secret: "accesssecret"

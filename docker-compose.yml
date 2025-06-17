@@ -44,7 +44,10 @@ services:
       APP_PORT: ${APP_PORT}
     ports:
       - "${APP_PORT}:4000"
-    command: [ "./app" ]
-
+    command: ["./wait-for-mysql.sh", "./app" ]
+    volumes:
+      - ./config:/app/config
+      - ./wait-for-mysql.sh:/app/wait-for-mysql.sh
 volumes:
   dbdata:
+

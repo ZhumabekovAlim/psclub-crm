@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(30) NOT NULL,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL,
-    permissions TEXT,
     salary_hookah DOUBLE DEFAULT 0,
     salary_bar DOUBLE DEFAULT 0,
     salary_shift INT DEFAULT 0,
