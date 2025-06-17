@@ -63,6 +63,7 @@ func (r *PricelistHistoryRepository) GetByCategory(ctx context.Context, category
 	query := `SELECT ph.id, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.created_at
                 FROM pricelist_history ph
                 JOIN price_items pi ON ph.price_item_id = pi.id
+                JOIN users u ON ph.user_id = u.id
                 WHERE pi.category_id = ? ORDER BY ph.id DESC`
 	rows, err := r.db.QueryContext(ctx, query, categoryID)
 	if err != nil {
@@ -72,11 +73,10 @@ func (r *PricelistHistoryRepository) GetByCategory(ctx context.Context, category
 	var result []models.PricelistHistory
 	for rows.Next() {
 		var h models.PricelistHistory
-		if err := rows.Scan(&h.ID, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CreatedAt); err != nil {
+		if err := rows.Scan(&h.ID, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CreatedAt, &h.UserName); err != nil {
 			return nil, err
 		}
 		result = append(result, h)
 	}
 	return result, nil
 }
-

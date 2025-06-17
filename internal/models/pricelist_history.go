@@ -10,4 +10,5 @@ type PricelistHistory struct {
 	Total       float64   `json:"total"`
 	UserID      int       `json:"user_id"`
 	CreatedAt   time.Time `json:"created_at"`
+	UserName    string    `json:"user_name,omitempty"`
 }
