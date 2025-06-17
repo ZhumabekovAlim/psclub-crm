@@ -31,8 +31,8 @@ func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories
 }
 
 type stockChange struct {
-	itemID int
-	amount int
+	id  int
+	qty int
 }
 
 func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (int, error) {
@@ -110,10 +110,9 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	if err := s.decreaseStock(ctx, b.Items); err != nil {
 		return err
 	}
-	if err := s.repo.Update(ctx, b); err != nil {
-		// rollback stock on failure
-		s.increaseStock(ctx, b.Items)
-		return err
+	var changes []stockChange
+		changes = append(changes, stockChange{id: it.ItemID, qty: it.Quantity})
+				changes = append(changes, stockChange{id: si.ItemID, qty: si.Quantity * it.Quantity})
 	}
 	return nil
 
@@ -208,10 +207,10 @@ func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[i
 			if err := s.priceItemRepo.SetStock(ctx, set.ID, qty); err != nil {
 				return err
 			}
-			updated[set.ID] = struct{}{}
-		}
-	}
-	return nil
+func (s *BookingService) restoreChanges(ctx context.Context, changes []stockChange) {
+	var changes []stockChange
+		changes = append(changes, stockChange{id: it.ItemID, qty: it.Quantity})
+				changes = append(changes, stockChange{id: si.ItemID, qty: si.Quantity * it.Quantity})
 }
 
 
