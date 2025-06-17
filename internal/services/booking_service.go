@@ -145,6 +145,10 @@ func (s *BookingService) decreaseStock(ctx context.Context, items []models.Booki
 
 	affected := make(map[int]struct{})
 	for _, it := range items {
+		if it.Quantity <= 0 {
+			continue
+		}
+
 		pi, err := s.priceItemRepo.GetByID(ctx, it.ItemID)
 		if err != nil {
 			s.restoreChanges(ctx, changes)
