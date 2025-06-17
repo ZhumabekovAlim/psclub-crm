@@ -18,6 +18,7 @@ type Booking struct {
 	PaymentTypeID  int           `json:"payment_type_id"`
 	CreatedAt      time.Time     `json:"created_at"`
 	UpdatedAt      time.Time     `json:"updated_at"`
+	ClientName     string        `json:"client_name,omitempty"`
 	Items          []BookingItem `json:"items,omitempty"`
 }
 
