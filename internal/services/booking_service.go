@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"log"
 	"math"
 	"time"
 
@@ -31,28 +32,29 @@ func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories
 }
 
 type stockChange struct {
-
 	id  int
 	qty int
-
 }
 
 func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (int, error) {
 	// получить настройки для бонуса
 	settings, err := s.settingsRepo.Get(ctx)
 	if err != nil {
+		log.Printf("settings get error: %v", err)
 		return 0, err
 	}
 	if err := s.checkStock(ctx, b.Items); err != nil {
+		log.Printf("check stock error: %v", err)
 		return 0, err
 	}
 	id, err := s.repo.CreateWithItems(ctx, b)
 	if err != nil {
+		log.Printf("repository create error: %v", err)
 		return 0, err
 	}
 	if err := s.decreaseStock(ctx, b.Items); err != nil {
 		_ = s.repo.Delete(ctx, id)
-
+		log.Printf("decrease stock error: %v", err)
 		return 0, err
 	}
 	// Списываем использованные бонусы
@@ -219,7 +221,6 @@ func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[i
 	return nil
 }
 
-
 func (s *BookingService) checkStock(ctx context.Context, items []models.BookingItem) error {
 	for _, it := range items {
 		pi, err := s.priceItemRepo.GetByID(ctx, it.ItemID)
@@ -285,4 +286,3 @@ func (s *BookingService) increaseStock(ctx context.Context, items []models.Booki
 	}
 	s.restoreChanges(ctx, changes) // update sets after restocking
 }
-

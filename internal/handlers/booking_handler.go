@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
@@ -20,11 +21,13 @@ func NewBookingHandler(s *services.BookingService) *BookingHandler {
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	var b models.Booking
 	if err := c.ShouldBindJSON(&b); err != nil {
+		log.Printf("create booking bind error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	id, err := h.service.CreateBooking(c.Request.Context(), &b)
 	if err != nil {
+		log.Printf("create booking service error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
