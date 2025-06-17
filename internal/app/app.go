@@ -10,7 +10,7 @@ import (
 	"psclub-crm/internal/routes"
 	"psclub-crm/internal/services"
 	"time"
-
+	"psclub-crm/internal/middleware"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -111,12 +111,10 @@ func Run() {
 	reportHandler := handlers.NewReportHandler(reportService)
 
 	// ========== Роутер и middlewares ==========
-
-	router := gin.Default()
-	router.Use(gin.Logger())
+	router := gin.New()
+	router.Use(middleware.RequestLogger())
 	router.Use(gin.Recovery())
 	router.Use(corsMiddleware())
-
 	routes.SetupRoutes(
 		router,
 		authHandler,

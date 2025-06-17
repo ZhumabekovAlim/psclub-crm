@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"time"
-
+	"log"
 	"golang.org/x/crypto/bcrypt"
 
 	"psclub-crm/internal/models"
@@ -57,7 +57,7 @@ func (s *AuthService) Register(ctx context.Context, u *models.User) (string, str
 		u.Permissions = []string{"bar", "hookah", "sets"}
 	}
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), 12)
 	if err != nil {
 		return "", "", err
 	}
@@ -77,10 +77,13 @@ func (s *AuthService) Login(ctx context.Context, phone, password string) (string
 		return "", "", err
 	}
 	if u == nil {
-		return "", "", errors.New("invalid credentials")
+		return "", "", errors.New("invalid credentials1")
 	}
+	
+	log.Printf("login attempt:password=%s, user = %s", u.Password, u.Phone)
+
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
-		return "", "", errors.New("invalid credentials")
+		return "", "", errors.New("invalid credentials2")
 	}
 	return s.generateTokenPair(ctx, u.ID)
 }
