@@ -44,8 +44,23 @@ type UserSales struct {
 	Salary      int    `json:"salary"`
 }
 
+type ExpenseTotal struct {
+	Title string  `json:"title"`
+	Total float64 `json:"total"`
+}
+
+type CategoryIncome struct {
+	Category string  `json:"category"`
+	Total    float64 `json:"total"`
+}
+
 type SalesReport struct {
-	Users []UserSales `json:"users"`
+	Users            []UserSales      `json:"users"`
+	Expenses         []ExpenseTotal   `json:"expenses,omitempty"`
+	IncomeByCategory []CategoryIncome `json:"income_by_category,omitempty"`
+	TotalIncome      float64          `json:"total_income,omitempty"`
+	TotalExpenses    float64          `json:"total_expenses,omitempty"`
+	NetProfit        float64          `json:"net_profit,omitempty"`
 }
 
 type AnalyticsReport struct {
