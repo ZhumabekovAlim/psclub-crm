@@ -17,17 +17,22 @@ func NewReportRepository(db *sql.DB) *ReportRepository {
 }
 
 // --- SummaryReport ---
-func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time) (*models.SummaryReport, error) {
+func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time, userID int) (*models.SummaryReport, error) {
 	var result models.SummaryReport
 
-	err := r.db.QueryRowContext(ctx, `
+	query := `
         SELECT
             COALESCE(SUM(total_amount),0) as total_revenue,
             COUNT(DISTINCT client_id) as total_clients,
             COALESCE(ROUND(AVG(total_amount)), 0) as avg_check
         FROM bookings
-        WHERE created_at BETWEEN ? AND ?
-    `, from, to).Scan(
+        WHERE created_at BETWEEN ? AND ?`
+	args := []interface{}{from, to}
+	if userID > 0 {
+		query += " AND user_id = ?"
+		args = append(args, userID)
+	}
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&result.TotalRevenue, &result.TotalClients, &result.AvgCheck,
 	)
 	if err != nil {
@@ -36,7 +41,13 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Calculate load percent
 	var bookingsCount int
-	_ = r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM bookings WHERE created_at BETWEEN ? AND ?`, from, to).Scan(&bookingsCount)
+	countQuery := `SELECT COUNT(*) FROM bookings WHERE created_at BETWEEN ? AND ?`
+	countArgs := []interface{}{from, to}
+	if userID > 0 {
+		countQuery += " AND user_id = ?"
+		countArgs = append(countArgs, userID)
+	}
+	_ = r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&bookingsCount)
 
 	var tableCount int
 	_ = r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM tables`).Scan(&tableCount)
@@ -60,15 +71,21 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Age groups
 	var under18, age18to25, age26to35, age36Plus int
-	_ = r.db.QueryRowContext(ctx, `
+	ageQuery := `
                 SELECT
                     SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) < 18 THEN 1 ELSE 0 END),
                     SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) BETWEEN 18 AND 25 THEN 1 ELSE 0 END),
                     SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) BETWEEN 26 AND 35 THEN 1 ELSE 0 END),
                     SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) > 35 THEN 1 ELSE 0 END)
                 FROM clients
-                WHERE id IN (SELECT DISTINCT client_id FROM bookings WHERE created_at BETWEEN ? AND ?)
-        `, from, to).Scan(&under18, &age18to25, &age26to35, &age36Plus)
+                WHERE id IN (SELECT DISTINCT client_id FROM bookings WHERE created_at BETWEEN ? AND ?`
+	ageArgs := []interface{}{from, to}
+	if userID > 0 {
+		ageQuery += " AND user_id = ?"
+		ageArgs = append(ageArgs, userID)
+	}
+	ageQuery += ")"
+	_ = r.db.QueryRowContext(ctx, ageQuery, ageArgs...).Scan(&under18, &age18to25, &age26to35, &age36Plus)
 	totalClients := result.TotalClients
 	if totalClients > 0 {
 		result.AgeUnder18 = float64(under18) * 100 / float64(totalClients)
@@ -78,14 +95,20 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	}
 
 	// Category sales
-	catRows, _ := r.db.QueryContext(ctx, `
+	catQuery := `
                 SELECT categories.name, SUM(booking_items.price * booking_items.quantity)
                 FROM booking_items
+                LEFT JOIN bookings ON booking_items.booking_id = bookings.id
                 LEFT JOIN price_items ON booking_items.item_id = price_items.id
                 LEFT JOIN categories ON price_items.category_id = categories.id
-                WHERE booking_items.created_at BETWEEN ? AND ?
-                GROUP BY categories.name
-        `, from, to)
+                WHERE booking_items.created_at BETWEEN ? AND ?`
+	catArgs := []interface{}{from, to}
+	if userID > 0 {
+		catQuery += " AND bookings.user_id = ?"
+		catArgs = append(catArgs, userID)
+	}
+	catQuery += " GROUP BY categories.name"
+	catRows, _ := r.db.QueryContext(ctx, catQuery, catArgs...)
 	var catSales []models.CategorySale
 	for catRows.Next() {
 		var name string
@@ -96,19 +119,26 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	result.CategorySales = catSales
 
 	// Top items by profit
-	itemRows, _ := r.db.QueryContext(ctx, `
+	itemQuery := `
                 SELECT price_items.name,
                        SUM(booking_items.quantity),
                        SUM(booking_items.price * booking_items.quantity),
                        SUM(price_items.buy_price * booking_items.quantity),
                        SUM((booking_items.price - price_items.buy_price) * booking_items.quantity)
                 FROM booking_items
+                LEFT JOIN bookings ON booking_items.booking_id = bookings.id
                 LEFT JOIN price_items ON booking_items.item_id = price_items.id
-                WHERE booking_items.created_at BETWEEN ? AND ?
+                WHERE booking_items.created_at BETWEEN ? AND ?`
+	itemArgs := []interface{}{from, to}
+	if userID > 0 {
+		itemQuery += " AND bookings.user_id = ?"
+		itemArgs = append(itemArgs, userID)
+	}
+	itemQuery += `
                 GROUP BY price_items.name
                 ORDER BY SUM((booking_items.price - price_items.buy_price) * booking_items.quantity) DESC
-                LIMIT 5
-        `, from, to)
+                LIMIT 5`
+	itemRows, _ := r.db.QueryContext(ctx, itemQuery, itemArgs...)
 	var topItems []models.ProfitItem
 	for itemRows.Next() {
 		var it models.ProfitItem
@@ -120,10 +150,15 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	var prevRevenue, prevClients, prevAvgCheck int
 	prevFrom := from.Add(-(to.Sub(from)))
 	prevTo := from
-	_ = r.db.QueryRowContext(ctx, `
+	prevQuery := `
         SELECT COALESCE(SUM(total_amount),0), COUNT(DISTINCT client_id), COALESCE(AVG(total_amount),0)
-        FROM bookings WHERE created_at BETWEEN ? AND ?
-    `, prevFrom, prevTo).Scan(&prevRevenue, &prevClients, &prevAvgCheck)
+        FROM bookings WHERE created_at BETWEEN ? AND ?`
+	prevArgs := []interface{}{prevFrom, prevTo}
+	if userID > 0 {
+		prevQuery += " AND user_id = ?"
+		prevArgs = append(prevArgs, userID)
+	}
+	_ = r.db.QueryRowContext(ctx, prevQuery, prevArgs...).Scan(&prevRevenue, &prevClients, &prevAvgCheck)
 	if prevRevenue > 0 {
 		result.RevenueChange = float64(result.TotalRevenue-prevRevenue) * 100.0 / float64(prevRevenue)
 	}
@@ -138,7 +173,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 }
 
 // --- AdminsReport ---
-func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time) (*models.AdminsReport, error) {
+func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time, userID int) (*models.AdminsReport, error) {
 	// Пример: возвращаем двух админов, статично
 	report := &models.AdminsReport{
 		Admins: []models.AdminReportRow{
@@ -150,7 +185,7 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time)
 }
 
 // --- SalesReport ---
-func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time) (*models.SalesReport, error) {
+func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, userID int) (*models.SalesReport, error) {
 	userQuery := `
         SELECT u.name,
                COUNT(DISTINCT DATE(b.start_time)) AS days,
@@ -164,9 +199,15 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time) 
         LEFT JOIN booking_items bi ON b.id = bi.booking_id
         LEFT JOIN price_items pi ON bi.item_id = pi.id
         LEFT JOIN categories ON pi.category_id = categories.id
-        WHERE b.created_at BETWEEN ? AND ?
+        WHERE b.created_at BETWEEN ? AND ?`
+	userArgs := []interface{}{from, to}
+	if userID > 0 {
+		userQuery += " AND b.user_id = ?"
+		userArgs = append(userArgs, userID)
+	}
+	userQuery += `
         GROUP BY u.id, u.name`
-	rows, err := r.db.QueryContext(ctx, userQuery, from, to)
+	rows, err := r.db.QueryContext(ctx, userQuery, userArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -199,13 +240,21 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time) 
 		totalExp += e.Total
 	}
 
-	catRows, err := r.db.QueryContext(ctx, `
+	catQuery2 := `
         SELECT categories.name, SUM(bi.price * bi.quantity)
         FROM booking_items bi
+        LEFT JOIN bookings b ON bi.booking_id = b.id
         LEFT JOIN price_items pi ON bi.item_id = pi.id
         LEFT JOIN categories ON pi.category_id = categories.id
-        WHERE bi.created_at BETWEEN ? AND ?
-        GROUP BY categories.name`, from, to)
+        WHERE bi.created_at BETWEEN ? AND ?`
+	catArgs2 := []interface{}{from, to}
+	if userID > 0 {
+		catQuery2 += " AND b.user_id = ?"
+		catArgs2 = append(catArgs2, userID)
+	}
+	catQuery2 += `
+        GROUP BY categories.name`
+	catRows, err := r.db.QueryContext(ctx, catQuery2, catArgs2...)
 	if err != nil {
 		return nil, err
 	}
@@ -235,14 +284,20 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time) 
 }
 
 // --- AnalyticsReport ---
-func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Time) (*models.AnalyticsReport, error) {
+func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Time, userID int) (*models.AnalyticsReport, error) {
 	// Daily revenue
-	dailyRows, _ := r.db.QueryContext(ctx, `
+	dailyQuery := `
         SELECT DATE(created_at), SUM(total_amount) FROM bookings
-        WHERE created_at BETWEEN ? AND ?
+        WHERE created_at BETWEEN ? AND ?`
+	dailyArgs := []interface{}{from, to}
+	if userID > 0 {
+		dailyQuery += " AND user_id = ?"
+		dailyArgs = append(dailyArgs, userID)
+	}
+	dailyQuery += `
         GROUP BY DATE(created_at)
-        ORDER BY DATE(created_at)
-    `, from, to)
+        ORDER BY DATE(created_at)`
+	dailyRows, _ := r.db.QueryContext(ctx, dailyQuery, dailyArgs...)
 	var daily []models.DataPoint
 	for dailyRows.Next() {
 		var day string
@@ -252,12 +307,18 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 	}
 
 	// Hourly load
-	hourlyRows, _ := r.db.QueryContext(ctx, `
+	hourlyQuery := `
         SELECT HOUR(start_time), COUNT(*) FROM bookings
-        WHERE created_at BETWEEN ? AND ?
+        WHERE created_at BETWEEN ? AND ?`
+	hourlyArgs := []interface{}{from, to}
+	if userID > 0 {
+		hourlyQuery += " AND user_id = ?"
+		hourlyArgs = append(hourlyArgs, userID)
+	}
+	hourlyQuery += `
         GROUP BY HOUR(start_time)
-        ORDER BY HOUR(start_time)
-    `, from, to)
+        ORDER BY HOUR(start_time)`
+	hourlyRows, _ := r.db.QueryContext(ctx, hourlyQuery, hourlyArgs...)
 	var hourly []models.DataPoint
 	for hourlyRows.Next() {
 		var hour int
@@ -267,14 +328,21 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 	}
 
 	// Category stats
-	catRows, _ := r.db.QueryContext(ctx, `
+	catQuery := `
         SELECT categories.name, SUM(booking_items.quantity), SUM(booking_items.price * booking_items.quantity)
         FROM booking_items
+        LEFT JOIN bookings ON booking_items.booking_id = bookings.id
         LEFT JOIN price_items ON booking_items.item_id = price_items.id
         LEFT JOIN categories ON price_items.category_id = categories.id
-        WHERE booking_items.created_at BETWEEN ? AND ?
-        GROUP BY categories.name
-    `, from, to)
+        WHERE booking_items.created_at BETWEEN ? AND ?`
+	catArgs := []interface{}{from, to}
+	if userID > 0 {
+		catQuery += " AND bookings.user_id = ?"
+		catArgs = append(catArgs, userID)
+	}
+	catQuery += `
+        GROUP BY categories.name`
+	catRows, _ := r.db.QueryContext(ctx, catQuery, catArgs...)
 	var cats []models.CategoryStat
 	for catRows.Next() {
 		var name string
@@ -296,20 +364,31 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 }
 
 // --- DiscountsReport ---
-func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Time) (*models.DiscountsReport, error) {
+func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Time, userID int) (*models.DiscountsReport, error) {
 	var total, count, avg int
-	_ = r.db.QueryRowContext(ctx, `
+	sumQuery := `
         SELECT COALESCE(SUM(discount),0), COUNT(*), COALESCE(AVG(discount),0)
         FROM bookings
-        WHERE discount > 0 AND created_at BETWEEN ? AND ?
-    `, from, to).Scan(&total, &count, &avg)
+        WHERE discount > 0 AND created_at BETWEEN ? AND ?`
+	sumArgs := []interface{}{from, to}
+	if userID > 0 {
+		sumQuery += " AND user_id = ?"
+		sumArgs = append(sumArgs, userID)
+	}
+	_ = r.db.QueryRowContext(ctx, sumQuery, sumArgs...).Scan(&total, &count, &avg)
 
-	rows, _ := r.db.QueryContext(ctx, `
+	reasonQuery := `
         SELECT discount_reason, COUNT(*), SUM(discount), COALESCE(AVG(discount),0)
         FROM bookings
-        WHERE discount > 0 AND created_at BETWEEN ? AND ?
-        GROUP BY discount_reason ORDER BY SUM(discount) DESC LIMIT 5
-    `, from, to)
+        WHERE discount > 0 AND created_at BETWEEN ? AND ?`
+	reasonArgs := []interface{}{from, to}
+	if userID > 0 {
+		reasonQuery += " AND user_id = ?"
+		reasonArgs = append(reasonArgs, userID)
+	}
+	reasonQuery += `
+        GROUP BY discount_reason ORDER BY SUM(discount) DESC LIMIT 5`
+	rows, _ := r.db.QueryContext(ctx, reasonQuery, reasonArgs...)
 	var reasons []models.ReasonRow
 	for rows.Next() {
 		var reason sql.NullString
@@ -320,12 +399,18 @@ func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Ti
 		})
 	}
 
-	distRows, _ := r.db.QueryContext(ctx, `
+	distQuery := `
         SELECT discount, COUNT(*) FROM bookings
-        WHERE discount > 0 AND created_at BETWEEN ? AND ?
+        WHERE discount > 0 AND created_at BETWEEN ? AND ?`
+	distArgs := []interface{}{from, to}
+	if userID > 0 {
+		distQuery += " AND user_id = ?"
+		distArgs = append(distArgs, userID)
+	}
+	distQuery += `
         GROUP BY discount
-        ORDER BY discount DESC
-    `, from, to)
+        ORDER BY discount DESC`
+	distRows, _ := r.db.QueryContext(ctx, distQuery, distArgs...)
 	var dist []models.DataPoint
 	for distRows.Next() {
 		var sum, cnt int
@@ -336,13 +421,20 @@ func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Ti
 	}
 
 	// Retrieve all orders with a discount within the period
-	orderRows, err := r.db.QueryContext(ctx, `
+	orderQuery := `
         SELECT id, client_id, table_id, user_id, start_time, end_time, note,
                discount, discount_reason, total_amount, bonus_used,
                payment_status, payment_type_id, created_at, updated_at
         FROM bookings
-        WHERE discount > 0 AND created_at BETWEEN ? AND ?
-        ORDER BY created_at DESC`, from, to)
+        WHERE discount > 0 AND created_at BETWEEN ? AND ?`
+	orderArgs := []interface{}{from, to}
+	if userID > 0 {
+		orderQuery += " AND user_id = ?"
+		orderArgs = append(orderArgs, userID)
+	}
+	orderQuery += `
+        ORDER BY created_at DESC`
+	orderRows, err := r.db.QueryContext(ctx, orderQuery, orderArgs...)
 	if err != nil {
 		return nil, err
 	}
