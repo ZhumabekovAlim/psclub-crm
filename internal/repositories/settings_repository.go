@@ -18,8 +18,8 @@ func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 	// Получить текущие настройки + имя текущей платежной системы
 	query := `
 		SELECT s.id, s.payment_type, s.block_time, s.bonus_percent, s.work_time_from, s.work_time_to, pt.name 
-		FROM settings s 
-		LEFT JOIN payment_types pt ON s.payment_type = pt.id
+		FROM settings s 	
+		JOIN payment_types pt ON s.payment_type = pt.id
 		LIMIT 1
 	`
 	var s models.Settings
