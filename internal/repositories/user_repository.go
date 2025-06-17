@@ -36,7 +36,7 @@ func (r *UserRepository) Create(ctx context.Context, u *models.User) (int, error
 }
 
 func (r *UserRepository) GetAll(ctx context.Context) ([]models.User, error) {
-	query := `SELECT id, name, phone, password, role, permissions, salary_hookah, salary_bar, salary_shift, created_at, updated_at FROM users ORDER BY id`
+	query := `SELECT id, name, phone, password, role, permissions, salary_hookah, salary_bar, salary_shift, created_at, updated_at FROM users WHERE role != 'director' ORDER BY id`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
