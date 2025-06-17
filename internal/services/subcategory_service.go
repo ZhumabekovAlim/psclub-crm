@@ -26,6 +26,10 @@ func (s *SubcategoryService) GetSubcategoryByID(ctx context.Context, id int) (*m
 	return s.repo.GetByID(ctx, id)
 }
 
+func (s *SubcategoryService) GetSubcategoryByCategoryID(ctx context.Context, id int) (*models.Subcategory, error) {
+	return s.repo.GetSubcategoryByCategoryID(ctx, id)
+}
+
 func (s *SubcategoryService) UpdateSubcategory(ctx context.Context, sub *models.Subcategory) error {
 	return s.repo.Update(ctx, sub)
 }

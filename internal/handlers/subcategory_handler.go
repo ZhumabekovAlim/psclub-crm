@@ -58,6 +58,20 @@ func (h *SubcategoryHandler) GetSubcategoryByID(c *gin.Context) {
 	c.JSON(http.StatusOK, subcategory)
 }
 
+func (h *SubcategoryHandler) GetSubcategoryByCategoryID(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	subcategory, err := h.service.GetSubcategoryByCategoryID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, subcategory)
+}
+
 // PUT /api/subcategories/:id
 func (h *SubcategoryHandler) UpdateSubcategory(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))

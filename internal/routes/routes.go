@@ -88,6 +88,7 @@ func SetupRoutes(
 		subcategories.POST("", subCategoryHandler.CreateSubcategory)
 		subcategories.GET("", subCategoryHandler.GetAllSubcategories)
 		subcategories.GET("/:id", subCategoryHandler.GetSubcategoryByID)
+		subcategories.GET("/category/:id", subCategoryHandler.GetSubcategoryByCategoryID)
 		subcategories.PUT("/:id", subCategoryHandler.UpdateSubcategory)
 		subcategories.DELETE("/:id", subCategoryHandler.DeleteSubcategory)
 	}
