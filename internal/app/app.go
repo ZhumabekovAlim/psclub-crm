@@ -89,6 +89,8 @@ func Run() {
 		bookingItemRepo,
 		clientRepo,
 		settingsRepo,
+		priceRepo,
+		priceSetRepo,
 	)
 	bookingHandler := handlers.NewBookingHandler(bookingService)
 
