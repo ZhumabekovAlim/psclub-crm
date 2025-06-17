@@ -30,10 +30,18 @@ func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories
 	}
 }
 
+type stockChange struct {
+	itemID int
+	amount int
+}
+
 func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (int, error) {
 	// получить настройки для бонуса
 	settings, err := s.settingsRepo.Get(ctx)
 	if err != nil {
+		return 0, err
+	}
+	if err := s.checkStock(ctx, b.Items); err != nil {
 		return 0, err
 	}
 	id, err := s.repo.CreateWithItems(ctx, b)
@@ -41,6 +49,8 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 		return 0, err
 	}
 	if err := s.decreaseStock(ctx, b.Items); err != nil {
+		_ = s.repo.Delete(ctx, id)
+======
 		return 0, err
 	}
 	// Списываем использованные бонусы
@@ -93,10 +103,20 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	if time.Now().After(limit) {
 		return errors.New("booking can no longer be modified")
 	}
-	if err := s.repo.Update(ctx, b); err != nil {
+
+	if err := s.checkStock(ctx, b.Items); err != nil {
 		return err
 	}
-	return s.decreaseStock(ctx, b.Items)
+	if err := s.decreaseStock(ctx, b.Items); err != nil {
+		return err
+	}
+	if err := s.repo.Update(ctx, b); err != nil {
+		// rollback stock on failure
+		s.increaseStock(ctx, b.Items)
+		return err
+	}
+	return nil
+
 }
 
 func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
@@ -116,30 +136,48 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 }
 
 func (s *BookingService) decreaseStock(ctx context.Context, items []models.BookingItem) error {
+
+	type change struct{ id, qty int }
+	var changes []change
+
 	affected := make(map[int]struct{})
 	for _, it := range items {
 		pi, err := s.priceItemRepo.GetByID(ctx, it.ItemID)
 		if err != nil {
+			s.restoreChanges(ctx, changes)
 			return err
 		}
 		if err := s.priceItemRepo.DecreaseStock(ctx, it.ItemID, it.Quantity); err != nil {
+			s.restoreChanges(ctx, changes)
 			return err
 		}
+		changes = append(changes, change{it.ItemID, it.Quantity})
+
 		affected[it.ItemID] = struct{}{}
 		if pi.IsSet {
 			set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
 			if err != nil {
-				continue
+
+				return err
 			}
 			for _, si := range set.Items {
 				if err := s.priceItemRepo.DecreaseStock(ctx, si.ItemID, si.Quantity*it.Quantity); err != nil {
+					s.restoreChanges(ctx, changes)
 					return err
 				}
+				changes = append(changes, change{si.ItemID, si.Quantity * it.Quantity})
+
 				affected[si.ItemID] = struct{}{}
 			}
 		}
 	}
-	return s.updateSetQuantities(ctx, affected)
+
+	if err := s.updateSetQuantities(ctx, affected); err != nil {
+		s.restoreChanges(ctx, changes)
+		return err
+	}
+	return nil
+
 }
 
 func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[int]struct{}) error {
@@ -175,3 +213,65 @@ func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[i
 	}
 	return nil
 }
+
+
+func (s *BookingService) checkStock(ctx context.Context, items []models.BookingItem) error {
+	for _, it := range items {
+		pi, err := s.priceItemRepo.GetByID(ctx, it.ItemID)
+		if err != nil {
+			return err
+		}
+		if pi.Quantity < it.Quantity {
+			return errors.New("insufficient stock")
+		}
+		if pi.IsSet {
+			set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
+			if err != nil {
+				return err
+			}
+			for _, si := range set.Items {
+				sub, err := s.priceItemRepo.GetByID(ctx, si.ItemID)
+				if err != nil {
+					return err
+				}
+				if sub.Quantity < si.Quantity*it.Quantity {
+					return errors.New("insufficient stock")
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (s *BookingService) restoreChanges(ctx context.Context, changes []struct{ id, qty int }) {
+	affected := make(map[int]struct{})
+	for _, c := range changes {
+		_ = s.priceItemRepo.IncreaseStock(ctx, c.id, c.qty)
+		affected[c.id] = struct{}{}
+	}
+	_ = s.updateSetQuantities(ctx, affected)
+}
+
+func (s *BookingService) increaseStock(ctx context.Context, items []models.BookingItem) {
+	var changes []struct{ id, qty int }
+	for _, it := range items {
+		pi, err := s.priceItemRepo.GetByID(ctx, it.ItemID)
+		if err != nil {
+			continue
+		}
+		_ = s.priceItemRepo.IncreaseStock(ctx, it.ItemID, it.Quantity)
+		changes = append(changes, struct{ id, qty int }{it.ItemID, it.Quantity})
+		if pi.IsSet {
+			set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
+			if err != nil {
+				continue
+			}
+			for _, si := range set.Items {
+				_ = s.priceItemRepo.IncreaseStock(ctx, si.ItemID, si.Quantity*it.Quantity)
+				changes = append(changes, struct{ id, qty int }{si.ItemID, si.Quantity * it.Quantity})
+			}
+		}
+	}
+	s.restoreChanges(ctx, changes) // update sets after restocking
+}
+
