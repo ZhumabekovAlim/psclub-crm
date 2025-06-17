@@ -26,8 +26,8 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 		return
 	}
 	for _, it := range b.Items {
-		if it.Quantity <= 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid item quantity"})
+		if it.Quantity < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "quantity cannot be negative"})
 			return
 		}
 	}
