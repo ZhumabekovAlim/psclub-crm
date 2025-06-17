@@ -97,6 +97,10 @@ func (s *PriceItemService) GetPricelistHistoryByItem(ctx context.Context, id int
 	return s.plHistoryRepo.GetByItem(ctx, id)
 }
 
+func (s *PriceItemService) GetPricelistHistoryByCategory(ctx context.Context, categoryID int) ([]models.PricelistHistory, error) {
+	return s.plHistoryRepo.GetByCategory(ctx, categoryID)
+}
+
 // GetAllPricelistHistory returns all replenish records
 func (s *PriceItemService) GetAllPricelistHistory(ctx context.Context) ([]models.PricelistHistory, error) {
 	return s.plHistoryRepo.GetAll(ctx)
