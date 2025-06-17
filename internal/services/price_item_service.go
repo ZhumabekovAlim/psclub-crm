@@ -76,7 +76,6 @@ func (s *PriceItemService) GetHistoryByItem(ctx context.Context, priceItemID int
 func (s *PriceItemService) GetAllHistory(ctx context.Context) ([]models.PriceItemHistory, error) {
 	return s.historyRepo.GetAll(ctx)
 }
-
 // CreatePricelistHistory saves a replenishment record without changing stock
 func (s *PriceItemService) CreatePricelistHistory(ctx context.Context, hist *models.PricelistHistory) (int, error) {
 	if hist == nil {
@@ -102,3 +101,4 @@ func (s *PriceItemService) GetPricelistHistoryByItem(ctx context.Context, id int
 func (s *PriceItemService) GetAllPricelistHistory(ctx context.Context) ([]models.PricelistHistory, error) {
 	return s.plHistoryRepo.GetAll(ctx)
 }
+
