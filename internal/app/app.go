@@ -70,8 +70,10 @@ func Run() {
 	// Прайс-лист
 	priceRepo := repositories.NewPriceItemRepository(db)
 	historyRepo := repositories.NewPriceItemHistoryRepository(db)
-	priceService := services.NewPriceItemService(priceRepo, historyRepo)
+	plHistoryRepo := repositories.NewPricelistHistoryRepository(db)
+	priceService := services.NewPriceItemService(priceRepo, historyRepo, plHistoryRepo)
 	priceHandler := handlers.NewPriceItemHandler(priceService)
+	plHistoryHandler := handlers.NewPricelistHistoryHandler(priceService)
 
 	// Сеты товаров
 	priceSetRepo := repositories.NewPriceSetRepository(db)
@@ -132,6 +134,7 @@ func Run() {
 		categoryHandler,
 		subCategoryHandler,
 		priceHandler,
+		plHistoryHandler,
 		priceSetHandler,
 		repairHandler,
 		cashboxHandler,

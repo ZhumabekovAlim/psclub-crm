@@ -17,6 +17,7 @@ func SetupRoutes(
 	categoryHandler *handlers.CategoryHandler,
 	subCategoryHandler *handlers.SubcategoryHandler,
 	priceListHandler *handlers.PriceItemHandler,
+	pricelistHistoryHandler *handlers.PricelistHistoryHandler,
 	priceSetHandler *handlers.PriceSetHandler,
 	repairHandler *handlers.RepairHandler,
 	cashboxHandler *handlers.CashboxHandler,
@@ -103,6 +104,7 @@ func SetupRoutes(
 		pricelist.GET("/:id", priceListHandler.GetPriceItemByID)
 		pricelist.PUT("/:id", priceListHandler.UpdatePriceItem)
 		pricelist.DELETE("/:id", priceListHandler.DeletePriceItem)
+		pricelist.POST("/:id/replenish", priceListHandler.Replenish)
 	}
 
 	// --- Сеты (наборы товаров)
@@ -113,6 +115,14 @@ func SetupRoutes(
 		sets.GET("/:id", priceSetHandler.GetPriceSetByID)
 		sets.PUT("/:id", priceSetHandler.UpdatePriceSet)
 		sets.DELETE("/:id", priceSetHandler.DeletePriceSet)
+	}
+
+	// --- История пополнений прайс-листа
+	plHistory := api.Group("/pricelist-history")
+	{
+		plHistory.POST("", pricelistHistoryHandler.Create)
+		plHistory.GET("", pricelistHistoryHandler.GetAll)
+		plHistory.GET("/item/:id", pricelistHistoryHandler.GetByItem)
 	}
 
 	//// --- История закупа (прихода на склад)
