@@ -71,24 +71,24 @@ func (s *AuthService) Register(ctx context.Context, u *models.User) (string, str
 }
 
 // Login verifies credentials and returns new tokens.
-func (s *AuthService) Login(ctx context.Context, phone, password string) (string, string, string, error) {
+func (s *AuthService) Login(ctx context.Context, phone, password string) (string, string, string, []string, error) {
 	u, err := s.userRepo.GetByPhone(ctx, phone)
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", nil, err
 	}
 	if u == nil {
-		return "", "", "", errors.New("invalid credentials1")
+		return "", "", "", nil, errors.New("invalid credentials1")
 	}
 
 	log.Printf("login attempt:password=%s, user = %s", u.Password, u.Phone)
 
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
-		return "", "", "", errors.New("invalid credentials2")
+		return "", "", "", nil, errors.New("invalid credentials2")
 	}
 
 	token1, token2, err := s.generateTokenPair(ctx, u.ID)
 
-	return token1, token2, u.Role, err
+	return token1, token2, u.Role, u.Permissions, err
 }
 
 // Refresh validates refresh token and returns a new pair.
