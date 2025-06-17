@@ -123,6 +123,9 @@ func SetupRoutes(
 		plHistory.POST("", pricelistHistoryHandler.Create)
 		plHistory.GET("", pricelistHistoryHandler.GetAll)
 		plHistory.GET("/item/:id", pricelistHistoryHandler.GetByItem)
+
+		plHistory.GET("/category/:id", pricelistHistoryHandler.GetByCategory)
+
 	}
 
 	//// --- История закупа (прихода на склад)
