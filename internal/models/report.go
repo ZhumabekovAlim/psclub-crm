@@ -1,14 +1,20 @@
 package models
 
 type SummaryReport struct {
-	TotalRevenue   int     `json:"total_revenue"`
-	TotalClients   int     `json:"total_clients"`
-	AvgCheck       int     `json:"avg_check"`
-	LoadPercent    int     `json:"load_percent"`
-	RevenueChange  float64 `json:"revenue_change_percent"`
-	ClientsChange  float64 `json:"clients_change_percent"`
-	AvgCheckChange float64 `json:"avg_check_change_percent"`
-	LoadChange     float64 `json:"load_change_percent"`
+	TotalRevenue   int            `json:"total_revenue"`
+	TotalClients   int            `json:"total_clients"`
+	AvgCheck       int            `json:"avg_check"`
+	LoadPercent    int            `json:"load_percent"`
+	AgeUnder18     float64        `json:"age_under_18_percent"`
+	Age18To25      float64        `json:"age_18_25_percent"`
+	Age26To35      float64        `json:"age_26_35_percent"`
+	Age36Plus      float64        `json:"age_36_plus_percent"`
+	CategorySales  []CategorySale `json:"category_sales"`
+	TopItems       []ProfitItem   `json:"top_items"`
+	RevenueChange  float64        `json:"revenue_change_percent"`
+	ClientsChange  float64        `json:"clients_change_percent"`
+	AvgCheckChange float64        `json:"avg_check_change_percent"`
+	LoadChange     float64        `json:"load_change_percent"`
 }
 
 type AdminsReport struct {
@@ -62,4 +68,17 @@ type ReasonRow struct {
 	Count  int    `json:"count"`
 	Sum    int    `json:"sum"`
 	Avg    int    `json:"avg"`
+}
+
+type CategorySale struct {
+	Category string `json:"category"`
+	Revenue  int    `json:"revenue"`
+}
+
+type ProfitItem struct {
+	Name     string  `json:"name"`
+	Quantity int     `json:"quantity"`
+	Revenue  float64 `json:"revenue"`
+	Expense  float64 `json:"expense"`
+	Profit   float64 `json:"profit"`
 }
