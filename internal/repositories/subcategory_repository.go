@@ -53,14 +53,28 @@ func (r *SubcategoryRepository) GetByID(ctx context.Context, id int) (*models.Su
 	return &s, nil
 }
 
-func (r *SubcategoryRepository) GetSubcategoryByCategoryID(ctx context.Context, id int) (*models.Subcategory, error) {
-	query := `SELECT id, category_id, name FROM subcategories WHERE subcategories.category_id=?`
-	var s models.Subcategory
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&s.ID, &s.CategoryID, &s.Name)
+func (r *SubcategoryRepository) GetSubcategoriesByCategoryID(ctx context.Context, categoryID int) ([]models.Subcategory, error) {
+	query := `SELECT id, category_id, name FROM subcategories WHERE category_id = ?`
+	rows, err := r.db.QueryContext(ctx, query, categoryID)
 	if err != nil {
 		return nil, err
 	}
-	return &s, nil
+	defer rows.Close()
+
+	var list []models.Subcategory
+	for rows.Next() {
+		var s models.Subcategory
+		if err := rows.Scan(&s.ID, &s.CategoryID, &s.Name); err != nil {
+			return nil, err
+		}
+		list = append(list, s)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return list, nil
 }
 
 func (r *SubcategoryRepository) Update(ctx context.Context, s *models.Subcategory) error {
