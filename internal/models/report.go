@@ -36,8 +36,16 @@ type SaleItem struct {
 	AvgCheck int    `json:"avg_check"`
 	Category string `json:"category,omitempty"`
 }
+type UserSales struct {
+	Name        string `json:"name"`
+	DaysWorked  int    `json:"days_worked"`
+	HookahsSold int    `json:"hookahs_sold"`
+	SetsSold    int    `json:"sets_sold"`
+	Salary      int    `json:"salary"`
+}
+
 type SalesReport struct {
-	TopSales []SaleItem `json:"top_sales"`
+	Users []UserSales `json:"users"`
 }
 
 type AnalyticsReport struct {

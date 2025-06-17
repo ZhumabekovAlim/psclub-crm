@@ -25,9 +25,9 @@ func (r *BookingRepository) CreateWithItems(ctx context.Context, b *models.Booki
 		}
 	}()
 
-	query := `INSERT INTO bookings (client_id, table_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`
-	res, err := tx.ExecContext(ctx, query, b.ClientID, b.TableID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID)
+	query := `INSERT INTO bookings (client_id, table_id, user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`
+	res, err := tx.ExecContext(ctx, query, b.ClientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID)
 	if err != nil {
 		return 0, err
 	}
@@ -54,7 +54,7 @@ func (r *BookingRepository) CreateWithItems(ctx context.Context, b *models.Booki
 }
 
 func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error) {
-	query := `SELECT id, client_id, table_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, created_at, updated_at FROM bookings ORDER BY id DESC`
+	query := `SELECT id, client_id, table_id, user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, created_at, updated_at FROM bookings ORDER BY id DESC`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error
 	var result []models.Booking
 	for rows.Next() {
 		var b models.Booking
-		err := rows.Scan(&b.ID, &b.ClientID, &b.TableID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt)
+		err := rows.Scan(&b.ID, &b.ClientID, &b.TableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -93,10 +93,10 @@ func (r *BookingItemRepository) GetByBookingID(ctx context.Context, bookingID in
 }
 
 func (r *BookingRepository) GetByID(ctx context.Context, id int) (*models.Booking, error) {
-	query := `SELECT id, client_id, table_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, created_at, updated_at FROM bookings WHERE id = ?`
+	query := `SELECT id, client_id, table_id, user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, created_at, updated_at FROM bookings WHERE id = ?`
 	var b models.Booking
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&b.ID, &b.ClientID, &b.TableID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason,
+		&b.ID, &b.ClientID, &b.TableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason,
 		&b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt,
 	)
 	if err != nil {
@@ -106,8 +106,8 @@ func (r *BookingRepository) GetByID(ctx context.Context, id int) (*models.Bookin
 }
 
 func (r *BookingRepository) Update(ctx context.Context, b *models.Booking) error {
-	query := `UPDATE bookings SET client_id=?, table_id=?, start_time=?, end_time=?, note=?, discount=?, discount_reason=?, total_amount=?, bonus_used=?, payment_status=?, payment_type_id=?, updated_at=NOW() WHERE id=?`
-	_, err := r.db.ExecContext(ctx, query, b.ClientID, b.TableID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID)
+	query := `UPDATE bookings SET client_id=?, table_id=?, user_id=?, start_time=?, end_time=?, note=?, discount=?, discount_reason=?, total_amount=?, bonus_used=?, payment_status=?, payment_type_id=?, updated_at=NOW() WHERE id=?`
+	_, err := r.db.ExecContext(ctx, query, b.ClientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID)
 	return err
 }
 
