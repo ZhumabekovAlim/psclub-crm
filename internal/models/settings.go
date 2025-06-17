@@ -7,6 +7,5 @@ type Settings struct {
 	BonusPercent int           `json:"bonus_percent"`
 	WorkTimeFrom string        `json:"work_time_from"`
 	WorkTimeTo   string        `json:"work_time_to"`
-	PaymentName  string        `json:"payment_name"`  // название активной
 	PaymentTypes []PaymentType `json:"payment_types"` // список всех типов
 }
