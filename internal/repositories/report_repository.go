@@ -24,7 +24,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
         SELECT
             COALESCE(SUM(total_amount),0) as total_revenue,
             COUNT(DISTINCT client_id) as total_clients,
-            COALESCE(AVG(total_amount),0) as avg_check
+            COALESCE(ROUND(AVG(total_amount)), 0) as avg_check
         FROM bookings
         WHERE created_at BETWEEN ? AND ?
     `, from, to).Scan(
