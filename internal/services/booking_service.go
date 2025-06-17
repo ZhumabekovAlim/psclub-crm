@@ -50,6 +50,7 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 	}
 	if err := s.decreaseStock(ctx, b.Items); err != nil {
 		_ = s.repo.Delete(ctx, id)
+======
 		return 0, err
 	}
 	// Списываем использованные бонусы
@@ -102,6 +103,7 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	if time.Now().After(limit) {
 		return errors.New("booking can no longer be modified")
 	}
+
 	if err := s.checkStock(ctx, b.Items); err != nil {
 		return err
 	}
@@ -114,6 +116,7 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 		return err
 	}
 	return nil
+
 }
 
 func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
@@ -133,8 +136,10 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 }
 
 func (s *BookingService) decreaseStock(ctx context.Context, items []models.BookingItem) error {
+
 	type change struct{ id, qty int }
 	var changes []change
+
 	affected := make(map[int]struct{})
 	for _, it := range items {
 		pi, err := s.priceItemRepo.GetByID(ctx, it.ItemID)
@@ -147,11 +152,12 @@ func (s *BookingService) decreaseStock(ctx context.Context, items []models.Booki
 			return err
 		}
 		changes = append(changes, change{it.ItemID, it.Quantity})
+
 		affected[it.ItemID] = struct{}{}
 		if pi.IsSet {
 			set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
 			if err != nil {
-				s.restoreChanges(ctx, changes)
+
 				return err
 			}
 			for _, si := range set.Items {
@@ -160,15 +166,18 @@ func (s *BookingService) decreaseStock(ctx context.Context, items []models.Booki
 					return err
 				}
 				changes = append(changes, change{si.ItemID, si.Quantity * it.Quantity})
+
 				affected[si.ItemID] = struct{}{}
 			}
 		}
 	}
+
 	if err := s.updateSetQuantities(ctx, affected); err != nil {
 		s.restoreChanges(ctx, changes)
 		return err
 	}
 	return nil
+
 }
 
 func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[int]struct{}) error {
@@ -204,6 +213,7 @@ func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[i
 	}
 	return nil
 }
+
 
 func (s *BookingService) checkStock(ctx context.Context, items []models.BookingItem) error {
 	for _, it := range items {
@@ -264,3 +274,4 @@ func (s *BookingService) increaseStock(ctx context.Context, items []models.Booki
 	}
 	s.restoreChanges(ctx, changes) // update sets after restocking
 }
+
