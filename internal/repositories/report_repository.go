@@ -21,19 +21,101 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	var result models.SummaryReport
 
 	err := r.db.QueryRowContext(ctx, `
-        SELECT 
+        SELECT
             COALESCE(SUM(total_amount),0) as total_revenue,
             COUNT(DISTINCT client_id) as total_clients,
-            COALESCE(AVG(total_amount),0) as avg_check,
-            68 as load_percent
+            COALESCE(AVG(total_amount),0) as avg_check
         FROM bookings
         WHERE created_at BETWEEN ? AND ?
     `, from, to).Scan(
-		&result.TotalRevenue, &result.TotalClients, &result.AvgCheck, &result.LoadPercent,
+		&result.TotalRevenue, &result.TotalClients, &result.AvgCheck,
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	// Calculate load percent
+	var bookingsCount int
+	_ = r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM bookings WHERE created_at BETWEEN ? AND ?`, from, to).Scan(&bookingsCount)
+
+	var tableCount int
+	_ = r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM tables`).Scan(&tableCount)
+
+	var workFrom, workTo string
+	_ = r.db.QueryRowContext(ctx, `SELECT work_time_from, work_time_to FROM settings LIMIT 1`).Scan(&workFrom, &workTo)
+	wf, _ := time.Parse("15:04:05", workFrom)
+	wt, _ := time.Parse("15:04:05", workTo)
+	hours := wt.Sub(wf).Hours()
+	if hours < 0 {
+		hours += 24
+	}
+	days := int(to.Sub(from).Hours()/24 + 0.5)
+	if days <= 0 {
+		days = 1
+	}
+	capacity := float64(tableCount) * hours * float64(days)
+	if capacity > 0 {
+		result.LoadPercent = int(float64(bookingsCount) * 100 / capacity)
+	}
+
+	// Age groups
+	var under18, age18to25, age26to35, age36Plus int
+	_ = r.db.QueryRowContext(ctx, `
+                SELECT
+                    SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) < 18 THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) BETWEEN 18 AND 25 THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) BETWEEN 26 AND 35 THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) > 35 THEN 1 ELSE 0 END)
+                FROM clients
+                WHERE id IN (SELECT DISTINCT client_id FROM bookings WHERE created_at BETWEEN ? AND ?)
+        `, from, to).Scan(&under18, &age18to25, &age26to35, &age36Plus)
+	totalClients := result.TotalClients
+	if totalClients > 0 {
+		result.AgeUnder18 = float64(under18) * 100 / float64(totalClients)
+		result.Age18To25 = float64(age18to25) * 100 / float64(totalClients)
+		result.Age26To35 = float64(age26to35) * 100 / float64(totalClients)
+		result.Age36Plus = float64(age36Plus) * 100 / float64(totalClients)
+	}
+
+	// Category sales
+	catRows, _ := r.db.QueryContext(ctx, `
+                SELECT categories.name, SUM(booking_items.price * booking_items.quantity)
+                FROM booking_items
+                LEFT JOIN price_items ON booking_items.item_id = price_items.id
+                LEFT JOIN categories ON price_items.category_id = categories.id
+                WHERE booking_items.created_at BETWEEN ? AND ?
+                GROUP BY categories.name
+        `, from, to)
+	var catSales []models.CategorySale
+	for catRows.Next() {
+		var name string
+		var revenue int
+		catRows.Scan(&name, &revenue)
+		catSales = append(catSales, models.CategorySale{Category: name, Revenue: revenue})
+	}
+	result.CategorySales = catSales
+
+	// Top items by profit
+	itemRows, _ := r.db.QueryContext(ctx, `
+                SELECT price_items.name,
+                       SUM(booking_items.quantity),
+                       SUM(booking_items.price * booking_items.quantity),
+                       SUM(price_items.buy_price * booking_items.quantity),
+                       SUM((booking_items.price - price_items.buy_price) * booking_items.quantity)
+                FROM booking_items
+                LEFT JOIN price_items ON booking_items.item_id = price_items.id
+                WHERE booking_items.created_at BETWEEN ? AND ?
+                GROUP BY price_items.name
+                ORDER BY SUM((booking_items.price - price_items.buy_price) * booking_items.quantity) DESC
+                LIMIT 5
+        `, from, to)
+	var topItems []models.ProfitItem
+	for itemRows.Next() {
+		var it models.ProfitItem
+		itemRows.Scan(&it.Name, &it.Quantity, &it.Revenue, &it.Expense, &it.Profit)
+		topItems = append(topItems, it)
+	}
+	result.TopItems = topItems
 
 	var prevRevenue, prevClients, prevAvgCheck int
 	prevFrom := from.Add(-(to.Sub(from)))
