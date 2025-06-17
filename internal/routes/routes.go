@@ -17,6 +17,7 @@ func SetupRoutes(
 	categoryHandler *handlers.CategoryHandler,
 	subCategoryHandler *handlers.SubcategoryHandler,
 	priceListHandler *handlers.PriceItemHandler,
+	priceSetHandler *handlers.PriceSetHandler,
 	repairHandler *handlers.RepairHandler,
 	cashboxHandler *handlers.CashboxHandler,
 	settingsHandler *handlers.SettingsHandler,
@@ -101,6 +102,16 @@ func SetupRoutes(
 		pricelist.GET("/:id", priceListHandler.GetPriceItemByID)
 		pricelist.PUT("/:id", priceListHandler.UpdatePriceItem)
 		pricelist.DELETE("/:id", priceListHandler.DeletePriceItem)
+	}
+
+	// --- Сеты (наборы товаров)
+	sets := api.Group("/sets")
+	{
+		sets.POST("", priceSetHandler.CreatePriceSet)
+		sets.GET("", priceSetHandler.GetAllPriceSets)
+		sets.GET("/:id", priceSetHandler.GetPriceSetByID)
+		sets.PUT("/:id", priceSetHandler.UpdatePriceSet)
+		sets.DELETE("/:id", priceSetHandler.DeletePriceSet)
 	}
 
 	//// --- История закупа (прихода на склад)
