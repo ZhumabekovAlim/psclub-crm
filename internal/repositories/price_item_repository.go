@@ -90,10 +90,12 @@ func (r *PriceItemRepository) DecreaseStock(ctx context.Context, id int, amount 
 }
 
 func (r *PriceItemRepository) GetByCategory(ctx context.Context, categoryID int) ([]models.PriceItem, error) {
+
 	query := `SELECT pi.id, pi.name, pi.category_id, subcategory_id, quantity, sale_price, buy_price, is_set, s.name AS subcategory_name
                 FROM price_items pi
                 JOIN subcategories s ON pi.subcategory_id = s.id
                 WHERE pi.category_id = ? ORDER BY id`
+  
 	rows, err := r.db.QueryContext(ctx, query, categoryID)
 	if err != nil {
 		return nil, err
@@ -103,6 +105,7 @@ func (r *PriceItemRepository) GetByCategory(ctx context.Context, categoryID int)
 	var list []models.PriceItem
 	for rows.Next() {
 		var p models.PriceItem
+
 		if err := rows.Scan(&p.ID, &p.Name, &p.CategoryID, &p.SubcategoryID, &p.Quantity, &p.SalePrice, &p.BuyPrice, &p.IsSet, &p.SubcategoryName); err != nil {
 			return nil, err
 		}
