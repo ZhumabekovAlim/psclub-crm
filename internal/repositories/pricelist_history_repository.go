@@ -59,7 +59,6 @@ func (r *PricelistHistoryRepository) GetAll(ctx context.Context) ([]models.Price
 	}
 	return result, nil
 }
-
 func (r *PricelistHistoryRepository) GetByCategory(ctx context.Context, categoryID int) ([]models.PricelistHistory, error) {
 	query := `SELECT ph.id, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.created_at
                 FROM pricelist_history ph
@@ -80,3 +79,4 @@ func (r *PricelistHistoryRepository) GetByCategory(ctx context.Context, category
 	}
 	return result, nil
 }
+

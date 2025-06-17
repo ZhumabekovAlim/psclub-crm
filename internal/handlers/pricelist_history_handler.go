@@ -70,3 +70,4 @@ func (h *PricelistHistoryHandler) GetByCategory(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, history)
 }
+
