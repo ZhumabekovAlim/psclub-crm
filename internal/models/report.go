@@ -36,8 +36,31 @@ type SaleItem struct {
 	AvgCheck int    `json:"avg_check"`
 	Category string `json:"category,omitempty"`
 }
+type UserSales struct {
+	Name        string `json:"name"`
+	DaysWorked  int    `json:"days_worked"`
+	HookahsSold int    `json:"hookahs_sold"`
+	SetsSold    int    `json:"sets_sold"`
+	Salary      int    `json:"salary"`
+}
+
+type ExpenseTotal struct {
+	Title string  `json:"title"`
+	Total float64 `json:"total"`
+}
+
+type CategoryIncome struct {
+	Category string  `json:"category"`
+	Total    float64 `json:"total"`
+}
+
 type SalesReport struct {
-	TopSales []SaleItem `json:"top_sales"`
+	Users            []UserSales      `json:"users"`
+	Expenses         []ExpenseTotal   `json:"expenses,omitempty"`
+	IncomeByCategory []CategoryIncome `json:"income_by_category,omitempty"`
+	TotalIncome      float64          `json:"total_income,omitempty"`
+	TotalExpenses    float64          `json:"total_expenses,omitempty"`
+	NetProfit        float64          `json:"net_profit,omitempty"`
 }
 
 type AnalyticsReport struct {
@@ -62,6 +85,7 @@ type DiscountsReport struct {
 	AvgDiscount       int         `json:"avg_discount"`
 	TopReasons        []ReasonRow `json:"top_reasons"`
 	DistributionBySum []DataPoint `json:"distribution_by_sum"`
+	Orders            []Booking   `json:"orders"`
 }
 type ReasonRow struct {
 	Reason string `json:"reason"`
