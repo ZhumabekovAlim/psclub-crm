@@ -8,12 +8,13 @@ import (
 )
 
 type PriceItemService struct {
-	repo        *repositories.PriceItemRepository
-	historyRepo *repositories.PriceItemHistoryRepository
+	repo          *repositories.PriceItemRepository
+	historyRepo   *repositories.PriceItemHistoryRepository
+	plHistoryRepo *repositories.PricelistHistoryRepository
 }
 
-func NewPriceItemService(r *repositories.PriceItemRepository, hr *repositories.PriceItemHistoryRepository) *PriceItemService {
-	return &PriceItemService{repo: r, historyRepo: hr}
+func NewPriceItemService(r *repositories.PriceItemRepository, hr *repositories.PriceItemHistoryRepository, plhr *repositories.PricelistHistoryRepository) *PriceItemService {
+	return &PriceItemService{repo: r, historyRepo: hr, plHistoryRepo: plhr}
 }
 
 func (s *PriceItemService) CreatePriceItem(ctx context.Context, item *models.PriceItem) (int, error) {
@@ -74,4 +75,34 @@ func (s *PriceItemService) GetHistoryByItem(ctx context.Context, priceItemID int
 // Получить всю историю операций
 func (s *PriceItemService) GetAllHistory(ctx context.Context) ([]models.PriceItemHistory, error) {
 	return s.historyRepo.GetAll(ctx)
+}
+
+// CreatePricelistHistory saves a replenishment record without changing stock
+func (s *PriceItemService) CreatePricelistHistory(ctx context.Context, hist *models.PricelistHistory) (int, error) {
+	if hist == nil {
+		return 0, errors.New("history is nil")
+	}
+	return s.plHistoryRepo.Create(ctx, hist)
+}
+
+// Replenish increases stock and saves record to pricelist_history
+func (s *PriceItemService) Replenish(ctx context.Context, hist *models.PricelistHistory) error {
+	if _, err := s.plHistoryRepo.Create(ctx, hist); err != nil {
+		return err
+	}
+	return s.repo.IncreaseStock(ctx, hist.PriceItemID, hist.Quantity)
+}
+
+// GetPricelistHistoryByItem returns replenish history for one price item
+func (s *PriceItemService) GetPricelistHistoryByItem(ctx context.Context, id int) ([]models.PricelistHistory, error) {
+	return s.plHistoryRepo.GetByItem(ctx, id)
+}
+
+func (s *PriceItemService) GetPricelistHistoryByCategory(ctx context.Context, categoryID int) ([]models.PricelistHistory, error) {
+	return s.plHistoryRepo.GetByCategory(ctx, categoryID)
+}
+
+// GetAllPricelistHistory returns all replenish records
+func (s *PriceItemService) GetAllPricelistHistory(ctx context.Context) ([]models.PricelistHistory, error) {
+	return s.plHistoryRepo.GetAll(ctx)
 }
