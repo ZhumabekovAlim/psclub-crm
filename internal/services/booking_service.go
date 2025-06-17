@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"math"
 	"time"
 
 	"psclub-crm/internal/models"
@@ -14,14 +15,18 @@ type BookingService struct {
 	bookingItemRepo *repositories.BookingItemRepository
 	clientRepo      *repositories.ClientRepository
 	settingsRepo    *repositories.SettingsRepository
+	priceItemRepo   *repositories.PriceItemRepository
+	priceSetRepo    *repositories.PriceSetRepository
 }
 
-func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories.BookingItemRepository, clientRepo *repositories.ClientRepository, settingsRepo *repositories.SettingsRepository) *BookingService {
+func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories.BookingItemRepository, clientRepo *repositories.ClientRepository, settingsRepo *repositories.SettingsRepository, priceRepo *repositories.PriceItemRepository, setRepo *repositories.PriceSetRepository) *BookingService {
 	return &BookingService{
 		repo:            r,
 		bookingItemRepo: itemRepo,
 		clientRepo:      clientRepo,
 		settingsRepo:    settingsRepo,
+		priceItemRepo:   priceRepo,
+		priceSetRepo:    setRepo,
 	}
 }
 
@@ -33,6 +38,9 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 	}
 	id, err := s.repo.CreateWithItems(ctx, b)
 	if err != nil {
+		return 0, err
+	}
+	if err := s.decreaseStock(ctx, b.Items); err != nil {
 		return 0, err
 	}
 	// Списываем использованные бонусы
@@ -85,7 +93,10 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	if time.Now().After(limit) {
 		return errors.New("booking can no longer be modified")
 	}
-	return s.repo.Update(ctx, b)
+	if err := s.repo.Update(ctx, b); err != nil {
+		return err
+	}
+	return s.decreaseStock(ctx, b.Items)
 }
 
 func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
@@ -102,4 +113,65 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 		return errors.New("booking can no longer be removed")
 	}
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *BookingService) decreaseStock(ctx context.Context, items []models.BookingItem) error {
+	affected := make(map[int]struct{})
+	for _, it := range items {
+		pi, err := s.priceItemRepo.GetByID(ctx, it.ItemID)
+		if err != nil {
+			return err
+		}
+		if err := s.priceItemRepo.DecreaseStock(ctx, it.ItemID, it.Quantity); err != nil {
+			return err
+		}
+		affected[it.ItemID] = struct{}{}
+		if pi.IsSet {
+			set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
+			if err != nil {
+				continue
+			}
+			for _, si := range set.Items {
+				if err := s.priceItemRepo.DecreaseStock(ctx, si.ItemID, si.Quantity*it.Quantity); err != nil {
+					return err
+				}
+				affected[si.ItemID] = struct{}{}
+			}
+		}
+	}
+	return s.updateSetQuantities(ctx, affected)
+}
+
+func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[int]struct{}) error {
+	updated := make(map[int]struct{})
+	for itemID := range affected {
+		sets, err := s.priceSetRepo.GetByItem(ctx, itemID)
+		if err != nil {
+			return err
+		}
+		for _, set := range sets {
+			if _, ok := updated[set.ID]; ok {
+				continue
+			}
+			qty := math.MaxInt32
+			for _, si := range set.Items {
+				it, err := s.priceItemRepo.GetByID(ctx, si.ItemID)
+				if err != nil {
+					return err
+				}
+				avail := it.Quantity / si.Quantity
+				if avail < qty {
+					qty = avail
+				}
+			}
+			if qty == math.MaxInt32 {
+				qty = 0
+			}
+			if err := s.priceItemRepo.SetStock(ctx, set.ID, qty); err != nil {
+				return err
+			}
+			updated[set.ID] = struct{}{}
+		}
+	}
+	return nil
 }
