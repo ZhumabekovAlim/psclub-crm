@@ -61,13 +61,55 @@ func (h *PriceItemHandler) UpdatePriceItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	var item models.PriceItem
-	if err := c.ShouldBindJSON(&item); err != nil {
+
+	// Use pointers so that omitted JSON fields are nil and do not overwrite
+	// existing values in the database.
+	type updateInput struct {
+		Name          *string  `json:"name"`
+		CategoryID    *int     `json:"category_id"`
+		SubcategoryID *int     `json:"subcategory_id"`
+		Quantity      *int     `json:"quantity"`
+		SalePrice     *float64 `json:"sale_price"`
+		BuyPrice      *float64 `json:"buy_price"`
+		IsSet         *bool    `json:"is_set"`
+	}
+
+	var in updateInput
+	if err := c.ShouldBindJSON(&in); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	item, err := h.service.GetPriceItemByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	if in.Name != nil {
+		item.Name = *in.Name
+	}
+	if in.CategoryID != nil {
+		item.CategoryID = *in.CategoryID
+	}
+	if in.SubcategoryID != nil {
+		item.SubcategoryID = *in.SubcategoryID
+	}
+	if in.Quantity != nil {
+		item.Quantity = *in.Quantity
+	}
+	if in.SalePrice != nil {
+		item.SalePrice = *in.SalePrice
+	}
+	if in.BuyPrice != nil {
+		item.BuyPrice = *in.BuyPrice
+	}
+	if in.IsSet != nil {
+		item.IsSet = *in.IsSet
+	}
+
 	item.ID = id
-	err = h.service.UpdatePriceItem(c.Request.Context(), &item)
+	err = h.service.UpdatePriceItem(c.Request.Context(), item)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
