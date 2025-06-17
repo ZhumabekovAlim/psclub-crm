@@ -151,28 +151,35 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time)
 
 // --- SalesReport ---
 func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time) (*models.SalesReport, error) {
-	rows, err := r.db.QueryContext(ctx, `
-        SELECT name, SUM(quantity) as qty, SUM(quantity * price) as revenue
-        FROM booking_items
-        LEFT JOIN price_items ON booking_items.item_id = price_items.id
-        WHERE booking_items.created_at BETWEEN ? AND ?
-        GROUP BY name ORDER BY revenue DESC LIMIT 10
-    `, from, to)
+	query := `
+        SELECT u.name,
+               COUNT(DISTINCT DATE(b.start_time)) AS days,
+               SUM(CASE WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%' THEN bi.quantity ELSE 0 END) AS hookahs,
+               SUM(CASE WHEN pi.is_set = 1 THEN bi.quantity ELSE 0 END) AS sets,
+               ROUND(u.salary_shift * COUNT(DISTINCT DATE(b.start_time)) +
+                     u.salary_hookah * SUM(CASE WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%' THEN bi.quantity ELSE 0 END) +
+                     u.salary_bar * SUM(CASE WHEN pi.is_set = 1 THEN bi.quantity ELSE 0 END)) AS salary
+        FROM bookings b
+        JOIN users u ON b.user_id = u.id
+        LEFT JOIN booking_items bi ON b.id = bi.booking_id
+        LEFT JOIN price_items pi ON bi.item_id = pi.id
+        LEFT JOIN categories ON pi.category_id = categories.id
+        WHERE b.created_at BETWEEN ? AND ?
+        GROUP BY u.id, u.name`
+	rows, err := r.db.QueryContext(ctx, query, from, to)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	var items []models.SaleItem
+	var res []models.UserSales
 	for rows.Next() {
-		var s models.SaleItem
-		rows.Scan(&s.Name, &s.Quantity, &s.Revenue)
-		if s.Quantity > 0 {
-			s.AvgCheck = s.Revenue / s.Quantity
+		var row models.UserSales
+		if err := rows.Scan(&row.Name, &row.DaysWorked, &row.HookahsSold, &row.SetsSold, &row.Salary); err != nil {
+			return nil, err
 		}
-		items = append(items, s)
+		res = append(res, row)
 	}
-	return &models.SalesReport{TopSales: items}, nil
+	return &models.SalesReport{Users: res}, nil
 }
 
 // --- AnalyticsReport ---
