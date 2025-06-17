@@ -99,6 +99,7 @@ func SetupRoutes(
 	{
 		pricelist.POST("", priceListHandler.CreatePriceItem)
 		pricelist.GET("", priceListHandler.GetAllPriceItems)
+		pricelist.GET("/category/:id", priceListHandler.GetPriceItemsByCategory)
 		pricelist.GET("/:id", priceListHandler.GetPriceItemByID)
 		pricelist.PUT("/:id", priceListHandler.UpdatePriceItem)
 		pricelist.DELETE("/:id", priceListHandler.DeletePriceItem)

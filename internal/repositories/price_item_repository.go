@@ -88,3 +88,28 @@ func (r *PriceItemRepository) DecreaseStock(ctx context.Context, id int, amount 
 	}
 	return nil
 }
+
+func (r *PriceItemRepository) GetByCategory(ctx context.Context, categoryID int) ([]models.PriceItem, error) {
+	query := `SELECT id, name, category_id, subcategory_id, quantity, sale_price, buy_price, is_set
+                FROM price_items WHERE category_id = ? ORDER BY id`
+	rows, err := r.db.QueryContext(ctx, query, categoryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.PriceItem
+	for rows.Next() {
+		var p models.PriceItem
+		if err := rows.Scan(&p.ID, &p.Name, &p.CategoryID, &p.SubcategoryID, &p.Quantity, &p.SalePrice, &p.BuyPrice, &p.IsSet); err != nil {
+			return nil, err
+		}
+		list = append(list, p)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}

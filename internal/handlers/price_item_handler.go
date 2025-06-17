@@ -41,6 +41,20 @@ func (h *PriceItemHandler) GetAllPriceItems(c *gin.Context) {
 	c.JSON(http.StatusOK, items)
 }
 
+func (h *PriceItemHandler) GetPriceItemsByCategory(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	items, err := h.service.GetPriceItemsByCategory(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, items)
+}
+
 func (h *PriceItemHandler) GetPriceItemByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
