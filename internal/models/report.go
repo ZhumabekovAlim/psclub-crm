@@ -20,6 +20,7 @@ type SummaryReport struct {
 type AdminsReport struct {
 	Admins []AdminReportRow `json:"admins"`
 }
+
 type AdminReportRow struct {
 	Name         string `json:"name"`
 	Shifts       int    `json:"shifts"`
@@ -36,6 +37,7 @@ type SaleItem struct {
 	AvgCheck int    `json:"avg_check"`
 	Category string `json:"category,omitempty"`
 }
+
 type UserSales struct {
 	Name        string `json:"name"`
 	DaysWorked  int    `json:"days_worked"`
@@ -68,10 +70,12 @@ type AnalyticsReport struct {
 	HourlyLoad    []DataPoint    `json:"hourly_load"`
 	CategoryStats []CategoryStat `json:"category_stats"`
 }
+
 type DataPoint struct {
 	Label string `json:"label"`
 	Value int    `json:"value"`
 }
+
 type CategoryStat struct {
 	Category string `json:"category"`
 	Quantity int    `json:"quantity"`
@@ -87,6 +91,7 @@ type DiscountsReport struct {
 	DistributionBySum []DataPoint `json:"distribution_by_sum"`
 	Orders            []Booking   `json:"orders"`
 }
+
 type ReasonRow struct {
 	Reason string `json:"reason"`
 	Count  int    `json:"count"`
