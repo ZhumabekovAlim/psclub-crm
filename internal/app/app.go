@@ -3,16 +3,16 @@ package app
 import (
 	"database/sql"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"psclub-crm/internal/config"
 	"psclub-crm/internal/handlers"
+	"psclub-crm/internal/middleware"
 	"psclub-crm/internal/repositories"
 	"psclub-crm/internal/routes"
 	"psclub-crm/internal/services"
 	"time"
-	"psclub-crm/internal/middleware"
-	"github.com/gin-gonic/gin"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 func Run() {
@@ -73,6 +73,11 @@ func Run() {
 	priceService := services.NewPriceItemService(priceRepo, historyRepo)
 	priceHandler := handlers.NewPriceItemHandler(priceService)
 
+	// Сеты товаров
+	priceSetRepo := repositories.NewPriceSetRepository(db)
+	priceSetService := services.NewPriceSetService(priceSetRepo)
+	priceSetHandler := handlers.NewPriceSetHandler(priceSetService)
+
 	// Бронирования
 	bookingItemRepo := repositories.NewBookingItemRepository(db)
 	settingsRepo := repositories.NewSettingsRepository(db)
@@ -127,6 +132,7 @@ func Run() {
 		categoryHandler,
 		subCategoryHandler,
 		priceHandler,
+		priceSetHandler,
 		repairHandler,
 		cashboxHandler,
 		settingsHandler,
