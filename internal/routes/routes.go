@@ -103,6 +103,7 @@ func SetupRoutes(
 		pricelist.GET("/:id", priceListHandler.GetPriceItemByID)
 		pricelist.PUT("/:id", priceListHandler.UpdatePriceItem)
 		pricelist.DELETE("/:id", priceListHandler.DeletePriceItem)
+		pricelist.POST("/:id/replenish", priceListHandler.Replenish)
 	}
 
 	// --- Сеты (наборы товаров)
