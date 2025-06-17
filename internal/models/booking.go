@@ -19,6 +19,7 @@ type Booking struct {
 	CreatedAt      time.Time     `json:"created_at"`
 	UpdatedAt      time.Time     `json:"updated_at"`
 	ClientName     string        `json:"client_name,omitempty"`
+	ClientPhone    string        `json:"client_phone,omitempty"`
 	Items          []BookingItem `json:"items,omitempty"`
 }
 

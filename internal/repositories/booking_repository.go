@@ -60,7 +60,7 @@ func (r *BookingRepository) CreateWithItems(ctx context.Context, b *models.Booki
 }
 
 func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error) {
-	query := `SELECT b.id, client_id, table_id, b.user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, b.created_at, b.updated_at, c.name AS client_name
+	query := `SELECT b.id, client_id, table_id, b.user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, b.created_at, b.updated_at, c.name AS client_name, c.phone AS client_phone
 				FROM bookings b
 				JOIN clients c ON b.client_id = c.id
 				ORDER BY id DESC`
@@ -73,7 +73,7 @@ func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error
 	var result []models.Booking
 	for rows.Next() {
 		var b models.Booking
-		err := rows.Scan(&b.ID, &b.ClientID, &b.TableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.ClientName)
+		err := rows.Scan(&b.ID, &b.ClientID, &b.TableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.ClientName, &b.ClientPhone)
 		if err != nil {
 			log.Printf("scan booking error: %v", err)
 			return nil, err
