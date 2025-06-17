@@ -70,7 +70,8 @@ func Run() {
 	// Прайс-лист
 	priceRepo := repositories.NewPriceItemRepository(db)
 	historyRepo := repositories.NewPriceItemHistoryRepository(db)
-	priceService := services.NewPriceItemService(priceRepo, historyRepo)
+	plHistoryRepo := repositories.NewPricelistHistoryRepository(db)
+	priceService := services.NewPriceItemService(priceRepo, historyRepo, plHistoryRepo)
 	priceHandler := handlers.NewPriceItemHandler(priceService)
 
 	// Сеты товаров

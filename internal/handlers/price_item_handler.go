@@ -201,3 +201,33 @@ func (h *PriceItemHandler) GetAllHistory(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, history)
 }
+
+// Replenish stock for a price item
+func (h *PriceItemHandler) Replenish(c *gin.Context) {
+	itemID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var in struct {
+		Quantity int     `json:"quantity"`
+		BuyPrice float64 `json:"buy_price"`
+		UserID   int     `json:"user_id"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	hist := models.PricelistHistory{
+		PriceItemID: itemID,
+		Quantity:    in.Quantity,
+		BuyPrice:    in.BuyPrice,
+		Total:       in.BuyPrice * float64(in.Quantity),
+		UserID:      in.UserID,
+	}
+	if err := h.service.Replenish(c.Request.Context(), &hist); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
