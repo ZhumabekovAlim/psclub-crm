@@ -79,3 +79,20 @@ func (r *ClientRepository) AddBonus(ctx context.Context, clientID int, bonus int
 	_, err := r.db.ExecContext(ctx, query, bonus, clientID)
 	return err
 }
+
+func (r *ClientRepository) GetByPhone(ctx context.Context, phone string) (*models.Client, error) {
+	query := `SELECT id, name, phone, date_of_birth, channel, bonus, visits, income, created_at, updated_at FROM clients WHERE phone = ?`
+	var c models.Client
+	var dob sql.NullTime
+	err := r.db.QueryRowContext(ctx, query, phone).Scan(&c.ID, &c.Name, &c.Phone, &dob, &c.Channel, &c.Bonus, &c.Visits, &c.Income, &c.CreatedAt, &c.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if dob.Valid {
+		c.DateOfBirth = &dob.Time
+	}
+	return &c, nil
+}

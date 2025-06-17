@@ -16,6 +16,8 @@ services:
       - "3306:3306"
     volumes:
       - dbdata:/var/lib/mysql
+    networks:
+      - psclubnet
 
   migrate:
     image: migrate/migrate
@@ -28,6 +30,8 @@ services:
       "-database", "mysql://crmuser:crmpass@tcp(db:3306)/psclub?parseTime=true",
       "up"
     ]
+    networks:
+      - psclubnet
 
   backend:
     build:
@@ -44,10 +48,15 @@ services:
       APP_PORT: ${APP_PORT}
     ports:
       - "${APP_PORT}:4000"
-    command: ["./wait-for-mysql.sh", "./app" ]
+    command: ["./wait-for-mysql.sh", "./app"]
     volumes:
       - ./config:/app/config
       - ./wait-for-mysql.sh:/app/wait-for-mysql.sh
+    networks:
+      - psclubnet
+
 volumes:
   dbdata:
 
+networks:
+  psclubnet:
