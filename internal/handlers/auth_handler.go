@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"net/http"
- 	"log"
 	"github.com/gin-gonic/gin"
+	"log"
+	"net/http"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
 )
@@ -41,13 +41,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	access, refresh, err := h.service.Login(c.Request.Context(), req.Phone, req.Password)
+	access, refresh, role, err := h.service.Login(c.Request.Context(), req.Phone, req.Password)
 	if err != nil {
 		log.Printf("login error: %v", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"access": access, "refresh": refresh})
+	c.JSON(http.StatusOK, gin.H{"access": access, "refresh": refresh, "role": role})
 }
 
 // POST /api/auth/refresh
