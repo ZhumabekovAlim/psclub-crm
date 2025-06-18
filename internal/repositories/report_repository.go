@@ -96,7 +96,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Category sales
 	catQuery := `
-                SELECT categories.name, SUM(booking_items.price * booking_items.quantity)
+                SELECT categories.name, SUM(booking_items.price)
                 FROM booking_items
                 LEFT JOIN bookings ON booking_items.booking_id = bookings.id
                 LEFT JOIN price_items ON booking_items.item_id = price_items.id
@@ -132,7 +132,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
         SUM(
             CASE 
                 WHEN categories.name = 'Часы' THEN price_items.buy_price
-                ELSE price_items.buy_price * booking_items.quantity
+                ELSE price_items.buy_price
             END
         ),
         SUM(
@@ -334,7 +334,7 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 	}
 
 	catQuery2 := `
-        SELECT categories.name, SUM(bi.price * bi.quantity)
+        SELECT categories.name, SUM(bi.price)
         FROM booking_items bi
         LEFT JOIN bookings b ON bi.booking_id = b.id
         LEFT JOIN price_items pi ON bi.item_id = pi.id
@@ -422,7 +422,7 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 
 	// Category stats
 	catQuery := `
-        SELECT categories.name, SUM(booking_items.quantity), SUM(booking_items.price * booking_items.quantity)
+        SELECT categories.name, SUM(booking_items.quantity), SUM(booking_items.price )
         FROM booking_items
         LEFT JOIN bookings ON booking_items.booking_id = bookings.id
         LEFT JOIN price_items ON booking_items.item_id = price_items.id
