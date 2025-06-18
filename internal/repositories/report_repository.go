@@ -174,6 +174,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 // --- AdminsReport ---
 func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.AdminsReport, error) {
+
 	query := `
         SELECT u.id, u.name,
                COUNT(DISTINCT DATE(b.start_time)) AS shifts,
@@ -240,6 +241,7 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
 	}
 
 	return &report, nil
+
 }
 
 // --- SalesReport ---
