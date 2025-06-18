@@ -334,7 +334,7 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 	}
 
 	catQuery2 := `
-        SELECT categories.name, SUM(bi.price)
+        SELECT categories.name, SUM(bi.price-bi.discount)
         FROM booking_items bi
         LEFT JOIN bookings b ON bi.booking_id = b.id
         LEFT JOIN price_items pi ON bi.item_id = pi.id
