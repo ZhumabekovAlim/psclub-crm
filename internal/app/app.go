@@ -67,6 +67,11 @@ func Run() {
 	subCategoryService := services.NewSubcategoryService(subCategoryRepo)
 	subCategoryHandler := handlers.NewSubcategoryHandler(subCategoryService)
 
+	// Payment types
+	paymentTypeRepo := repositories.NewPaymentTypeRepository(db)
+	paymentTypeService := services.NewPaymentTypeService(paymentTypeRepo)
+	paymentTypeHandler := handlers.NewPaymentTypeHandler(paymentTypeService)
+
 	// Прайс-лист
 	priceRepo := repositories.NewPriceItemRepository(db)
 	historyRepo := repositories.NewPriceItemHistoryRepository(db)
@@ -135,6 +140,7 @@ func Run() {
 		bookingHandler,
 		categoryHandler,
 		subCategoryHandler,
+		paymentTypeHandler,
 		priceHandler,
 		plHistoryHandler,
 		priceSetHandler,

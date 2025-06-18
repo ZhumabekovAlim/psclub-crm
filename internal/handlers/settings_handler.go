@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
+	"strconv"
 )
 
 type SettingsHandler struct {
@@ -38,4 +39,35 @@ func (h *SettingsHandler) UpdateSettings(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, set)
+}
+
+// POST /api/settings
+func (h *SettingsHandler) CreateSettings(c *gin.Context) {
+	var set models.Settings
+	if err := c.ShouldBindJSON(&set); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := h.service.CreateSettings(c.Request.Context(), &set)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	set.ID = id
+	c.JSON(http.StatusCreated, set)
+}
+
+// DELETE /api/settings/:id
+func (h *SettingsHandler) DeleteSettings(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	if err := h.service.DeleteSettings(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }

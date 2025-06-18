@@ -60,3 +60,24 @@ func (r *SettingsRepository) Update(ctx context.Context, s *models.Settings) err
 	_, err := r.db.ExecContext(ctx, query, s.PaymentType, s.BlockTime, s.BonusPercent, s.WorkTimeFrom, s.WorkTimeTo, s.ID)
 	return err
 }
+
+func (r *SettingsRepository) Create(ctx context.Context, s *models.Settings) (int, error) {
+	query := `
+                INSERT INTO settings (payment_type, block_time, bonus_percent, work_time_from, work_time_to)
+                VALUES (?, ?, ?, ?, ?)
+        `
+	res, err := r.db.ExecContext(ctx, query, s.PaymentType, s.BlockTime, s.BonusPercent, s.WorkTimeFrom, s.WorkTimeTo)
+	if err != nil {
+		return 0, err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return int(id), nil
+}
+
+func (r *SettingsRepository) Delete(ctx context.Context, id int) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM settings WHERE id=?`, id)
+	return err
+}

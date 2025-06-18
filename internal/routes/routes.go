@@ -16,6 +16,7 @@ func SetupRoutes(
 	bookingHandler *handlers.BookingHandler,
 	categoryHandler *handlers.CategoryHandler,
 	subCategoryHandler *handlers.SubcategoryHandler,
+	paymentTypeHandler *handlers.PaymentTypeHandler,
 	priceListHandler *handlers.PriceItemHandler,
 	pricelistHistoryHandler *handlers.PricelistHistoryHandler,
 	priceSetHandler *handlers.PriceSetHandler,
@@ -93,6 +94,15 @@ func SetupRoutes(
 		subcategories.GET("/category/:id", subCategoryHandler.GetSubcategoryByCategoryID)
 		subcategories.PUT("/:id", subCategoryHandler.UpdateSubcategory)
 		subcategories.DELETE("/:id", subCategoryHandler.DeleteSubcategory)
+	}
+
+	// --- Типы оплат
+	paymentTypes := api.Group("/payment-types")
+	{
+		paymentTypes.POST("", paymentTypeHandler.CreatePaymentType)
+		paymentTypes.GET("", paymentTypeHandler.GetAllPaymentTypes)
+		paymentTypes.PUT("/:id", paymentTypeHandler.UpdatePaymentType)
+		paymentTypes.DELETE("/:id", paymentTypeHandler.DeletePaymentType)
 	}
 
 	// --- Прайс-лист (товары/услуги)
@@ -179,8 +189,10 @@ func SetupRoutes(
 	// --- Глобальные настройки
 	settings := api.Group("/settings")
 	{
+		settings.POST("", settingsHandler.CreateSettings)
 		settings.GET("", settingsHandler.GetSettings)
 		settings.PUT("/:id", settingsHandler.UpdateSettings)
+		settings.DELETE("/:id", settingsHandler.DeleteSettings)
 	}
 
 	// --- Отчёты (фильтрация по периодам через query-параметры)
