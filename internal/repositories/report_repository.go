@@ -125,8 +125,8 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
         SUM(booking_items.quantity),
         SUM(
             CASE 
-                WHEN categories.name = 'Часы' THEN booking_items.price
-                ELSE booking_items.price * booking_items.quantity
+                WHEN categories.name = 'Часы' THEN (booking_items.price - booking_items.discount)
+                ELSE (booking_items.price - booking_items.discount) * booking_items.quantity
             END
         ),
         SUM(
@@ -137,8 +137,8 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
         ),
         SUM(
             CASE 
-                WHEN categories.name = 'Часы' THEN (booking_items.price - price_items.buy_price)
-                ELSE (booking_items.price - price_items.buy_price) * booking_items.quantity
+                WHEN categories.name = 'Часы' THEN ((booking_items.price - booking_items.discount) - price_items.buy_price)
+                ELSE ((booking_items.price - booking_items.discount) - price_items.buy_price) * booking_items.quantity
             END
         )
     FROM booking_items
@@ -158,20 +158,23 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
     GROUP BY price_items.name
     ORDER BY SUM(
         CASE 
-            WHEN categories.name = 'Часы' THEN (booking_items.price - price_items.buy_price)
-            ELSE (booking_items.price - price_items.buy_price) * booking_items.quantity
+            WHEN categories.name = 'Часы' THEN ((booking_items.price - booking_items.discount) - price_items.buy_price)
+            ELSE ((booking_items.price - booking_items.discount) - price_items.buy_price) * booking_items.quantity
         END
     ) DESC
     LIMIT 5`
 
 	itemRows, err := r.db.QueryContext(ctx, itemQuery, itemArgs...)
+	if err != nil {
 
+	}
 	defer itemRows.Close()
 
 	var topItems []models.ProfitItem
 	for itemRows.Next() {
 		var it models.ProfitItem
 		if err := itemRows.Scan(&it.Name, &it.Quantity, &it.Revenue, &it.Expense, &it.Profit); err != nil {
+
 		}
 		topItems = append(topItems, it)
 	}
