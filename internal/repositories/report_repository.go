@@ -174,14 +174,72 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 // --- AdminsReport ---
 func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.AdminsReport, error) {
-	// Пример: возвращаем двух админов, статично
-	report := &models.AdminsReport{
-		Admins: []models.AdminReportRow{
-			{Name: "Иван Петров", Shifts: 15, HookahsSold: 25, SetsSold: 12, Salary: 32500, SalaryDetail: "15 × 1000 = 15000₸, кальяны: 2500₸, сеты: 1800₸"},
-			{Name: "Мария Сидорова", Shifts: 12, HookahsSold: 18, SetsSold: 8, Salary: 26400, SalaryDetail: "12 × 1000 = 12000₸, кальяны: 1800₸, сеты: 1200₸"},
-		},
+	query := `
+        SELECT u.id, u.name,
+               COUNT(DISTINCT DATE(b.start_time)) AS shifts,
+               SUM(CASE WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%кальян%' THEN bi.quantity ELSE 0 END) AS hookah_qty,
+               SUM(CASE WHEN pi.is_set = 1 THEN bi.quantity ELSE 0 END) AS set_qty,
+               SUM(CASE WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%кальян%' THEN bi.price * bi.quantity ELSE 0 END) AS hookah_rev,
+               SUM(CASE WHEN pi.is_set = 1 THEN bi.price * bi.quantity ELSE 0 END) AS set_rev,
+               u.salary_shift, u.salary_hookah, u.salary_bar
+        FROM users u
+        LEFT JOIN bookings b ON b.user_id = u.id
+            AND DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?
+        LEFT JOIN booking_items bi ON b.id = bi.booking_id
+        LEFT JOIN price_items pi ON bi.item_id = pi.id
+        LEFT JOIN categories ON pi.category_id = categories.id
+        WHERE u.role = 'admin'`
+	args := []interface{}{from, to, tFrom, tTo}
+	if userID > 0 {
+		query += " AND u.id = ?"
+		args = append(args, userID)
 	}
-	return report, nil
+	query += `
+        GROUP BY u.id, u.name, u.salary_shift, u.salary_hookah, u.salary_bar
+        ORDER BY u.name`
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var report models.AdminsReport
+	for rows.Next() {
+		var (
+			id                    int
+			name                  string
+			shifts, hookahs, sets int
+			hookahRev, setRev     float64
+			shiftSalary           int
+			hookahPercent         float64
+			setPercent            float64
+		)
+		if err := rows.Scan(&id, &name, &shifts, &hookahs, &sets, &hookahRev, &setRev, &shiftSalary, &hookahPercent, &setPercent); err != nil {
+			return nil, err
+		}
+
+		shiftTotal := shifts * shiftSalary
+		hookahTotal := int(hookahRev * hookahPercent / 100)
+		setTotal := int(setRev * setPercent / 100)
+		salary := shiftTotal + hookahTotal + setTotal
+
+		detail := fmt.Sprintf("Смены: %d × %d = %d₸, кальяны: %d₸ × %.0f%% = %d₸, сеты: %d₸ × %.0f%% = %d₸",
+			shifts, shiftSalary, shiftTotal,
+			int(hookahRev), hookahPercent, hookahTotal,
+			int(setRev), setPercent, setTotal)
+
+		report.Admins = append(report.Admins, models.AdminReportRow{
+			Name:         name,
+			Shifts:       shifts,
+			HookahsSold:  hookahs,
+			SetsSold:     sets,
+			Salary:       salary,
+			SalaryDetail: detail,
+		})
+	}
+
+	return &report, nil
 }
 
 // --- SalesReport ---
