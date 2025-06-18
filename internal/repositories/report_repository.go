@@ -126,7 +126,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
         SUM(
             CASE 
                 WHEN categories.name = 'Часы' THEN (booking_items.price - booking_items.discount)
-                ELSE (booking_items.price - booking_items.discount) * booking_items.quantity
+                ELSE (booking_items.price - booking_items.discount) 
             END
         ),
         SUM(
@@ -138,7 +138,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
         SUM(
             CASE 
                 WHEN categories.name = 'Часы' THEN ((booking_items.price - booking_items.discount) - price_items.buy_price)
-                ELSE ((booking_items.price - booking_items.discount) - price_items.buy_price) * booking_items.quantity
+                ELSE ((booking_items.price - booking_items.discount) - price_items.buy_price) 
             END
         )
     FROM booking_items
@@ -159,7 +159,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
     ORDER BY SUM(
         CASE 
             WHEN categories.name = 'Часы' THEN ((booking_items.price - booking_items.discount) - price_items.buy_price)
-            ELSE ((booking_items.price - booking_items.discount) - price_items.buy_price) * booking_items.quantity
+            ELSE ((booking_items.price - booking_items.discount) - price_items.buy_price)
         END
     ) DESC
     LIMIT 5`
