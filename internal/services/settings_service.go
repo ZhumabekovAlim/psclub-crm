@@ -21,3 +21,11 @@ func (s *SettingsService) GetSettings(ctx context.Context) (*models.Settings, er
 func (s *SettingsService) UpdateSettings(ctx context.Context, set *models.Settings) error {
 	return s.repo.Update(ctx, set)
 }
+
+func (s *SettingsService) CreateSettings(ctx context.Context, set *models.Settings) (int, error) {
+	return s.repo.Create(ctx, set)
+}
+
+func (s *SettingsService) DeleteSettings(ctx context.Context, id int) error {
+	return s.repo.Delete(ctx, id)
+}
