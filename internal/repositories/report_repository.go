@@ -120,29 +120,59 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Top items by profit
 	itemQuery := `
-                SELECT price_items.name,
-                       SUM(booking_items.quantity),
-                       SUM(booking_items.price * booking_items.quantity),
-                       SUM(price_items.buy_price * booking_items.quantity),
-                       SUM((booking_items.price - price_items.buy_price) * booking_items.quantity)
-                FROM booking_items
-                LEFT JOIN bookings ON booking_items.booking_id = bookings.id
-                LEFT JOIN price_items ON booking_items.item_id = price_items.id
-                WHERE DATE(booking_items.created_at) BETWEEN ? AND ? AND TIME(booking_items.created_at) BETWEEN ? AND ?`
+    SELECT 
+        price_items.name,
+        SUM(booking_items.quantity),
+        SUM(
+            CASE 
+                WHEN categories.name = 'Часы' THEN booking_items.price
+                ELSE booking_items.price * booking_items.quantity
+            END
+        ),
+        SUM(
+            CASE 
+                WHEN categories.name = 'Часы' THEN price_items.buy_price
+                ELSE price_items.buy_price * booking_items.quantity
+            END
+        ),
+        SUM(
+            CASE 
+                WHEN categories.name = 'Часы' THEN (booking_items.price - price_items.buy_price)
+                ELSE (booking_items.price - price_items.buy_price) * booking_items.quantity
+            END
+        )
+    FROM booking_items
+    LEFT JOIN bookings ON booking_items.booking_id = bookings.id
+    LEFT JOIN price_items ON booking_items.item_id = price_items.id
+    LEFT JOIN categories ON price_items.category_id = categories.id
+    WHERE DATE(booking_items.created_at) BETWEEN ? AND ?
+      AND TIME(booking_items.created_at) BETWEEN ? AND ?`
+
 	itemArgs := []interface{}{from, to, tFrom, tTo}
 	if userID > 0 {
 		itemQuery += " AND bookings.user_id = ?"
 		itemArgs = append(itemArgs, userID)
 	}
+
 	itemQuery += `
-                GROUP BY price_items.name
-                ORDER BY SUM((booking_items.price - price_items.buy_price) * booking_items.quantity) DESC
-                LIMIT 5`
-	itemRows, _ := r.db.QueryContext(ctx, itemQuery, itemArgs...)
+    GROUP BY price_items.name
+    ORDER BY SUM(
+        CASE 
+            WHEN categories.name = 'Часы' THEN (booking_items.price - price_items.buy_price)
+            ELSE (booking_items.price - price_items.buy_price) * booking_items.quantity
+        END
+    ) DESC
+    LIMIT 5`
+
+	itemRows, err := r.db.QueryContext(ctx, itemQuery, itemArgs...)
+
+	defer itemRows.Close()
+
 	var topItems []models.ProfitItem
 	for itemRows.Next() {
 		var it models.ProfitItem
-		itemRows.Scan(&it.Name, &it.Quantity, &it.Revenue, &it.Expense, &it.Profit)
+		if err := itemRows.Scan(&it.Name, &it.Quantity, &it.Revenue, &it.Expense, &it.Profit); err != nil {
+		}
 		topItems = append(topItems, it)
 	}
 	result.TopItems = topItems
