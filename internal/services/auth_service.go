@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"time"
 
 	"psclub-crm/internal/models"
@@ -53,7 +52,7 @@ func (s *AuthService) Register(ctx context.Context, u *models.User) (string, str
 	if existing != nil {
 		return "", "", errors.New("user already exists")
 	}
-	
+
 	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), 12)
 	if err != nil {
 		return "", "", err
@@ -68,24 +67,22 @@ func (s *AuthService) Register(ctx context.Context, u *models.User) (string, str
 }
 
 // Login verifies credentials and returns new tokens.
-func (s *AuthService) Login(ctx context.Context, phone, password string) (string, string, string, []string, error) {
+func (s *AuthService) Login(ctx context.Context, phone, password string) (string, string, string, []string, string, error) {
 	u, err := s.userRepo.GetByPhone(ctx, phone)
 	if err != nil {
-		return "", "", "", nil, err
+		return "", "", "", nil, "", err
 	}
 	if u == nil {
-		return "", "", "", nil, errors.New("invalid credentials1")
+		return "", "", "", nil, "", errors.New("invalid credentials1")
 	}
 
-	log.Printf("login attempt:password=%s, user = %s", u.Password, u.Phone)
-
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
-		return "", "", "", nil, errors.New("invalid credentials2")
+		return "", "", "", nil, "", errors.New("invalid credentials2")
 	}
 
 	token1, token2, err := s.generateTokenPair(ctx, u.ID)
 
-	return token1, token2, u.Role, u.Permissions, err
+	return token1, token2, u.Role, u.Permissions, u.Name, err
 }
 
 // Refresh validates refresh token and returns a new pair.
