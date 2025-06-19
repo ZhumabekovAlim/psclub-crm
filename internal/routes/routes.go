@@ -10,6 +10,7 @@ func SetupRoutes(
 	authHandler *handlers.AuthHandler,
 	clientHandler *handlers.ClientHandler,
 	userHandler *handlers.UserHandler,
+	expCatHandler *handlers.ExpenseCategoryHandler,
 	expenseHandler *handlers.ExpenseHandler,
 	tableHandler *handlers.TableHandler,
 	tableCategoryHandler *handlers.TableCategoryHandler,
@@ -157,6 +158,15 @@ func SetupRoutes(
 		bookings.DELETE("/:id", bookingHandler.DeleteBooking)
 		// Можно добавить эндпоинт для получения позиций бронирования:
 		// bookings.GET("/:id/items", bookingHandler.GetBookingItemsByBookingID)
+	}
+
+	// --- Категории расходов
+	expenseCats := api.Group("/expense-categories")
+	{
+		expenseCats.POST("", expCatHandler.Create)
+		expenseCats.GET("", expCatHandler.GetAll)
+		expenseCats.PUT("/:id", expCatHandler.Update)
+		expenseCats.DELETE("/:id", expCatHandler.Delete)
 	}
 
 	// --- Расходы

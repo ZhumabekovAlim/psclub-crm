@@ -15,8 +15,8 @@ func NewRepairRepository(db *sql.DB) *RepairRepository {
 }
 
 func (r *RepairRepository) Create(ctx context.Context, rep *models.Repair) (int, error) {
-	query := `INSERT INTO repairs (date, color, vin, description, price, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())`
-	res, err := r.db.ExecContext(ctx, query, rep.Date, rep.Color, rep.VIN, rep.Description, rep.Price)
+	query := `INSERT INTO repairs (date, vin, description, price, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())`
+	res, err := r.db.ExecContext(ctx, query, rep.Date, rep.VIN, rep.Description, rep.Price)
 	if err != nil {
 		return 0, err
 	}
@@ -25,7 +25,7 @@ func (r *RepairRepository) Create(ctx context.Context, rep *models.Repair) (int,
 }
 
 func (r *RepairRepository) GetAll(ctx context.Context) ([]models.Repair, error) {
-	query := `SELECT id, date, color, vin, description, price, created_at, updated_at FROM repairs ORDER BY id DESC`
+	query := `SELECT id, date, vin, description, price, created_at, updated_at FROM repairs ORDER BY id DESC`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func (r *RepairRepository) GetAll(ctx context.Context) ([]models.Repair, error) 
 	var result []models.Repair
 	for rows.Next() {
 		var rep models.Repair
-		err := rows.Scan(&rep.ID, &rep.Date, &rep.Color, &rep.VIN, &rep.Description, &rep.Price, &rep.CreatedAt, &rep.UpdatedAt)
+		err := rows.Scan(&rep.ID, &rep.Date, &rep.VIN, &rep.Description, &rep.Price, &rep.CreatedAt, &rep.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -44,9 +44,9 @@ func (r *RepairRepository) GetAll(ctx context.Context) ([]models.Repair, error) 
 }
 
 func (r *RepairRepository) GetByID(ctx context.Context, id int) (*models.Repair, error) {
-	query := `SELECT id, date, color, vin, description, price, created_at, updated_at FROM repairs WHERE id = ?`
+	query := `SELECT id, date, vin, description, price, created_at, updated_at FROM repairs WHERE id = ?`
 	var rep models.Repair
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&rep.ID, &rep.Date, &rep.Color, &rep.VIN, &rep.Description, &rep.Price, &rep.CreatedAt, &rep.UpdatedAt)
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&rep.ID, &rep.Date, &rep.VIN, &rep.Description, &rep.Price, &rep.CreatedAt, &rep.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +54,8 @@ func (r *RepairRepository) GetByID(ctx context.Context, id int) (*models.Repair,
 }
 
 func (r *RepairRepository) Update(ctx context.Context, rep *models.Repair) error {
-	query := `UPDATE repairs SET date = ?, color = ?, vin = ?, description = ?, price = ?, updated_at = NOW() WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, rep.Date, rep.Color, rep.VIN, rep.Description, rep.Price, rep.ID)
+	query := `UPDATE repairs SET date = ?, vin = ?, description = ?, price = ?, updated_at = NOW() WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, rep.Date, rep.VIN, rep.Description, rep.Price, rep.ID)
 	return err
 }
 
