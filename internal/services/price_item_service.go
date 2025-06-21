@@ -90,6 +90,11 @@ func (s *PriceItemService) Replenish(ctx context.Context, hist *models.Pricelist
 	if _, err := s.plHistoryRepo.Create(ctx, hist); err != nil {
 		return err
 	}
+
+	if err := s.repo.UpdateBuyPrice(ctx, hist.PriceItemID, hist.BuyPrice); err != nil {
+		return err
+	}
+
 	return s.repo.IncreaseStock(ctx, hist.PriceItemID, hist.Quantity)
 }
 
