@@ -10,12 +10,14 @@ import (
 )
 
 type PriceItemHandler struct {
-	service  *services.PriceItemService
-	expenses *services.ExpenseService
+	service    *services.PriceItemService
+	expenses   *services.ExpenseService
+	expCats    *services.ExpenseCategoryService
+	categories *services.CategoryService
 }
 
-func NewPriceItemHandler(service *services.PriceItemService, expenseService *services.ExpenseService) *PriceItemHandler {
-	return &PriceItemHandler{service: service, expenses: expenseService}
+func NewPriceItemHandler(service *services.PriceItemService, expenseService *services.ExpenseService, expCatService *services.ExpenseCategoryService, categoryService *services.CategoryService) *PriceItemHandler {
+	return &PriceItemHandler{service: service, expenses: expenseService, expCats: expCatService, categories: categoryService}
 }
 
 // CRUD
@@ -232,14 +234,25 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 		return
 	}
 
-	// create corresponding expense entry
+	// create corresponding expense entry with automatic category mapping
 	item, _ := h.service.GetPriceItemByID(c.Request.Context(), itemID)
+	cat, _ := h.categories.GetCategoryByID(c.Request.Context(), item.CategoryID)
+	var expCatID int
+	if cat != nil {
+		if ec, _ := h.expCats.GetByName(c.Request.Context(), cat.Name); ec != nil {
+			expCatID = ec.ID
+		} else {
+			newCat := models.ExpenseCategory{Name: cat.Name}
+			expCatID, _ = h.expCats.Create(c.Request.Context(), &newCat)
+		}
+	}
+
 	exp := models.Expense{
 		Date:        time.Now(),
 		Title:       "Пополнение " + item.Name,
 		Total:       hist.Total,
 		Paid:        false,
-		CategoryID:  0,
+		CategoryID:  expCatID,
 		Description: "Пополнение товара " + item.Name + " в количестве " + strconv.Itoa(in.Quantity) + " шт.",
 	}
 	_, _ = h.expenses.CreateExpense(c.Request.Context(), &exp)

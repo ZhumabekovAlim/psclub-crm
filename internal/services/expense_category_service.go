@@ -29,3 +29,7 @@ func (s *ExpenseCategoryService) Update(ctx context.Context, c *models.ExpenseCa
 func (s *ExpenseCategoryService) Delete(ctx context.Context, id int) error {
 	return s.repo.Delete(ctx, id)
 }
+
+func (s *ExpenseCategoryService) GetByName(ctx context.Context, name string) (*models.ExpenseCategory, error) {
+	return s.repo.GetByName(ctx, name)
+}
