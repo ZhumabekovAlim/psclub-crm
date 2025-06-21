@@ -44,7 +44,7 @@ func (r *PricelistHistoryRepository) GetByItem(ctx context.Context, priceItemID 
 
 func (r *PricelistHistoryRepository) GetAll(ctx context.Context) ([]models.PricelistHistory, error) {
 	query := `SELECT ph.id, pi.name, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.created_at FROM pricelist_history ph
-            JOIN ps_crm.price_items pi on ph.price_item_id = pi.id                                                               
+            JOIN price_items pi on ph.price_item_id = pi.id                                                               
             ORDER BY id DESC`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {

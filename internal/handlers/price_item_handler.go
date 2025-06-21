@@ -236,7 +236,7 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 	item, _ := h.service.GetPriceItemByID(c.Request.Context(), itemID)
 	exp := models.Expense{
 		Date:       time.Now(),
-		Title:      "Replenish " + item.Name,
+		Title:      "Пополнение " + item.Name,
 		Total:      hist.Total,
 		Paid:       false,
 		CategoryID: 0,
