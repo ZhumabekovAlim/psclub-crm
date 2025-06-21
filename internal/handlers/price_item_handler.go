@@ -235,11 +235,12 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 	// create corresponding expense entry
 	item, _ := h.service.GetPriceItemByID(c.Request.Context(), itemID)
 	exp := models.Expense{
-		Date:       time.Now(),
-		Title:      "Пополнение " + item.Name,
-		Total:      hist.Total,
-		Paid:       false,
-		CategoryID: 0,
+		Date:        time.Now(),
+		Title:       "Пополнение " + item.Name,
+		Total:       hist.Total,
+		Paid:        false,
+		CategoryID:  0,
+		Description: "Пополнение товара " + item.Name + " в количестве " + strconv.Itoa(in.Quantity) + " шт.",
 	}
 	_, _ = h.expenses.CreateExpense(c.Request.Context(), &exp)
 
