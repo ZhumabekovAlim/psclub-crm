@@ -72,6 +72,12 @@ func (r *PriceItemRepository) IncreaseStock(ctx context.Context, id int, amount 
 	return err
 }
 
+// UpdateBuyPrice sets a new buy price for the item.
+func (r *PriceItemRepository) UpdateBuyPrice(ctx context.Context, id int, price float64) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE price_items SET buy_price=? WHERE id=?`, price, id)
+	return err
+}
+
 // При продаже/списании уменьшаем остаток
 func (r *PriceItemRepository) DecreaseStock(ctx context.Context, id int, amount int) error {
 	query := `UPDATE price_items SET quantity = quantity - ? WHERE id = ? AND quantity >= ?`
