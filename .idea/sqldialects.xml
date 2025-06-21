@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SqlDialectMappings">
+    <file url="file://$PROJECT_DIR$/db/migrations/005_pricelist_history.up.sql" dialect="MariaDB" />
+    <file url="file://$PROJECT_DIR$/db/migrations/006_remove_color_from_repairs.up.sql" dialect="MariaDB" />
+    <file url="file://$PROJECT_DIR$/db/migrations/007_expense_categories.up.sql" dialect="MariaDB" />
+  </component>
+</project>

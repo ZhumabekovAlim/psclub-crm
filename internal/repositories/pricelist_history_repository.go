@@ -43,7 +43,9 @@ func (r *PricelistHistoryRepository) GetByItem(ctx context.Context, priceItemID 
 }
 
 func (r *PricelistHistoryRepository) GetAll(ctx context.Context) ([]models.PricelistHistory, error) {
-	query := `SELECT id, price_item_id, quantity, buy_price, total, user_id, created_at FROM pricelist_history ORDER BY id DESC`
+	query := `SELECT ph.id, pi.name, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.created_at FROM pricelist_history ph
+            JOIN ps_crm.price_items pi on ph.price_item_id = pi.id                                                               
+            ORDER BY id DESC`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -52,7 +54,7 @@ func (r *PricelistHistoryRepository) GetAll(ctx context.Context) ([]models.Price
 	var result []models.PricelistHistory
 	for rows.Next() {
 		var h models.PricelistHistory
-		if err := rows.Scan(&h.ID, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CreatedAt); err != nil {
+		if err := rows.Scan(&h.ID, &h.ItemName, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CreatedAt); err != nil {
 			return nil, err
 		}
 		result = append(result, h)

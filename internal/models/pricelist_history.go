@@ -4,6 +4,7 @@ import "time"
 
 type PricelistHistory struct {
 	ID          int       `json:"id"`
+	ItemName    string    `json:"item_name"`
 	PriceItemID int       `json:"price_item_id"`
 	Quantity    int       `json:"quantity"`
 	BuyPrice    float64   `json:"buy_price"`
