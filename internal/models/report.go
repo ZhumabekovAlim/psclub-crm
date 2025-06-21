@@ -47,8 +47,8 @@ type UserSales struct {
 }
 
 type ExpenseTotal struct {
-	Title string  `json:"title"`
-	Total float64 `json:"total"`
+	Category string  `json:"category"`
+	Total    float64 `json:"total"`
 }
 
 type CategoryIncome struct {
