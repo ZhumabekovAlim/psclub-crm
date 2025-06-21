@@ -63,7 +63,7 @@ func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error
 	query := `SELECT b.id, client_id, table_id, b.user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, b.created_at, b.updated_at, c.name AS client_name, c.phone AS client_phone, payment_types.name AS payment_type
 				FROM bookings b
 				JOIN clients c ON b.client_id = c.id
-        		JOIN payment_types ON b.payment_type_id = payment_types.id
+        		LEFT JOIN payment_types ON b.payment_type_id = payment_types.id
 				ORDER BY id DESC`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
@@ -109,7 +109,7 @@ func (r *BookingItemRepository) GetByBookingID(ctx context.Context, bookingID in
 func (r *BookingRepository) GetByID(ctx context.Context, id int) (*models.Booking, error) {
 	query := `SELECT bookings.id, client_id, table_id, user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, created_at, updated_at, payment_types.name AS payment_type 
 				FROM bookings 
-        		JOIN payment_types ON bookings.payment_type_id = payment_types.id
+        		LEFT JOIN payment_types ON bookings.payment_type_id = payment_types.id
             	WHERE bookings.id = ?`
 	var b models.Booking
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
