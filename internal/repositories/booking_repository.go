@@ -132,6 +132,48 @@ func (r *BookingRepository) Update(ctx context.Context, b *models.Booking) error
 	return err
 }
 
+// UpdateWithItems updates booking data and replaces its items within a single transaction.
+func (r *BookingRepository) UpdateWithItems(ctx context.Context, b *models.Booking) (err error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		log.Printf("begin tx error: %v", err)
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	query := `UPDATE bookings SET client_id=?, table_id=?, user_id=?, start_time=?, end_time=?, note=?, discount=?, discount_reason=?, total_amount=?, bonus_used=?, payment_status=?, payment_type_id=?, updated_at=NOW() WHERE id=?`
+	_, err = tx.ExecContext(ctx, query, b.ClientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID)
+	if err != nil {
+		log.Printf("update booking error: %v", err)
+		return err
+	}
+
+	if _, err = tx.ExecContext(ctx, `DELETE FROM booking_items WHERE booking_id=?`, b.ID); err != nil {
+		log.Printf("delete booking items error: %v", err)
+		return err
+	}
+
+	if len(b.Items) > 0 {
+		itemQuery := `INSERT INTO booking_items (booking_id, item_id, quantity, price, discount) VALUES (?, ?, ?, ?, ?)`
+		for _, it := range b.Items {
+			if _, err = tx.ExecContext(ctx, itemQuery, b.ID, it.ItemID, it.Quantity, it.Price, it.Discount); err != nil {
+				log.Printf("insert booking item error: %v", err)
+				return err
+			}
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Printf("commit booking update error: %v", err)
+	}
+	return err
+}
+
 func (r *BookingRepository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM bookings WHERE id = ?`, id)
 	if err != nil {
