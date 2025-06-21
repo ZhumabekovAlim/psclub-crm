@@ -68,6 +68,8 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 	}
 	bonus := int(float64(paid) * float64(settings.BonusPercent) / 100)
 	_ = s.clientRepo.AddBonus(ctx, b.ClientID, bonus)
+	_ = s.clientRepo.AddVisits(ctx, b.ClientID, 1)
+	_ = s.clientRepo.AddIncome(ctx, b.ClientID, b.TotalAmount)
 	return id, nil
 }
 
@@ -136,7 +138,12 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	if time.Now().After(limit) {
 		return errors.New("booking can no longer be removed")
 	}
-	return s.repo.Delete(ctx, id)
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+	_ = s.clientRepo.AddVisits(ctx, b.ClientID, -1)
+	_ = s.clientRepo.AddIncome(ctx, b.ClientID, -b.TotalAmount)
+	return nil
 }
 
 func (s *BookingService) decreaseStock(ctx context.Context, items []models.BookingItem) error {
