@@ -96,3 +96,15 @@ func (r *ClientRepository) GetByPhone(ctx context.Context, phone string) (*model
 	}
 	return &c, nil
 }
+
+func (r *ClientRepository) AddVisits(ctx context.Context, clientID int, visits int) error {
+	query := `UPDATE clients SET visits = visits + ? WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, visits, clientID)
+	return err
+}
+
+func (r *ClientRepository) AddIncome(ctx context.Context, clientID int, income int) error {
+	query := `UPDATE clients SET income = income + ? WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, income, clientID)
+	return err
+}
