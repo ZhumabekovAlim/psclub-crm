@@ -315,9 +315,11 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 	}
 
 	expRows, err := r.db.QueryContext(ctx, `
-        SELECT title, SUM(total) FROM expenses
-        WHERE date BETWEEN ? AND ?
-        GROUP BY title`, from, to)
+        SELECT IFNULL(ec.name, e.title) AS category, SUM(e.total)
+        FROM expenses e
+        LEFT JOIN expense_categories ec ON e.category_id = ec.id
+        WHERE e.date BETWEEN ? AND ? AND e.paid = 1
+        GROUP BY category`, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +328,7 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 	var totalExp float64
 	for expRows.Next() {
 		var e models.ExpenseTotal
-		if err := expRows.Scan(&e.Title, &e.Total); err != nil {
+		if err := expRows.Scan(&e.Category, &e.Total); err != nil {
 			return nil, err
 		}
 		expenses = append(expenses, e)

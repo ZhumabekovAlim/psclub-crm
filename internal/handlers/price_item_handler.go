@@ -6,14 +6,16 @@ import (
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
 	"strconv"
+	"time"
 )
 
 type PriceItemHandler struct {
-	service *services.PriceItemService
+	service  *services.PriceItemService
+	expenses *services.ExpenseService
 }
 
-func NewPriceItemHandler(service *services.PriceItemService) *PriceItemHandler {
-	return &PriceItemHandler{service: service}
+func NewPriceItemHandler(service *services.PriceItemService, expenseService *services.ExpenseService) *PriceItemHandler {
+	return &PriceItemHandler{service: service, expenses: expenseService}
 }
 
 // CRUD
@@ -229,5 +231,17 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// create corresponding expense entry
+	item, _ := h.service.GetPriceItemByID(c.Request.Context(), itemID)
+	exp := models.Expense{
+		Date:       time.Now(),
+		Title:      "Replenish " + item.Name,
+		Total:      hist.Total,
+		Paid:       false,
+		CategoryID: 0,
+	}
+	_, _ = h.expenses.CreateExpense(c.Request.Context(), &exp)
+
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }

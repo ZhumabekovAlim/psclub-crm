@@ -77,8 +77,6 @@ func Run() {
 	historyRepo := repositories.NewPriceItemHistoryRepository(db)
 	plHistoryRepo := repositories.NewPricelistHistoryRepository(db)
 	priceService := services.NewPriceItemService(priceRepo, historyRepo, plHistoryRepo)
-	priceHandler := handlers.NewPriceItemHandler(priceService)
-	plHistoryHandler := handlers.NewPricelistHistoryHandler(priceService)
 
 	// Сеты товаров
 	priceSetRepo := repositories.NewPriceSetRepository(db)
@@ -99,15 +97,23 @@ func Run() {
 	)
 	bookingHandler := handlers.NewBookingHandler(bookingService)
 
-	// Расходы
+	// Категории расходов и сами расходы
+	expCatRepo := repositories.NewExpenseCategoryRepository(db)
+	expCatService := services.NewExpenseCategoryService(expCatRepo)
+	expCatHandler := handlers.NewExpenseCategoryHandler(expCatService)
+
 	expenseRepo := repositories.NewExpenseRepository(db)
 	expenseService := services.NewExpenseService(expenseRepo)
 	expenseHandler := handlers.NewExpenseHandler(expenseService)
 
+	// Прайс-лист handlers depend on expense service
+	priceHandler := handlers.NewPriceItemHandler(priceService, expenseService)
+	plHistoryHandler := handlers.NewPricelistHistoryHandler(priceService)
+
 	// Ремонты
 	repairRepo := repositories.NewRepairRepository(db)
 	repairService := services.NewRepairService(repairRepo)
-	repairHandler := handlers.NewRepairHandler(repairService)
+	repairHandler := handlers.NewRepairHandler(repairService, expenseService)
 
 	// Касса
 	cashboxRepo := repositories.NewCashboxRepository(db)
@@ -134,6 +140,7 @@ func Run() {
 		authHandler,
 		clientHandler,
 		userHandler,
+		expCatHandler,
 		expenseHandler,
 		tableHandler,
 		tableCategoryHandler,
