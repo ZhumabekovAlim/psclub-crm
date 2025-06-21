@@ -141,6 +141,17 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	if err := s.repo.Delete(ctx, id); err != nil {
 		return err
 	}
+
+	// отменяем начисленные бонусы и возвращаем использованные
+	paid := b.TotalAmount - b.BonusUsed
+	if paid < 0 {
+		paid = 0
+	}
+	bonus := int(float64(paid) * float64(settings.BonusPercent) / 100)
+	_ = s.clientRepo.AddBonus(ctx, b.ClientID, -bonus)
+	if b.BonusUsed > 0 {
+		_ = s.clientRepo.AddBonus(ctx, b.ClientID, b.BonusUsed)
+	}
 	_ = s.clientRepo.AddVisits(ctx, b.ClientID, -1)
 	_ = s.clientRepo.AddIncome(ctx, b.ClientID, -b.TotalAmount)
 	return nil
