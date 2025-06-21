@@ -64,8 +64,31 @@ func (r *ClientRepository) GetByID(ctx context.Context, id int) (*models.Client,
 }
 
 func (r *ClientRepository) Update(ctx context.Context, c *models.Client) error {
-	query := `UPDATE clients SET name=?, phone=?, date_of_birth=?, channel=?, bonus=?, visits=?, income=?, updated_at=NOW() WHERE id=?`
-	_, err := r.db.ExecContext(ctx, query, c.Name, c.Phone, c.DateOfBirth, c.Channel, c.Bonus, c.Visits, c.Income, c.ID)
+	// Получить текущие значения клиента
+	existing, err := r.GetByID(ctx, c.ID)
+	if err != nil {
+		return err
+	}
+
+	// Прибавить к существующим значениям
+	c.Bonus += existing.Bonus
+	c.Visits += existing.Visits
+	c.Income += existing.Income
+
+	// Обновить поля клиента
+	query := `
+        UPDATE clients 
+        SET name = ?, 
+            phone = ?, 
+            date_of_birth = ?, 
+            channel = ?, 
+            bonus = ?, 
+            visits = ?, 
+            income = ?, 
+            updated_at = NOW()
+        WHERE id = ?`
+
+	_, err = r.db.ExecContext(ctx, query, c.Name, c.Phone, c.DateOfBirth, c.Channel, c.Bonus, c.Visits, c.Income, c.ID)
 	return err
 }
 
