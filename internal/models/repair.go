@@ -5,7 +5,6 @@ import "time"
 type Repair struct {
 	ID          int       `json:"id"`
 	Date        time.Time `json:"date"`
-	Color       string    `json:"color"`
 	VIN         string    `json:"vin"`
 	Description string    `json:"description"`
 	Price       float64   `json:"price"`

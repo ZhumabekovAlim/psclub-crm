@@ -6,14 +6,16 @@ import (
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
 	"strconv"
+	"time"
 )
 
 type RepairHandler struct {
-	service *services.RepairService
+	service  *services.RepairService
+	expenses *services.ExpenseService
 }
 
-func NewRepairHandler(s *services.RepairService) *RepairHandler {
-	return &RepairHandler{service: s}
+func NewRepairHandler(s *services.RepairService, expenseService *services.ExpenseService) *RepairHandler {
+	return &RepairHandler{service: s, expenses: expenseService}
 }
 
 // POST /api/repairs
@@ -29,6 +31,16 @@ func (h *RepairHandler) CreateRepair(c *gin.Context) {
 		return
 	}
 	rep.ID = id
+
+	exp := models.Expense{
+		Date:        time.Now(),
+		Title:       "Repair " + rep.VIN,
+		Total:       rep.Price,
+		Description: rep.Description,
+		Paid:        false,
+	}
+	_, _ = h.expenses.CreateExpense(c.Request.Context(), &exp)
+
 	c.JSON(http.StatusCreated, rep)
 }
 
