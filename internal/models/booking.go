@@ -31,5 +31,5 @@ type BookingItem struct {
 	Quantity  int     `json:"quantity"`
 	Price     int     `json:"price"`
 	Discount  int     `json:"discount"`
-	ItemPrice float64 `json:"item_price"`
+	ItemPrice float64 `json:"item_price,omitempty"`
 }
