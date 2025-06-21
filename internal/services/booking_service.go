@@ -18,9 +18,10 @@ type BookingService struct {
 	settingsRepo    *repositories.SettingsRepository
 	priceItemRepo   *repositories.PriceItemRepository
 	priceSetRepo    *repositories.PriceSetRepository
+	categoryRepo    *repositories.CategoryRepository
 }
 
-func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories.BookingItemRepository, clientRepo *repositories.ClientRepository, settingsRepo *repositories.SettingsRepository, priceRepo *repositories.PriceItemRepository, setRepo *repositories.PriceSetRepository) *BookingService {
+func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories.BookingItemRepository, clientRepo *repositories.ClientRepository, settingsRepo *repositories.SettingsRepository, priceRepo *repositories.PriceItemRepository, setRepo *repositories.PriceSetRepository, categoryRepo *repositories.CategoryRepository) *BookingService {
 	return &BookingService{
 		repo:            r,
 		bookingItemRepo: itemRepo,
@@ -28,12 +29,23 @@ func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories
 		settingsRepo:    settingsRepo,
 		priceItemRepo:   priceRepo,
 		priceSetRepo:    setRepo,
+		categoryRepo:    categoryRepo,
 	}
 }
 
 type stockChange struct {
 	id  int
 	qty int
+}
+
+const hoursCategoryName = "Часы"
+
+func (s *BookingService) isHoursCategory(ctx context.Context, categoryID int) (bool, error) {
+	cat, err := s.categoryRepo.GetByID(ctx, categoryID)
+	if err != nil {
+		return false, err
+	}
+	return cat.Name == hoursCategoryName, nil
 }
 
 func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (int, error) {
@@ -172,31 +184,52 @@ func (s *BookingService) decreaseStock(ctx context.Context, items []models.Booki
 			s.restoreChanges(ctx, changes)
 			return err
 		}
-		if err := s.priceItemRepo.DecreaseStock(ctx, it.ItemID, it.Quantity); err != nil {
+		isHours, err := s.isHoursCategory(ctx, pi.CategoryID)
+		if err != nil {
 			s.restoreChanges(ctx, changes)
 			return err
 		}
-
-		changes = append(changes, stockChange{id: it.ItemID, qty: it.Quantity})
-
-		affected[it.ItemID] = struct{}{}
-		if pi.IsSet {
-			set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
-			if err != nil {
-
+		if !isHours {
+			if err := s.priceItemRepo.DecreaseStock(ctx, it.ItemID, it.Quantity); err != nil {
 				s.restoreChanges(ctx, changes)
-
 				return err
 			}
-			for _, si := range set.Items {
-				if err := s.priceItemRepo.DecreaseStock(ctx, si.ItemID, si.Quantity*it.Quantity); err != nil {
+
+			changes = append(changes, stockChange{id: it.ItemID, qty: it.Quantity})
+
+			affected[it.ItemID] = struct{}{}
+
+			if pi.IsSet {
+				set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
+				if err != nil {
+
 					s.restoreChanges(ctx, changes)
+
 					return err
 				}
+				for _, si := range set.Items {
+					sub, err := s.priceItemRepo.GetByID(ctx, si.ItemID)
+					if err != nil {
+						s.restoreChanges(ctx, changes)
+						return err
+					}
+					hoursSub, err := s.isHoursCategory(ctx, sub.CategoryID)
+					if err != nil {
+						s.restoreChanges(ctx, changes)
+						return err
+					}
+					if hoursSub {
+						continue
+					}
+					if err := s.priceItemRepo.DecreaseStock(ctx, si.ItemID, si.Quantity*it.Quantity); err != nil {
+						s.restoreChanges(ctx, changes)
+						return err
+					}
 
-				changes = append(changes, stockChange{id: si.ItemID, qty: si.Quantity * it.Quantity})
+					changes = append(changes, stockChange{id: si.ItemID, qty: si.Quantity * it.Quantity})
 
-				affected[si.ItemID] = struct{}{}
+					affected[si.ItemID] = struct{}{}
+				}
 			}
 		}
 	}
@@ -226,6 +259,13 @@ func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[i
 				if err != nil {
 					return err
 				}
+				hours, err := s.isHoursCategory(ctx, it.CategoryID)
+				if err != nil {
+					return err
+				}
+				if hours {
+					continue
+				}
 				avail := it.Quantity / si.Quantity
 				if avail < qty {
 					qty = avail
@@ -249,6 +289,13 @@ func (s *BookingService) checkStock(ctx context.Context, items []models.BookingI
 		if err != nil {
 			return err
 		}
+		isHours, err := s.isHoursCategory(ctx, pi.CategoryID)
+		if err != nil {
+			return err
+		}
+		if isHours {
+			continue
+		}
 		if pi.Quantity < it.Quantity {
 			return errors.New("insufficient stock")
 		}
@@ -261,6 +308,13 @@ func (s *BookingService) checkStock(ctx context.Context, items []models.BookingI
 				sub, err := s.priceItemRepo.GetByID(ctx, si.ItemID)
 				if err != nil {
 					return err
+				}
+				hoursSub, err := s.isHoursCategory(ctx, sub.CategoryID)
+				if err != nil {
+					return err
+				}
+				if hoursSub {
+					continue
 				}
 				if sub.Quantity < si.Quantity*it.Quantity {
 					return errors.New("insufficient stock")
@@ -290,19 +344,33 @@ func (s *BookingService) increaseStock(ctx context.Context, items []models.Booki
 		if err != nil {
 			continue
 		}
-		_ = s.priceItemRepo.IncreaseStock(ctx, it.ItemID, it.Quantity)
-		changes = append(changes, stockChange{id: it.ItemID, qty: it.Quantity})
+		hours, err := s.isHoursCategory(ctx, pi.CategoryID)
+		if err != nil {
+			continue
+		}
+		if !hours {
+			_ = s.priceItemRepo.IncreaseStock(ctx, it.ItemID, it.Quantity)
+			changes = append(changes, stockChange{id: it.ItemID, qty: it.Quantity})
 
-		if pi.IsSet {
-			set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
-			if err != nil {
-				continue
-			}
-			for _, si := range set.Items {
-				_ = s.priceItemRepo.IncreaseStock(ctx, si.ItemID, si.Quantity*it.Quantity)
+			if pi.IsSet {
+				set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
+				if err != nil {
+					continue
+				}
+				for _, si := range set.Items {
+					sub, err := s.priceItemRepo.GetByID(ctx, si.ItemID)
+					if err != nil {
+						continue
+					}
+					hoursSub, err := s.isHoursCategory(ctx, sub.CategoryID)
+					if err != nil || hoursSub {
+						continue
+					}
+					_ = s.priceItemRepo.IncreaseStock(ctx, si.ItemID, si.Quantity*it.Quantity)
 
-				changes = append(changes, stockChange{id: si.ItemID, qty: si.Quantity * it.Quantity})
+					changes = append(changes, stockChange{id: si.ItemID, qty: si.Quantity * it.Quantity})
 
+				}
 			}
 		}
 	}

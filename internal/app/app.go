@@ -94,6 +94,7 @@ func Run() {
 		settingsRepo,
 		priceRepo,
 		priceSetRepo,
+		categoryRepo,
 	)
 	bookingHandler := handlers.NewBookingHandler(bookingService)
 
