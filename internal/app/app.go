@@ -106,8 +106,8 @@ func Run() {
 	expenseService := services.NewExpenseService(expenseRepo)
 	expenseHandler := handlers.NewExpenseHandler(expenseService)
 
-	// Прайс-лист handlers depend on expense service
-	priceHandler := handlers.NewPriceItemHandler(priceService, expenseService)
+	// Прайс-лист handlers depend on expense and category services
+	priceHandler := handlers.NewPriceItemHandler(priceService, expenseService, expCatService, categoryService)
 	plHistoryHandler := handlers.NewPricelistHistoryHandler(priceService)
 
 	// Ремонты

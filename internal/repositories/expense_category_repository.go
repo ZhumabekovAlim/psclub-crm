@@ -49,3 +49,16 @@ func (r *ExpenseCategoryRepository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM expense_categories WHERE id=?`, id)
 	return err
 }
+
+func (r *ExpenseCategoryRepository) GetByName(ctx context.Context, name string) (*models.ExpenseCategory, error) {
+	query := `SELECT id, name FROM expense_categories WHERE name = ?`
+	var c models.ExpenseCategory
+	err := r.db.QueryRowContext(ctx, query, name).Scan(&c.ID, &c.Name)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
