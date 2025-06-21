@@ -93,6 +93,11 @@ func (s *BookingService) GetAllBookings(ctx context.Context) ([]models.Booking, 
 	// загрузить позиции для каждой брони
 	for i := range bookings {
 		items, _ := s.bookingItemRepo.GetByBookingID(ctx, bookings[i].ID)
+		for j := range items {
+			if items[j].Quantity != 0 {
+				items[j].ItemPrice = float64(items[j].Price) / float64(items[j].Quantity)
+			}
+		}
 		bookings[i].Items = items
 	}
 	return bookings, nil
@@ -104,6 +109,11 @@ func (s *BookingService) GetBookingByID(ctx context.Context, id int) (*models.Bo
 		return nil, err
 	}
 	items, _ := s.bookingItemRepo.GetByBookingID(ctx, b.ID)
+	for i := range items {
+		if items[i].Quantity != 0 {
+			items[i].ItemPrice = float64(items[i].Price) / float64(items[i].Quantity)
+		}
+	}
 	b.Items = items
 	return b, nil
 }
