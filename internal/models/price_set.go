@@ -10,8 +10,9 @@ type PriceSet struct {
 }
 
 type SetItem struct {
-	ID         int `json:"id"`
-	PriceSetID int `json:"price_set_id"`
-	ItemID     int `json:"item_id"`
-	Quantity   int `json:"quantity"`
+	ID         int    `json:"id"`
+	PriceSetID int    `json:"price_set_id"`
+	ItemID     int    `json:"item_id"`
+	Quantity   int    `json:"quantity"`
+	ItemName   string `json:"item_name,omitempty"`
 }
