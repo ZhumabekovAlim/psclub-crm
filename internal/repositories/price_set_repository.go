@@ -45,7 +45,11 @@ func (r *PriceSetRepository) Create(ctx context.Context, s *models.PriceSet) (in
 }
 
 func (r *PriceSetRepository) getItems(ctx context.Context, setID int) ([]models.SetItem, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, price_set_id, item_id, quantity FROM set_items WHERE price_set_id=?`, setID)
+	query := `SELECT si.id, si.price_set_id, si.item_id, si.quantity, pi.name
+                FROM set_items si
+                JOIN price_items pi ON si.item_id = pi.id
+                WHERE si.price_set_id=?`
+	rows, err := r.db.QueryContext(ctx, query, setID)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +57,7 @@ func (r *PriceSetRepository) getItems(ctx context.Context, setID int) ([]models.
 	var items []models.SetItem
 	for rows.Next() {
 		var it models.SetItem
-		if err := rows.Scan(&it.ID, &it.PriceSetID, &it.ItemID, &it.Quantity); err != nil {
+		if err := rows.Scan(&it.ID, &it.PriceSetID, &it.ItemID, &it.Quantity, &it.ItemName); err != nil {
 			return nil, err
 		}
 		items = append(items, it)
