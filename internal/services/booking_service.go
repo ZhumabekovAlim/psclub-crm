@@ -38,8 +38,6 @@ type stockChange struct {
 	qty int
 }
 
-const hoursCategoryName = "Часы"
-
 func (s *BookingService) isHoursCategory(ctx context.Context, categoryID int) (bool, error) {
 	cat, err := s.categoryRepo.GetByID(ctx, categoryID)
 	if err != nil {
