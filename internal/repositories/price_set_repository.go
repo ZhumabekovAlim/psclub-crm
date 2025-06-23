@@ -66,7 +66,9 @@ func (r *PriceSetRepository) getItems(ctx context.Context, setID int) ([]models.
 }
 
 func (r *PriceSetRepository) GetAll(ctx context.Context) ([]models.PriceSet, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, name, category_id, subcategory_id, price FROM price_sets ORDER BY id`)
+	rows, err := r.db.QueryContext(ctx, `SELECT price_sets.id, price_sets.name, price_sets.category_id, subcategory_id, price, subcategories.name FROM price_sets
+                                                    JOIN subcategories ON price_sets.subcategory_id = subcategories.id
+                                                    ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +76,7 @@ func (r *PriceSetRepository) GetAll(ctx context.Context) ([]models.PriceSet, err
 	var sets []models.PriceSet
 	for rows.Next() {
 		var s models.PriceSet
-		if err := rows.Scan(&s.ID, &s.Name, &s.CategoryID, &s.SubcategoryID, &s.Price); err != nil {
+		if err := rows.Scan(&s.ID, &s.Name, &s.CategoryID, &s.SubcategoryID, &s.Price, &s.SubcategoryName); err != nil {
 			return nil, err
 		}
 		s.Items, _ = r.getItems(ctx, s.ID)
@@ -85,7 +87,8 @@ func (r *PriceSetRepository) GetAll(ctx context.Context) ([]models.PriceSet, err
 
 func (r *PriceSetRepository) GetByID(ctx context.Context, id int) (*models.PriceSet, error) {
 	var s models.PriceSet
-	err := r.db.QueryRowContext(ctx, `SELECT id, name, category_id, subcategory_id, price FROM price_sets WHERE id=?`, id).Scan(&s.ID, &s.Name, &s.CategoryID, &s.SubcategoryID, &s.Price)
+	err := r.db.QueryRowContext(ctx, `SELECT price_sets.id, price_sets.name, price_sets.category_id, subcategory_id, price, subcategories.name FROM price_sets
+                                                    JOIN subcategories ON price_sets.subcategory_id = subcategories.id`, id).Scan(&s.ID, &s.Name, &s.CategoryID, &s.SubcategoryID, &s.Price, &s.SubcategoryName)
 	if err != nil {
 		return nil, err
 	}

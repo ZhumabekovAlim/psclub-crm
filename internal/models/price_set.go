@@ -1,12 +1,13 @@
 package models
 
 type PriceSet struct {
-	ID            int       `json:"id"`
-	Name          string    `json:"name"`
-	CategoryID    int       `json:"category_id"`
-	SubcategoryID int       `json:"subcategory_id"`
-	Price         int       `json:"price"`
-	Items         []SetItem `json:"items"`
+	ID              int       `json:"id"`
+	Name            string    `json:"name"`
+	CategoryID      int       `json:"category_id"`
+	SubcategoryID   int       `json:"subcategory_id"`
+	Price           int       `json:"price"`
+	SubcategoryName string    `json:"subcategory_name,omitempty"`
+	Items           []SetItem `json:"items"`
 }
 
 type SetItem struct {
