@@ -5,6 +5,7 @@ type PriceSet struct {
 	Name            string    `json:"name"`
 	CategoryID      int       `json:"category_id"`
 	SubcategoryID   int       `json:"subcategory_id"`
+	Quantity        int       `json:"quantity"`
 	Price           int       `json:"price"`
 	SubcategoryName string    `json:"subcategory_name,omitempty"`
 	Items           []SetItem `json:"items"`
