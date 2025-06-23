@@ -80,7 +80,7 @@ func Run() {
 
 	// Сеты товаров
 	priceSetRepo := repositories.NewPriceSetRepository(db)
-	priceSetService := services.NewPriceSetService(priceSetRepo)
+	priceSetService := services.NewPriceSetService(priceSetRepo, priceRepo, categoryRepo)
 	priceSetHandler := handlers.NewPriceSetHandler(priceSetService)
 
 	// Бронирования
