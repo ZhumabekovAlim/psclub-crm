@@ -86,7 +86,7 @@ func (h *PriceItemHandler) UpdatePriceItem(c *gin.Context) {
 		Name          *string  `json:"name"`
 		CategoryID    *int     `json:"category_id"`
 		SubcategoryID *int     `json:"subcategory_id"`
-		Quantity      *int     `json:"quantity"`
+		Quantity      *float64 `json:"quantity"`
 		SalePrice     *float64 `json:"sale_price"`
 		BuyPrice      *float64 `json:"buy_price"`
 		IsSet         *bool    `json:"is_set"`
@@ -214,7 +214,7 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 		return
 	}
 	var in struct {
-		Quantity int     `json:"quantity"`
+		Quantity float64 `json:"quantity"`
 		BuyPrice float64 `json:"buy_price"`
 		UserID   int     `json:"user_id"`
 	}
@@ -226,7 +226,7 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 		PriceItemID: itemID,
 		Quantity:    in.Quantity,
 		BuyPrice:    in.BuyPrice,
-		Total:       in.BuyPrice * float64(in.Quantity),
+		Total:       in.BuyPrice * in.Quantity,
 		UserID:      in.UserID,
 	}
 	if err := h.service.Replenish(c.Request.Context(), &hist); err != nil {

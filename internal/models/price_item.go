@@ -5,7 +5,7 @@ type PriceItem struct {
 	Name            string  `json:"name"`
 	CategoryID      int     `json:"category_id"`
 	SubcategoryID   int     `json:"subcategory_id"`
-	Quantity        int     `json:"quantity"`
+	Quantity        float64 `json:"quantity"`
 	SalePrice       float64 `json:"sale_price"`
 	BuyPrice        float64 `json:"buy_price"`
 	IsSet           bool    `json:"is_set"`                     // true если это сет (комплект товаров)

@@ -66,7 +66,7 @@ func (r *PriceItemRepository) Delete(ctx context.Context, id int) error {
 }
 
 // При пополнении склада увеличиваем остаток
-func (r *PriceItemRepository) IncreaseStock(ctx context.Context, id int, amount int) error {
+func (r *PriceItemRepository) IncreaseStock(ctx context.Context, id int, amount float64) error {
 	query := `UPDATE price_items SET quantity = quantity + ? WHERE id = ?`
 	_, err := r.db.ExecContext(ctx, query, amount, id)
 	return err
@@ -79,7 +79,7 @@ func (r *PriceItemRepository) UpdateBuyPrice(ctx context.Context, id int, price 
 }
 
 // При продаже/списании уменьшаем остаток
-func (r *PriceItemRepository) DecreaseStock(ctx context.Context, id int, amount int) error {
+func (r *PriceItemRepository) DecreaseStock(ctx context.Context, id int, amount float64) error {
 	query := `UPDATE price_items SET quantity = quantity - ? WHERE id = ? AND quantity >= ?`
 	res, err := r.db.ExecContext(ctx, query, amount, id, amount)
 	if err != nil {
@@ -96,7 +96,7 @@ func (r *PriceItemRepository) DecreaseStock(ctx context.Context, id int, amount 
 }
 
 // SetStock overrides the current quantity with the provided value.
-func (r *PriceItemRepository) SetStock(ctx context.Context, id int, quantity int) error {
+func (r *PriceItemRepository) SetStock(ctx context.Context, id int, quantity float64) error {
 	_, err := r.db.ExecContext(ctx, `UPDATE price_items SET quantity=? WHERE id=?`, quantity, id)
 	return err
 }
