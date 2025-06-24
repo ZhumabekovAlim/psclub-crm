@@ -52,7 +52,7 @@ func (s *PriceItemService) AddIncome(ctx context.Context, history *models.PriceI
 		return err
 	}
 	// 2. Увеличиваем остаток в PriceItem
-	return s.repo.IncreaseStock(ctx, history.PriceItemID, history.Quantity)
+	return s.repo.IncreaseStock(ctx, history.PriceItemID, float64(history.Quantity))
 }
 
 // Списание/Продажа товара — запись в истории и уменьшение остатка
@@ -64,7 +64,7 @@ func (s *PriceItemService) AddOutcome(ctx context.Context, history *models.Price
 	if err != nil {
 		return err
 	}
-	return s.repo.DecreaseStock(ctx, history.PriceItemID, history.Quantity)
+	return s.repo.DecreaseStock(ctx, history.PriceItemID, float64(history.Quantity))
 }
 
 // Получить историю по товару
@@ -95,7 +95,7 @@ func (s *PriceItemService) Replenish(ctx context.Context, hist *models.Pricelist
 		return err
 	}
 
-	return s.repo.IncreaseStock(ctx, hist.PriceItemID, hist.Quantity)
+	return s.repo.IncreaseStock(ctx, hist.PriceItemID, float64(hist.Quantity))
 }
 
 // GetPricelistHistoryByItem returns replenish history for one price item

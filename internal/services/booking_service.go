@@ -304,7 +304,7 @@ func (s *BookingService) checkStock(ctx context.Context, items []models.BookingI
 		if isHours {
 			continue
 		}
-		if pi.Quantity < it.Quantity {
+		if pi.Quantity < float64(it.Quantity) {
 			return errors.New("insufficient stock")
 		}
 		if pi.IsSet {
@@ -324,7 +324,7 @@ func (s *BookingService) checkStock(ctx context.Context, items []models.BookingI
 				if hoursSub {
 					continue
 				}
-				if sub.Quantity < si.Quantity*it.Quantity {
+				if sub.Quantity < float64(si.Quantity*it.Quantity) {
 					return errors.New("insufficient stock")
 				}
 			}
