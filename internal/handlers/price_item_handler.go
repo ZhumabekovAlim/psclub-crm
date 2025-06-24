@@ -253,7 +253,7 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 		Total:       hist.Total,
 		Paid:        false,
 		CategoryID:  expCatID,
-		Description: "Пополнение товара " + item.Name + " в количестве " + strconv.Itoa(in.Quantity) + " шт.",
+		Description: "Пополнение товара " + item.Name + " в количестве " + strconv.FormatFloat(in.Quantity, 'f', -1, 64) + " шт.",
 	}
 	_, _ = h.expenses.CreateExpense(c.Request.Context(), &exp)
 

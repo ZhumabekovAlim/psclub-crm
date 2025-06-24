@@ -71,3 +71,21 @@ func (h *SettingsHandler) DeleteSettings(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
+
+func (h *SettingsHandler) GetTablesCount(c *gin.Context) {
+	cnt, err := h.service.GetTablesCount(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"tables_count": cnt})
+}
+
+func (h *SettingsHandler) GetNotificationTime(c *gin.Context) {
+	n, err := h.service.GetNotificationTime(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"notification_time": n})
+}

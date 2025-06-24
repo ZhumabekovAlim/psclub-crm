@@ -7,6 +7,7 @@ type Client struct {
 	Name        string     `json:"name"`
 	Phone       string     `json:"phone"`
 	DateOfBirth *time.Time `json:"date_of_birth,omitempty"`
+	ChannelID   int        `json:"channel_id"`
 	Channel     string     `json:"channel,omitempty"`
 	Bonus       int        `json:"bonus"`
 	Visits      int        `json:"visits"`

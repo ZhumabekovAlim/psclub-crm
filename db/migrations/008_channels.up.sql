@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS channels (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
+);
+
+ALTER TABLE clients ADD COLUMN channel_id INT;
+ALTER TABLE clients DROP COLUMN channel;
+ALTER TABLE clients ADD CONSTRAINT fk_clients_channel FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE SET NULL;

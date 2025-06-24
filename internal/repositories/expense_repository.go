@@ -70,3 +70,8 @@ func (r *ExpenseRepository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM expenses WHERE id=?`, id)
 	return err
 }
+
+func (r *ExpenseRepository) DeleteByDetails(ctx context.Context, title, description string, total float64) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM expenses WHERE title=? AND description=? AND total=?`, title, description, total)
+	return err
+}

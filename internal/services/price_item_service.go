@@ -111,3 +111,11 @@ func (s *PriceItemService) GetPricelistHistoryByCategory(ctx context.Context, ca
 func (s *PriceItemService) GetAllPricelistHistory(ctx context.Context) ([]models.PricelistHistory, error) {
 	return s.plHistoryRepo.GetAll(ctx)
 }
+
+func (s *PriceItemService) GetPricelistHistoryByID(ctx context.Context, id int) (*models.PricelistHistory, error) {
+	return s.plHistoryRepo.GetByID(ctx, id)
+}
+
+func (s *PriceItemService) DeletePricelistHistory(ctx context.Context, id int) error {
+	return s.plHistoryRepo.Delete(ctx, id)
+}
