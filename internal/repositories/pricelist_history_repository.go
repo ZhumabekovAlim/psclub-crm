@@ -61,6 +61,24 @@ func (r *PricelistHistoryRepository) GetAll(ctx context.Context) ([]models.Price
 	}
 	return result, nil
 }
+
+func (r *PricelistHistoryRepository) GetByID(ctx context.Context, id int) (*models.PricelistHistory, error) {
+	query := `SELECT ph.id, pi.name, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.created_at
+                FROM pricelist_history ph
+                JOIN price_items pi ON ph.price_item_id = pi.id
+                WHERE ph.id = ?`
+	var h models.PricelistHistory
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&h.ID, &h.ItemName, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &h, nil
+}
+
+func (r *PricelistHistoryRepository) Delete(ctx context.Context, id int) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM pricelist_history WHERE id=?`, id)
+	return err
+}
 func (r *PricelistHistoryRepository) GetByCategory(ctx context.Context, categoryID int) ([]models.PricelistHistory, error) {
 	query := `SELECT ph.id, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.created_at, u.name AS user_name
                 FROM pricelist_history ph

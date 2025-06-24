@@ -32,6 +32,11 @@ func Run() {
 	clientService := services.NewClientService(clientRepo)
 	clientHandler := handlers.NewClientHandler(clientService)
 
+	// Каналы привлечения
+	channelRepo := repositories.NewChannelRepository(db)
+	channelService := services.NewChannelService(channelRepo)
+	channelHandler := handlers.NewChannelHandler(channelService)
+
 	// Сотрудники (Users)
 	userRepo := repositories.NewUserRepository(db)
 	tokenRepo := repositories.NewTokenRepository(db)
@@ -109,7 +114,7 @@ func Run() {
 
 	// Прайс-лист handlers depend on expense and category services
 	priceHandler := handlers.NewPriceItemHandler(priceService, expenseService, expCatService, categoryService)
-	plHistoryHandler := handlers.NewPricelistHistoryHandler(priceService)
+	plHistoryHandler := handlers.NewPricelistHistoryHandler(priceService, expenseService)
 
 	// Ремонты
 	repairRepo := repositories.NewRepairRepository(db)
@@ -140,6 +145,7 @@ func Run() {
 		router,
 		authHandler,
 		clientHandler,
+		channelHandler,
 		userHandler,
 		expCatHandler,
 		expenseHandler,

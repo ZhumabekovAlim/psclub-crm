@@ -33,3 +33,7 @@ func (s *ExpenseService) UpdateExpense(ctx context.Context, e *models.Expense) e
 func (s *ExpenseService) DeleteExpense(ctx context.Context, id int) error {
 	return s.repo.Delete(ctx, id)
 }
+
+func (s *ExpenseService) DeleteByDetails(ctx context.Context, title, description string, total float64) error {
+	return s.repo.DeleteByDetails(ctx, title, description, total)
+}

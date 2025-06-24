@@ -17,14 +17,14 @@ func NewSettingsRepository(db *sql.DB) *SettingsRepository {
 func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) {
 	// Получить текущие настройки + имя текущей платежной системы
 	query := `
-		SELECT s.id, s.payment_type, s.block_time, s.bonus_percent, s.work_time_from, s.work_time_to
-		FROM settings s 	
-		LEFT JOIN payment_types pt ON s.payment_type = pt.id
-		LIMIT 1
-	`
+                SELECT s.id, s.payment_type, s.block_time, s.bonus_percent, s.work_time_from, s.work_time_to, s.tables_count, s.notification_time
+                FROM settings s
+                LEFT JOIN payment_types pt ON s.payment_type = pt.id
+                LIMIT 1
+        `
 	var s models.Settings
 	err := r.db.QueryRowContext(ctx, query).Scan(
-		&s.ID, &s.PaymentType, &s.BlockTime, &s.BonusPercent, &s.WorkTimeFrom, &s.WorkTimeTo,
+		&s.ID, &s.PaymentType, &s.BlockTime, &s.BonusPercent, &s.WorkTimeFrom, &s.WorkTimeTo, &s.TablesCount, &s.NotificationTime,
 	)
 	if err != nil {
 		return nil, err
@@ -53,20 +53,20 @@ func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 
 func (r *SettingsRepository) Update(ctx context.Context, s *models.Settings) error {
 	query := `
-		UPDATE settings 
-		SET payment_type = ?, block_time = ?, bonus_percent = ?, work_time_from = ?, work_time_to = ? 
-		WHERE id = ?
-	`
-	_, err := r.db.ExecContext(ctx, query, s.PaymentType, s.BlockTime, s.BonusPercent, s.WorkTimeFrom, s.WorkTimeTo, s.ID)
+                UPDATE settings
+                SET payment_type = ?, block_time = ?, bonus_percent = ?, work_time_from = ?, work_time_to = ?, tables_count = ?, notification_time = ?
+                WHERE id = ?
+        `
+	_, err := r.db.ExecContext(ctx, query, s.PaymentType, s.BlockTime, s.BonusPercent, s.WorkTimeFrom, s.WorkTimeTo, s.TablesCount, s.NotificationTime, s.ID)
 	return err
 }
 
 func (r *SettingsRepository) Create(ctx context.Context, s *models.Settings) (int, error) {
 	query := `
-                INSERT INTO settings (payment_type, block_time, bonus_percent, work_time_from, work_time_to)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO settings (payment_type, block_time, bonus_percent, work_time_from, work_time_to, tables_count, notification_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
         `
-	res, err := r.db.ExecContext(ctx, query, s.PaymentType, s.BlockTime, s.BonusPercent, s.WorkTimeFrom, s.WorkTimeTo)
+	res, err := r.db.ExecContext(ctx, query, s.PaymentType, s.BlockTime, s.BonusPercent, s.WorkTimeFrom, s.WorkTimeTo, s.TablesCount, s.NotificationTime)
 	if err != nil {
 		return 0, err
 	}
@@ -80,4 +80,16 @@ func (r *SettingsRepository) Create(ctx context.Context, s *models.Settings) (in
 func (r *SettingsRepository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM settings WHERE id=?`, id)
 	return err
+}
+
+func (r *SettingsRepository) GetTablesCount(ctx context.Context) (int, error) {
+	var cnt int
+	err := r.db.QueryRowContext(ctx, `SELECT tables_count FROM settings LIMIT 1`).Scan(&cnt)
+	return cnt, err
+}
+
+func (r *SettingsRepository) GetNotificationTime(ctx context.Context) (int, error) {
+	var n int
+	err := r.db.QueryRowContext(ctx, `SELECT notification_time FROM settings LIMIT 1`).Scan(&n)
+	return n, err
 }

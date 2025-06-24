@@ -6,7 +6,7 @@ type PricelistHistory struct {
 	ID          int       `json:"id"`
 	ItemName    string    `json:"item_name"`
 	PriceItemID int       `json:"price_item_id"`
-	Quantity    int       `json:"quantity"`
+	Quantity    float64   `json:"quantity"`
 	BuyPrice    float64   `json:"buy_price"`
 	Total       float64   `json:"total"`
 	UserID      int       `json:"user_id"`

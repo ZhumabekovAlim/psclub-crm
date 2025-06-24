@@ -9,6 +9,7 @@ func SetupRoutes(
 	r *gin.Engine,
 	authHandler *handlers.AuthHandler,
 	clientHandler *handlers.ClientHandler,
+	channelHandler *handlers.ChannelHandler,
 	userHandler *handlers.UserHandler,
 	expCatHandler *handlers.ExpenseCategoryHandler,
 	expenseHandler *handlers.ExpenseHandler,
@@ -44,6 +45,16 @@ func SetupRoutes(
 		clients.GET("/:id", clientHandler.GetClientByID)
 		clients.PUT("/:id", clientHandler.UpdateClient)
 		clients.DELETE("/:id", clientHandler.DeleteClient)
+	}
+
+	// --- Каналы привлечения
+	channels := api.Group("/channels")
+	{
+		channels.POST("", channelHandler.Create)
+		channels.GET("", channelHandler.GetAll)
+		channels.GET("/:id", channelHandler.GetByID)
+		channels.PUT("/:id", channelHandler.Update)
+		channels.DELETE("/:id", channelHandler.Delete)
 	}
 
 	// --- Сотрудники (Users)
@@ -134,8 +145,8 @@ func SetupRoutes(
 		plHistory.POST("", pricelistHistoryHandler.Create)
 		plHistory.GET("", pricelistHistoryHandler.GetAll)
 		plHistory.GET("/item/:id", pricelistHistoryHandler.GetByItem)
-
 		plHistory.GET("/category/:id", pricelistHistoryHandler.GetByCategory)
+		plHistory.DELETE("/:id", pricelistHistoryHandler.Delete)
 
 	}
 
@@ -201,6 +212,8 @@ func SetupRoutes(
 	{
 		settings.POST("", settingsHandler.CreateSettings)
 		settings.GET("", settingsHandler.GetSettings)
+		settings.GET("/tables-count", settingsHandler.GetTablesCount)
+		settings.GET("/notification-time", settingsHandler.GetNotificationTime)
 		settings.PUT("/:id", settingsHandler.UpdateSettings)
 		settings.DELETE("/:id", settingsHandler.DeleteSettings)
 	}
