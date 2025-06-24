@@ -96,7 +96,7 @@ func (s *PriceSetService) calculateQuantity(ctx context.Context, ps *models.Pric
 		if hours {
 			continue
 		}
-		avail := item.Quantity / it.Quantity
+		avail := int(item.Quantity / float64(it.Quantity))
 		if avail < qty {
 			qty = avail
 		}

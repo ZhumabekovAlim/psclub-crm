@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS price_items (
     name VARCHAR(100) NOT NULL,
     category_id INT NOT NULL,
     subcategory_id INT,
-    quantity INT DEFAULT 0,
+    quantity DOUBLE DEFAULT 0,
     sale_price DOUBLE NOT NULL,
     buy_price DOUBLE DEFAULT 0,
     is_set TINYINT(1) DEFAULT 0,
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS set_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     price_set_id INT NOT NULL,
     item_id INT NOT NULL,
-    quantity INT NOT NULL,
+    quantity DOUBLE NOT NULL,
     FOREIGN KEY (price_set_id) REFERENCES price_sets(id) ON DELETE CASCADE,
     FOREIGN KEY (item_id) REFERENCES price_items(id) ON DELETE CASCADE
 );
@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS price_item_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
     price_item_id INT NOT NULL,
     operation VARCHAR(20) NOT NULL,
-    quantity INT NOT NULL,
+    quantity DOUBLE NOT NULL,
     buy_price DOUBLE DEFAULT 0,
     total DOUBLE NOT NULL,
     user_id INT,

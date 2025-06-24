@@ -35,7 +35,7 @@ func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories
 
 type stockChange struct {
 	id  int
-	qty int
+	qty float64
 }
 
 func (s *BookingService) isHoursCategory(ctx context.Context, categoryID int) (bool, error) {
@@ -198,12 +198,12 @@ func (s *BookingService) decreaseStock(ctx context.Context, items []models.Booki
 			return err
 		}
 		if !isHours {
-			if err := s.priceItemRepo.DecreaseStock(ctx, it.ItemID, it.Quantity); err != nil {
+			if err := s.priceItemRepo.DecreaseStock(ctx, it.ItemID, float64(it.Quantity)); err != nil {
 				s.restoreChanges(ctx, changes)
 				return err
 			}
 
-			changes = append(changes, stockChange{id: it.ItemID, qty: it.Quantity})
+			changes = append(changes, stockChange{id: it.ItemID, qty: float64(it.Quantity)})
 
 			affected[it.ItemID] = struct{}{}
 
@@ -229,12 +229,12 @@ func (s *BookingService) decreaseStock(ctx context.Context, items []models.Booki
 					if hoursSub {
 						continue
 					}
-					if err := s.priceItemRepo.DecreaseStock(ctx, si.ItemID, si.Quantity*it.Quantity); err != nil {
+					if err := s.priceItemRepo.DecreaseStock(ctx, si.ItemID, float64(si.Quantity*it.Quantity)); err != nil {
 						s.restoreChanges(ctx, changes)
 						return err
 					}
 
-					changes = append(changes, stockChange{id: si.ItemID, qty: si.Quantity * it.Quantity})
+					changes = append(changes, stockChange{id: si.ItemID, qty: float64(si.Quantity * it.Quantity)})
 
 					affected[si.ItemID] = struct{}{}
 				}
@@ -274,7 +274,7 @@ func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[i
 				if hours {
 					continue
 				}
-				avail := it.Quantity / si.Quantity
+				avail := int(it.Quantity / float64(si.Quantity))
 				if avail < qty {
 					qty = avail
 				}
@@ -282,7 +282,7 @@ func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[i
 			if qty == math.MaxInt32 {
 				qty = 0
 			}
-			if err := s.priceItemRepo.SetStock(ctx, set.ID, qty); err != nil {
+			if err := s.priceItemRepo.SetStock(ctx, set.ID, float64(qty)); err != nil {
 				return err
 			}
 			updated[set.ID] = struct{}{}
@@ -357,8 +357,8 @@ func (s *BookingService) increaseStock(ctx context.Context, items []models.Booki
 			continue
 		}
 		if !hours {
-			_ = s.priceItemRepo.IncreaseStock(ctx, it.ItemID, it.Quantity)
-			changes = append(changes, stockChange{id: it.ItemID, qty: it.Quantity})
+			_ = s.priceItemRepo.IncreaseStock(ctx, it.ItemID, float64(it.Quantity))
+			changes = append(changes, stockChange{id: it.ItemID, qty: float64(it.Quantity)})
 
 			if pi.IsSet {
 				set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
@@ -374,9 +374,9 @@ func (s *BookingService) increaseStock(ctx context.Context, items []models.Booki
 					if err != nil || hoursSub {
 						continue
 					}
-					_ = s.priceItemRepo.IncreaseStock(ctx, si.ItemID, si.Quantity*it.Quantity)
+					_ = s.priceItemRepo.IncreaseStock(ctx, si.ItemID, float64(si.Quantity*it.Quantity))
 
-					changes = append(changes, stockChange{id: si.ItemID, qty: si.Quantity * it.Quantity})
+					changes = append(changes, stockChange{id: si.ItemID, qty: float64(si.Quantity * it.Quantity)})
 
 				}
 			}
