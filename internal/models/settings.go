@@ -10,4 +10,5 @@ type Settings struct {
 	TablesCount      int           `json:"tables_count"`
 	NotificationTime int           `json:"notification_time"`
 	PaymentTypes     []PaymentType `json:"payment_types"` // список всех типов
+	Channels         []Channel     `json:"channels"`      // список всех каналов
 }
