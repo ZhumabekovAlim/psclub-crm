@@ -48,6 +48,24 @@ func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 	}
 	s.PaymentTypes = types
 
+	// Получить список всех channels
+	chQuery := `SELECT id, name FROM channels ORDER BY id`
+	chRows, err := r.db.QueryContext(ctx, chQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer chRows.Close()
+
+	var channels []models.Channel
+	for chRows.Next() {
+		var ch models.Channel
+		if err := chRows.Scan(&ch.ID, &ch.Name); err != nil {
+			return nil, err
+		}
+		channels = append(channels, ch)
+	}
+	s.Channels = channels
+
 	return &s, nil
 }
 
