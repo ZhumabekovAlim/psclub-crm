@@ -28,11 +28,21 @@ func NewPriceSetService(r *repositories.PriceSetRepository, ir *repositories.Pri
 }
 
 func (s *PriceSetService) CreatePriceSet(ctx context.Context, ps *models.PriceSet) (int, error) {
-	id, err := s.repo.Create(ctx, ps)
+	item := models.PriceItem{
+		Name:          ps.Name,
+		CategoryID:    ps.CategoryID,
+		SubcategoryID: ps.SubcategoryID,
+		SalePrice:     float64(ps.Price),
+		IsSet:         true,
+	}
+	id, err := s.itemRepo.Create(ctx, &item)
 	if err != nil {
 		return 0, err
 	}
 	ps.ID = id
+	if _, err = s.repo.Create(ctx, ps); err != nil {
+		return 0, err
+	}
 	qty, err := s.calculateQuantity(ctx, ps)
 	if err == nil {
 		ps.Quantity = qty
@@ -68,6 +78,17 @@ func (s *PriceSetService) GetPriceSetByID(ctx context.Context, id int) (*models.
 }
 
 func (s *PriceSetService) UpdatePriceSet(ctx context.Context, ps *models.PriceSet) error {
+	item := models.PriceItem{
+		ID:            ps.ID,
+		Name:          ps.Name,
+		CategoryID:    ps.CategoryID,
+		SubcategoryID: ps.SubcategoryID,
+		SalePrice:     float64(ps.Price),
+		IsSet:         true,
+	}
+	if err := s.itemRepo.Update(ctx, &item); err != nil {
+		return err
+	}
 	if err := s.repo.Update(ctx, ps); err != nil {
 		return err
 	}
@@ -79,7 +100,10 @@ func (s *PriceSetService) UpdatePriceSet(ctx context.Context, ps *models.PriceSe
 }
 
 func (s *PriceSetService) DeletePriceSet(ctx context.Context, id int) error {
-	return s.repo.Delete(ctx, id)
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+	return s.itemRepo.Delete(ctx, id)
 }
 
 func (s *PriceSetService) calculateQuantity(ctx context.Context, ps *models.PriceSet) (int, error) {

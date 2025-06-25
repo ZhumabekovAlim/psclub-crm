@@ -19,7 +19,13 @@ func (r *PriceSetRepository) Create(ctx context.Context, s *models.PriceSet) (in
 	if err != nil {
 		return 0, err
 	}
-	res, err := tx.ExecContext(ctx, `INSERT INTO price_sets (name, category_id, subcategory_id, price) VALUES (?, ?, ?, ?)`, s.Name, s.CategoryID, s.SubcategoryID, s.Price)
+	query := `INSERT INTO price_sets (name, category_id, subcategory_id, price) VALUES (?, ?, ?, ?)`
+	args := []any{s.Name, s.CategoryID, s.SubcategoryID, s.Price}
+	if s.ID > 0 {
+		query = `INSERT INTO price_sets (id, name, category_id, subcategory_id, price) VALUES (?, ?, ?, ?, ?)`
+		args = []any{s.ID, s.Name, s.CategoryID, s.SubcategoryID, s.Price}
+	}
+	res, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		tx.Rollback()
 		return 0, err
@@ -28,6 +34,9 @@ func (r *PriceSetRepository) Create(ctx context.Context, s *models.PriceSet) (in
 	if err != nil {
 		tx.Rollback()
 		return 0, err
+	}
+	if s.ID > 0 {
+		setID = int64(s.ID)
 	}
 	if len(s.Items) > 0 {
 		for _, it := range s.Items {
