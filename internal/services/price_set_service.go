@@ -46,6 +46,9 @@ func (s *PriceSetService) CreatePriceSet(ctx context.Context, ps *models.PriceSe
 	qty, err := s.calculateQuantity(ctx, ps)
 	if err == nil {
 		ps.Quantity = qty
+		if err = s.itemRepo.SetStock(ctx, ps.ID, float64(qty)); err != nil {
+			return id, err
+		}
 	}
 	return id, nil
 }
@@ -95,6 +98,9 @@ func (s *PriceSetService) UpdatePriceSet(ctx context.Context, ps *models.PriceSe
 	qty, err := s.calculateQuantity(ctx, ps)
 	if err == nil {
 		ps.Quantity = qty
+		if err = s.itemRepo.SetStock(ctx, ps.ID, float64(qty)); err != nil {
+			return err
+		}
 	}
 	return nil
 }
