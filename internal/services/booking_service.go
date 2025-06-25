@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"math"
 	"time"
@@ -304,6 +305,7 @@ func (s *BookingService) checkStock(ctx context.Context, items []models.BookingI
 		if isHours {
 			continue
 		}
+		fmt.Println("Checking stock for item:", pi.ID, "Quantity:", it.Quantity, "Available:", pi.Quantity)
 		if pi.Quantity < float64(it.Quantity) {
 			return errors.New("insufficient stock 1")
 		}
