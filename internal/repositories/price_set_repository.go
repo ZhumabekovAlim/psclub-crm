@@ -97,7 +97,7 @@ func (r *PriceSetRepository) GetAll(ctx context.Context) ([]models.PriceSet, err
 func (r *PriceSetRepository) GetByID(ctx context.Context, id int) (*models.PriceSet, error) {
 	var s models.PriceSet
 	err := r.db.QueryRowContext(ctx, `SELECT price_sets.id, price_sets.name, price_sets.category_id, subcategory_id, price, subcategories.name FROM price_sets
-                                                    JOIN subcategories ON price_sets.subcategory_id = subcategories.id`, id).Scan(&s.ID, &s.Name, &s.CategoryID, &s.SubcategoryID, &s.Price, &s.SubcategoryName)
+                                                    JOIN subcategories ON price_sets.subcategory_id = subcategories.id WHERE price_sets.id = ?`, id).Scan(&s.ID, &s.Name, &s.CategoryID, &s.SubcategoryID, &s.Price, &s.SubcategoryName)
 	if err != nil {
 		return nil, err
 	}
