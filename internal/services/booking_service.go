@@ -196,6 +196,10 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	if err != nil {
 		return err
 	}
+	items, err := s.bookingItemRepo.GetByBookingID(ctx, id)
+	if err != nil {
+		return err
+	}
 	limit := b.EndTime.Add(time.Duration(settings.BlockTime) * time.Minute)
 	if time.Now().After(limit) {
 		return errors.New("booking can no longer be removed")
@@ -203,6 +207,7 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	if err := s.repo.Delete(ctx, id); err != nil {
 		return err
 	}
+	s.increaseStock(ctx, items)
 
 	// отменяем начисленные бонусы и возвращаем использованные
 	paid := b.TotalAmount - b.BonusUsed
