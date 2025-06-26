@@ -86,7 +86,9 @@ func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error
 
 // Получить все позиции по бронированию
 func (r *BookingItemRepository) GetByBookingID(ctx context.Context, bookingID int) ([]models.BookingItem, error) {
-	query := `SELECT id, booking_id, item_id, quantity, price, discount FROM booking_items WHERE booking_id = ?`
+	query := `SELECT bi.id, booking_id, item_id, bi.quantity, price, discount, pi.name FROM booking_items bi
+                JOIN price_items pi ON bi.item_id = pi.id                                      
+            	WHERE booking_id = ?`
 	rows, err := r.db.QueryContext(ctx, query, bookingID)
 	if err != nil {
 		log.Printf("get booking items query error: %v", err)

@@ -150,15 +150,6 @@ func SetupRoutes(
 
 	}
 
-	//// --- История закупа (прихода на склад)
-	//priceItemHistory := api.Group("/price-item-history")
-	//{
-	//	priceItemHistory.POST("", priceItemHistoryHandler.CreateHistory)
-	//	priceItemHistory.GET("", priceItemHistoryHandler.GetAllHistories)
-	//	priceItemHistory.GET("/:id", priceItemHistoryHandler.GetHistoryByID)
-	//	priceItemHistory.DELETE("/:id", priceItemHistoryHandler.DeleteHistory)
-	//}
-
 	// --- Бронирования
 	bookings := api.Group("/bookings")
 	{
