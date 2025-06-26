@@ -334,6 +334,33 @@ func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[i
 	return nil
 }
 
+// calculateSetQuantity determines the maximum number of sets that can be
+// assembled based on the stock levels of the items included in the set.
+func (s *BookingService) calculateSetQuantity(ctx context.Context, ps *models.PriceSet) (int, error) {
+	qty := math.MaxInt32
+	for _, it := range ps.Items {
+		item, err := s.priceItemRepo.GetByID(ctx, it.ItemID)
+		if err != nil {
+			return 0, err
+		}
+		hours, err := s.isHoursCategory(ctx, item.CategoryID)
+		if err != nil {
+			return 0, err
+		}
+		if hours {
+			continue
+		}
+		avail := int(item.Quantity / float64(it.Quantity))
+		if avail < qty {
+			qty = avail
+		}
+	}
+	if qty == math.MaxInt32 {
+		qty = 0
+	}
+	return qty, nil
+}
+
 func (s *BookingService) checkStock(ctx context.Context, items []models.BookingItem) error {
 	for _, it := range items {
 		pi, err := s.priceItemRepo.GetByID(ctx, it.ItemID)
@@ -347,14 +374,20 @@ func (s *BookingService) checkStock(ctx context.Context, items []models.BookingI
 		if isHours {
 			continue
 		}
-		fmt.Println("Checking stock for item:", pi.ID, "Quantity:", it.Quantity, "Available:", pi.Quantity)
-		if pi.Quantity < float64(it.Quantity) {
-			return errors.New("insufficient stock 1")
-		}
 		if pi.IsSet {
 			set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
 			if err != nil {
 				return err
+			}
+			qty, err := s.calculateSetQuantity(ctx, set)
+			if err != nil {
+				return err
+			}
+			if err := s.priceItemRepo.SetStock(ctx, set.ID, float64(qty)); err != nil {
+				return err
+			}
+			if qty < it.Quantity {
+				return errors.New("insufficient stock 1")
 			}
 			for _, si := range set.Items {
 				sub, err := s.priceItemRepo.GetByID(ctx, si.ItemID)
@@ -371,6 +404,10 @@ func (s *BookingService) checkStock(ctx context.Context, items []models.BookingI
 				if sub.Quantity < float64(si.Quantity*it.Quantity) {
 					return errors.New("insufficient stock 2")
 				}
+			}
+		} else {
+			if pi.Quantity < float64(it.Quantity) {
+				return errors.New("insufficient stock 1")
 			}
 		}
 	}
