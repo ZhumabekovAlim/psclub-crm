@@ -367,6 +367,7 @@ func (s *BookingService) checkStock(ctx context.Context, items []models.BookingI
 		if err != nil {
 			return err
 		}
+
 		isHours, err := s.isHoursCategory(ctx, pi.CategoryID)
 		if err != nil {
 			return err
