@@ -98,7 +98,7 @@ func (r *BookingItemRepository) GetByBookingID(ctx context.Context, bookingID in
 	var items []models.BookingItem
 	for rows.Next() {
 		var it models.BookingItem
-		err := rows.Scan(&it.ID, &it.BookingID, &it.ItemID, &it.Quantity, &it.Price, &it.Discount)
+		err := rows.Scan(&it.ID, &it.BookingID, &it.ItemID, &it.Quantity, &it.Price, &it.Discount, &it.ItemName)
 		if err != nil {
 			log.Printf("scan booking item error: %v", err)
 			return nil, err
