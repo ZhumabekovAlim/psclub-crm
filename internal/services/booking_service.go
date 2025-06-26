@@ -39,6 +39,39 @@ type stockChange struct {
 	qty float64
 }
 
+func bookingsEqual(old *models.Booking, newB *models.Booking, oldItems []models.BookingItem) bool {
+	if old.ClientID != newB.ClientID ||
+		old.TableID != newB.TableID ||
+		old.UserID != newB.UserID ||
+		!old.StartTime.Equal(newB.StartTime) ||
+		!old.EndTime.Equal(newB.EndTime) ||
+		old.Note != newB.Note ||
+		old.Discount != newB.Discount ||
+		old.DiscountReason != newB.DiscountReason ||
+		old.TotalAmount != newB.TotalAmount ||
+		old.BonusUsed != newB.BonusUsed ||
+		old.PaymentStatus != newB.PaymentStatus ||
+		old.PaymentTypeID != newB.PaymentTypeID {
+		return false
+	}
+
+	if len(oldItems) != len(newB.Items) {
+		return false
+	}
+
+	m := make(map[int]models.BookingItem)
+	for _, it := range oldItems {
+		m[it.ItemID] = it
+	}
+	for _, it := range newB.Items {
+		o, ok := m[it.ItemID]
+		if !ok || o.Quantity != it.Quantity || o.Price != it.Price || o.Discount != it.Discount {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *BookingService) isHoursCategory(ctx context.Context, categoryID int) (bool, error) {
 	cat, err := s.categoryRepo.GetByID(ctx, categoryID)
 	if err != nil {
@@ -126,20 +159,29 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	if err != nil {
 		return err
 	}
+	currentItems, _ := s.bookingItemRepo.GetByBookingID(ctx, b.ID)
+	if bookingsEqual(current, b, currentItems) {
+		return nil
+	}
 	limit := current.EndTime.Add(time.Duration(settings.BlockTime) * time.Minute)
 	if time.Now().After(limit) {
 		return errors.New("booking can no longer be modified")
 	}
 
+	s.increaseStock(ctx, currentItems)
+
 	if err := s.checkStock(ctx, b.Items); err != nil {
+		s.decreaseStock(ctx, currentItems)
 		return err
 	}
 	if err := s.decreaseStock(ctx, b.Items); err != nil {
+		s.decreaseStock(ctx, currentItems)
 		return err
 	}
 	if err := s.repo.UpdateWithItems(ctx, b); err != nil {
 		// rollback stock on failure
 		s.increaseStock(ctx, b.Items)
+		s.decreaseStock(ctx, currentItems)
 		return err
 	}
 	return nil
