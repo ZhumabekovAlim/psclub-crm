@@ -119,7 +119,7 @@ func Run() {
 	// Ремонты
 	repairRepo := repositories.NewRepairRepository(db)
 	repairService := services.NewRepairService(repairRepo)
-	repairHandler := handlers.NewRepairHandler(repairService, expenseService)
+	repairHandler := handlers.NewRepairHandler(repairService, expenseService, expCatService)
 
 	// Касса
 	cashboxRepo := repositories.NewCashboxRepository(db)
