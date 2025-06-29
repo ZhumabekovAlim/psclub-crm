@@ -31,7 +31,7 @@ func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 	}
 
 	// Получить список всех payment_types
-	ptQuery := `SELECT id, name FROM payment_types ORDER BY id`
+        ptQuery := `SELECT id, name, hold_percent FROM payment_types ORDER BY id`
 	rows, err := r.db.QueryContext(ctx, ptQuery)
 	if err != nil {
 		return nil, err
@@ -40,8 +40,8 @@ func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 
 	var types []models.PaymentType
 	for rows.Next() {
-		var pt models.PaymentType
-		if err := rows.Scan(&pt.ID, &pt.Name); err != nil {
+                var pt models.PaymentType
+                if err := rows.Scan(&pt.ID, &pt.Name, &pt.HoldPercent); err != nil {
 			return nil, err
 		}
 		types = append(types, pt)

@@ -20,18 +20,19 @@ func NewReportRepository(db *sql.DB) *ReportRepository {
 func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.SummaryReport, error) {
 	var result models.SummaryReport
 
-	query := `
+        query := `
         SELECT
-            COALESCE(SUM(total_amount),0) as total_revenue,
+            COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0) as total_revenue,
             COUNT(DISTINCT client_id) as total_clients,
-            COALESCE(ROUND(AVG(total_amount)), 0) as avg_check
-        FROM bookings
-        WHERE DATE(created_at) BETWEEN ? AND ? AND TIME(created_at) BETWEEN ? AND ?`
+            COALESCE(ROUND(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))), 0) as avg_check
+        FROM bookings b
+        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+        WHERE DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?`
 	args := []interface{}{from, to, tFrom, tTo}
-	if userID > 0 {
-		query += " AND user_id = ?"
-		args = append(args, userID)
-	}
+        if userID > 0 {
+                query += " AND b.user_id = ?"
+                args = append(args, userID)
+        }
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&result.TotalRevenue, &result.TotalClients, &result.AvgCheck,
 	)
@@ -41,12 +42,12 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Calculate load percent
 	var bookingsCount int
-	countQuery := `SELECT COUNT(*) FROM bookings WHERE DATE(created_at) BETWEEN ? AND ? AND TIME(created_at) BETWEEN ? AND ?`
+        countQuery := `SELECT COUNT(*) FROM bookings b WHERE DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?`
 	countArgs := []interface{}{from, to, tFrom, tTo}
-	if userID > 0 {
-		countQuery += " AND user_id = ?"
-		countArgs = append(countArgs, userID)
-	}
+        if userID > 0 {
+                countQuery += " AND b.user_id = ?"
+                countArgs = append(countArgs, userID)
+        }
 	_ = r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&bookingsCount)
 
 	var tableCount int
@@ -95,10 +96,11 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	}
 
 	// Category sales
-	catQuery := `
-                SELECT categories.name, SUM(booking_items.price)
+        catQuery := `
+                SELECT categories.name, SUM(booking_items.price * (1 - IFNULL(pt.hold_percent,0)/100))
                 FROM booking_items
                 LEFT JOIN bookings ON booking_items.booking_id = bookings.id
+                LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
                 LEFT JOIN price_items ON booking_items.item_id = price_items.id
                 LEFT JOIN categories ON price_items.category_id = categories.id
                 WHERE DATE(booking_items.created_at) BETWEEN ? AND ? AND TIME(booking_items.created_at) BETWEEN ? AND ?`
@@ -124,9 +126,9 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
         price_items.name,
         SUM(booking_items.quantity),
         SUM(
-            CASE 
-                WHEN categories.name = 'Часы' THEN (booking_items.price - booking_items.discount)
-                ELSE (booking_items.price - booking_items.discount) 
+            CASE
+                WHEN categories.name = 'Часы' THEN (booking_items.price - booking_items.discount) * (1 - IFNULL(pt.hold_percent,0)/100)
+                ELSE (booking_items.price - booking_items.discount) * (1 - IFNULL(pt.hold_percent,0)/100)
             END
         ),
         SUM(
@@ -136,13 +138,14 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
             END
         ),
         SUM(
-            CASE 
-                WHEN categories.name = 'Часы' THEN ((booking_items.price - booking_items.discount) - price_items.buy_price)
-                ELSE ((booking_items.price - booking_items.discount) - price_items.buy_price) 
+            CASE
+                WHEN categories.name = 'Часы' THEN (booking_items.price - booking_items.discount)*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
+                ELSE (booking_items.price - booking_items.discount)*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
             END
         )
     FROM booking_items
     LEFT JOIN bookings ON booking_items.booking_id = bookings.id
+    LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
     LEFT JOIN price_items ON booking_items.item_id = price_items.id
     LEFT JOIN categories ON price_items.category_id = categories.id
     WHERE DATE(booking_items.created_at) BETWEEN ? AND ?
@@ -157,9 +160,9 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	itemQuery += `
     GROUP BY price_items.name
     ORDER BY SUM(
-        CASE 
-            WHEN categories.name = 'Часы' THEN ((booking_items.price - booking_items.discount) - price_items.buy_price)
-            ELSE ((booking_items.price - booking_items.discount) - price_items.buy_price)
+        CASE
+            WHEN categories.name = 'Часы' THEN (booking_items.price - booking_items.discount)*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
+            ELSE (booking_items.price - booking_items.discount)*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
         END
     ) DESC
     LIMIT 5`
@@ -183,14 +186,16 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	var prevRevenue, prevClients, prevAvgCheck int
 	prevFrom := from.Add(-(to.Sub(from)))
 	prevTo := from
-	prevQuery := `
-        SELECT COALESCE(SUM(total_amount),0), COUNT(DISTINCT client_id), COALESCE(AVG(total_amount),0)
-        FROM bookings WHERE DATE(created_at) BETWEEN ? AND ? AND TIME(created_at) BETWEEN ? AND ?`
+        prevQuery := `
+        SELECT COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0), COUNT(DISTINCT client_id), COALESCE(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0)
+        FROM bookings b
+        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+        WHERE DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?`
 	prevArgs := []interface{}{prevFrom, prevTo, tFrom, tTo}
-	if userID > 0 {
-		prevQuery += " AND user_id = ?"
-		prevArgs = append(prevArgs, userID)
-	}
+        if userID > 0 {
+                prevQuery += " AND b.user_id = ?"
+                prevArgs = append(prevArgs, userID)
+        }
 	_ = r.db.QueryRowContext(ctx, prevQuery, prevArgs...).Scan(&prevRevenue, &prevClients, &prevAvgCheck)
 	if prevRevenue > 0 {
 		result.RevenueChange = float64(result.TotalRevenue-prevRevenue) * 100.0 / float64(prevRevenue)
@@ -234,13 +239,13 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
                   END) AS set_qty,
               SUM(
                   CASE
-                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%кальян%' THEN bi.price * bi.quantity
+                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%кальян%' THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       WHEN pi.is_set = 1 AND EXISTS (
                           SELECT 1 FROM set_items si
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
                           WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%кальян%'
-                      ) THEN bi.price * bi.quantity
+                      ) THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       ELSE 0
                   END) AS hookah_rev,
               SUM(
@@ -250,15 +255,16 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
                           WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%кальян%'
-                      ) THEN bi.price * bi.quantity
+                      ) THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       ELSE 0
                   END) AS set_rev,
               u.salary_shift, u.salary_hookah, u.hookah_salary_type, u.salary_bar
         FROM users u
-        LEFT JOIN bookings b ON b.user_id = u.id
+       LEFT JOIN bookings b ON b.user_id = u.id
             AND DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?
-        LEFT JOIN booking_items bi ON b.id = bi.booking_id
-        LEFT JOIN price_items pi ON bi.item_id = pi.id
+       LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+       LEFT JOIN booking_items bi ON b.id = bi.booking_id
+       LEFT JOIN price_items pi ON bi.item_id = pi.id
         LEFT JOIN categories ON pi.category_id = categories.id
         WHERE u.role = 'admin'`
 	args := []interface{}{from, to, tFrom, tTo}
@@ -355,13 +361,13 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
                   END) AS sets,
               SUM(
                   CASE
-                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%' THEN bi.price * bi.quantity
+                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%' THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       WHEN pi.is_set = 1 AND EXISTS (
                           SELECT 1 FROM set_items si
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
                           WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%'
-                      ) THEN bi.price * bi.quantity
+                      ) THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       ELSE 0
                   END) AS hookah_rev,
               SUM(
@@ -371,12 +377,13 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
                           WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%'
-                      ) THEN bi.price * bi.quantity
+                      ) THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       ELSE 0
                   END) AS set_rev,
               u.salary_shift, u.salary_hookah, u.hookah_salary_type, u.salary_bar
        FROM bookings b
        JOIN users u ON b.user_id = u.id
+       LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
        LEFT JOIN booking_items bi ON b.id = bi.booking_id
        LEFT JOIN price_items pi ON bi.item_id = pi.id
        LEFT JOIN categories ON pi.category_id = categories.id
@@ -447,10 +454,11 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 		totalExp += e.Total
 	}
 
-	catQuery2 := `
-        SELECT categories.name, SUM(bi.price-bi.discount)
+        catQuery2 := `
+        SELECT categories.name, SUM((bi.price-bi.discount) * (1 - IFNULL(pt.hold_percent,0)/100))
         FROM booking_items bi
         LEFT JOIN bookings b ON bi.booking_id = b.id
+        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
         LEFT JOIN price_items pi ON bi.item_id = pi.id
         LEFT JOIN categories ON pi.category_id = categories.id
         WHERE DATE(bi.created_at) BETWEEN ? AND ? AND TIME(bi.created_at) BETWEEN ? AND ?`
@@ -493,14 +501,15 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 // --- AnalyticsReport ---
 func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.AnalyticsReport, error) {
 	// Daily revenue
-	dailyQuery := `
-        SELECT DATE(created_at), SUM(total_amount) FROM bookings
-        WHERE DATE(created_at) BETWEEN ? AND ? AND TIME(created_at) BETWEEN ? AND ?`
+        dailyQuery := `
+        SELECT DATE(b.created_at), SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)) FROM bookings b
+        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+        WHERE DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?`
 	dailyArgs := []interface{}{from, to, tFrom, tTo}
-	if userID > 0 {
-		dailyQuery += " AND user_id = ?"
-		dailyArgs = append(dailyArgs, userID)
-	}
+        if userID > 0 {
+                dailyQuery += " AND b.user_id = ?"
+                dailyArgs = append(dailyArgs, userID)
+        }
 	dailyQuery += `
         GROUP BY DATE(created_at)
         ORDER BY DATE(created_at)`
@@ -535,10 +544,11 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 	}
 
 	// Category stats
-	catQuery := `
-        SELECT categories.name, SUM(booking_items.quantity), SUM(booking_items.price )
+        catQuery := `
+        SELECT categories.name, SUM(booking_items.quantity), SUM(booking_items.price * (1 - IFNULL(pt.hold_percent,0)/100))
         FROM booking_items
         LEFT JOIN bookings ON booking_items.booking_id = bookings.id
+        LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
         LEFT JOIN price_items ON booking_items.item_id = price_items.id
         LEFT JOIN categories ON price_items.category_id = categories.id
         WHERE DATE(booking_items.created_at) BETWEEN ? AND ? AND TIME(booking_items.created_at) BETWEEN ? AND ?`
