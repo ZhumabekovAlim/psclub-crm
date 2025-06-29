@@ -21,6 +21,7 @@ type Booking struct {
 	ClientName     string        `json:"client_name,omitempty"`
 	ClientPhone    string        `json:"client_phone,omitempty"`
 	PaymentType    *string       `json:"payment_type,omitempty"`
+	ChannelName    string        `json:"channel_name,omitempty"`
 	Items          []BookingItem `json:"items,omitempty"`
 }
 
