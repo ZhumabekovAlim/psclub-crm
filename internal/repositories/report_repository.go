@@ -209,13 +209,51 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.AdminsReport, error) {
 
 	query := `
-        SELECT u.id, u.name,
-               COUNT(DISTINCT DATE(b.start_time)) AS shifts,
-               SUM(CASE WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%кальян%' THEN bi.quantity ELSE 0 END) AS hookah_qty,
-               SUM(CASE WHEN pi.is_set = 1 THEN bi.quantity ELSE 0 END) AS set_qty,
-               SUM(CASE WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%кальян%' THEN bi.price * bi.quantity ELSE 0 END) AS hookah_rev,
-               SUM(CASE WHEN pi.is_set = 1 THEN bi.price * bi.quantity ELSE 0 END) AS set_rev,
-               u.salary_shift, u.salary_hookah, u.salary_bar
+       SELECT u.id, u.name,
+              COUNT(DISTINCT DATE(b.start_time)) AS shifts,
+              SUM(
+                  CASE
+                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%кальян%' THEN bi.quantity
+                      WHEN pi.is_set = 1 AND EXISTS (
+                          SELECT 1 FROM set_items si
+                          JOIN price_items pi2 ON si.item_id = pi2.id
+                          JOIN categories c2 ON pi2.category_id = c2.id
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%кальян%'
+                      ) THEN bi.quantity
+                      ELSE 0
+                  END) AS hookah_qty,
+              SUM(
+                  CASE
+                      WHEN pi.is_set = 1 AND NOT EXISTS (
+                          SELECT 1 FROM set_items si
+                          JOIN price_items pi2 ON si.item_id = pi2.id
+                          JOIN categories c2 ON pi2.category_id = c2.id
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%кальян%'
+                      ) THEN bi.quantity
+                      ELSE 0
+                  END) AS set_qty,
+              SUM(
+                  CASE
+                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%кальян%' THEN bi.price * bi.quantity
+                      WHEN pi.is_set = 1 AND EXISTS (
+                          SELECT 1 FROM set_items si
+                          JOIN price_items pi2 ON si.item_id = pi2.id
+                          JOIN categories c2 ON pi2.category_id = c2.id
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%кальян%'
+                      ) THEN bi.price * bi.quantity
+                      ELSE 0
+                  END) AS hookah_rev,
+              SUM(
+                  CASE
+                      WHEN pi.is_set = 1 AND NOT EXISTS (
+                          SELECT 1 FROM set_items si
+                          JOIN price_items pi2 ON si.item_id = pi2.id
+                          JOIN categories c2 ON pi2.category_id = c2.id
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%кальян%'
+                      ) THEN bi.price * bi.quantity
+                      ELSE 0
+                  END) AS set_rev,
+              u.salary_shift, u.salary_hookah, u.hookah_salary_type, u.salary_bar
         FROM users u
         LEFT JOIN bookings b ON b.user_id = u.id
             AND DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?
@@ -229,8 +267,8 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
 		args = append(args, userID)
 	}
 	query += `
-        GROUP BY u.id, u.name, u.salary_shift, u.salary_hookah, u.salary_bar
-        ORDER BY u.name`
+       GROUP BY u.id, u.name, u.salary_shift, u.salary_hookah, u.hookah_salary_type, u.salary_bar
+       ORDER BY u.name`
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -246,21 +284,33 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
 			shifts, hookahs, sets int
 			hookahRev, setRev     float64
 			shiftSalary           int
-			hookahPercent         float64
+			hookahValue           float64
+			hookahType            string
 			setPercent            float64
 		)
-		if err := rows.Scan(&id, &name, &shifts, &hookahs, &sets, &hookahRev, &setRev, &shiftSalary, &hookahPercent, &setPercent); err != nil {
+		if err := rows.Scan(&id, &name, &shifts, &hookahs, &sets, &hookahRev, &setRev, &shiftSalary, &hookahValue, &hookahType, &setPercent); err != nil {
 			return nil, err
 		}
 
 		shiftTotal := shifts * shiftSalary
-		hookahTotal := int(hookahRev * hookahPercent / 100)
+		var hookahTotal int
+		if hookahType == "percent" {
+			hookahTotal = int(hookahRev * hookahValue / 100)
+		} else {
+			hookahTotal = int(float64(hookahs) * hookahValue)
+		}
 		setTotal := int(setRev * setPercent / 100)
 		salary := shiftTotal + hookahTotal + setTotal
 
-		detail := fmt.Sprintf("Смены: %d × %d = %d₸, кальяны: %d₸ × %.0f%% = %d₸, сеты: %d₸ × %.0f%% = %d₸",
+		var hookahDetail string
+		if hookahType == "percent" {
+			hookahDetail = fmt.Sprintf("%d₸ × %.0f%% = %d₸", int(hookahRev), hookahValue, hookahTotal)
+		} else {
+			hookahDetail = fmt.Sprintf("%d × %.0f₸ = %d₸", hookahs, hookahValue, hookahTotal)
+		}
+		detail := fmt.Sprintf("Смены: %d × %d = %d₸, кальяны: %s, сеты: %d₸ × %.0f%% = %d₸",
 			shifts, shiftSalary, shiftTotal,
-			int(hookahRev), hookahPercent, hookahTotal,
+			hookahDetail,
 			int(setRev), setPercent, setTotal)
 
 		report.Admins = append(report.Admins, models.AdminReportRow{
@@ -280,26 +330,64 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
 // --- SalesReport ---
 func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.SalesReport, error) {
 	userQuery := `
-        SELECT u.name,
-               COUNT(DISTINCT DATE(b.start_time)) AS days,
-               SUM(CASE WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%' THEN bi.quantity ELSE 0 END) AS hookahs,
-               SUM(CASE WHEN pi.is_set = 1 THEN bi.quantity ELSE 0 END) AS sets,
-               ROUND(u.salary_shift * COUNT(DISTINCT DATE(b.start_time)) +
-                     u.salary_hookah * SUM(CASE WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%' THEN bi.quantity ELSE 0 END) +
-                     u.salary_bar * SUM(CASE WHEN pi.is_set = 1 THEN bi.quantity ELSE 0 END)) AS salary
-        FROM bookings b
-        JOIN users u ON b.user_id = u.id
-        LEFT JOIN booking_items bi ON b.id = bi.booking_id
-        LEFT JOIN price_items pi ON bi.item_id = pi.id
-        LEFT JOIN categories ON pi.category_id = categories.id
-        WHERE DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?`
+       SELECT u.id, u.name,
+              COUNT(DISTINCT DATE(b.start_time)) AS days,
+              SUM(
+                  CASE
+                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%' THEN bi.quantity
+                      WHEN pi.is_set = 1 AND EXISTS (
+                          SELECT 1 FROM set_items si
+                          JOIN price_items pi2 ON si.item_id = pi2.id
+                          JOIN categories c2 ON pi2.category_id = c2.id
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%'
+                      ) THEN bi.quantity
+                      ELSE 0
+                  END) AS hookahs,
+              SUM(
+                  CASE
+                      WHEN pi.is_set = 1 AND NOT EXISTS (
+                          SELECT 1 FROM set_items si
+                          JOIN price_items pi2 ON si.item_id = pi2.id
+                          JOIN categories c2 ON pi2.category_id = c2.id
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%'
+                      ) THEN bi.quantity
+                      ELSE 0
+                  END) AS sets,
+              SUM(
+                  CASE
+                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%' THEN bi.price * bi.quantity
+                      WHEN pi.is_set = 1 AND EXISTS (
+                          SELECT 1 FROM set_items si
+                          JOIN price_items pi2 ON si.item_id = pi2.id
+                          JOIN categories c2 ON pi2.category_id = c2.id
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%'
+                      ) THEN bi.price * bi.quantity
+                      ELSE 0
+                  END) AS hookah_rev,
+              SUM(
+                  CASE
+                      WHEN pi.is_set = 1 AND NOT EXISTS (
+                          SELECT 1 FROM set_items si
+                          JOIN price_items pi2 ON si.item_id = pi2.id
+                          JOIN categories c2 ON pi2.category_id = c2.id
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%'
+                      ) THEN bi.price * bi.quantity
+                      ELSE 0
+                  END) AS set_rev,
+              u.salary_shift, u.salary_hookah, u.hookah_salary_type, u.salary_bar
+       FROM bookings b
+       JOIN users u ON b.user_id = u.id
+       LEFT JOIN booking_items bi ON b.id = bi.booking_id
+       LEFT JOIN price_items pi ON bi.item_id = pi.id
+       LEFT JOIN categories ON pi.category_id = categories.id
+       WHERE DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?`
 	userArgs := []interface{}{from, to, tFrom, tTo}
 	if userID > 0 {
 		userQuery += " AND b.user_id = ?"
 		userArgs = append(userArgs, userID)
 	}
 	userQuery += `
-        GROUP BY u.id, u.name`
+       GROUP BY u.id, u.name, u.salary_shift, u.salary_hookah, u.hookah_salary_type, u.salary_bar`
 	rows, err := r.db.QueryContext(ctx, userQuery, userArgs...)
 	if err != nil {
 		return nil, err
@@ -307,11 +395,37 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 	defer rows.Close()
 	var users []models.UserSales
 	for rows.Next() {
-		var row models.UserSales
-		if err := rows.Scan(&row.Name, &row.DaysWorked, &row.HookahsSold, &row.SetsSold, &row.Salary); err != nil {
+		var (
+			id          int
+			name        string
+			days        int
+			hookahs     int
+			sets        int
+			hookahRev   float64
+			setRev      float64
+			shiftSalary int
+			hookahValue float64
+			hookahType  string
+			setPercent  float64
+		)
+		if err := rows.Scan(&id, &name, &days, &hookahs, &sets, &hookahRev, &setRev, &shiftSalary, &hookahValue, &hookahType, &setPercent); err != nil {
 			return nil, err
 		}
-		users = append(users, row)
+		shiftTotal := days * shiftSalary
+		var hookahTotal int
+		if hookahType == "percent" {
+			hookahTotal = int(hookahRev * hookahValue / 100)
+		} else {
+			hookahTotal = int(float64(hookahs) * hookahValue)
+		}
+		setTotal := int(setRev * setPercent / 100)
+		users = append(users, models.UserSales{
+			Name:        name,
+			DaysWorked:  days,
+			HookahsSold: hookahs,
+			SetsSold:    sets,
+			Salary:      shiftTotal + hookahTotal + setTotal,
+		})
 	}
 
 	expRows, err := r.db.QueryContext(ctx, `
