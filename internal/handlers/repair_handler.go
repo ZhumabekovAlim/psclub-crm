@@ -34,7 +34,7 @@ func (h *RepairHandler) CreateRepair(c *gin.Context) {
 
 	exp := models.Expense{
 		Date:        time.Now(),
-		Title:       "Repair " + rep.VIN,
+		Title:       "Починка, номер VIN: " + rep.VIN,
 		Total:       rep.Price,
 		Description: rep.Description,
 		Paid:        false,
