@@ -15,8 +15,14 @@ func NewTableRepository(db *sql.DB) *TableRepository {
 }
 
 func (r *TableRepository) Create(ctx context.Context, t *models.Table) (int, error) {
-	query := `INSERT INTO tables (category_id, name) VALUES (?, ?)`
-	res, err := r.db.ExecContext(ctx, query, t.CategoryID, t.Name)
+	// Determine the next table number automatically
+	err := r.db.QueryRowContext(ctx, `SELECT IFNULL(MAX(number), 0) + 1 FROM tables`).Scan(&t.Number)
+	if err != nil {
+		return 0, err
+	}
+
+	query := `INSERT INTO tables (category_id, name, number) VALUES (?, ?, ?)`
+	res, err := r.db.ExecContext(ctx, query, t.CategoryID, t.Name, t.Number)
 	if err != nil {
 		return 0, err
 	}
@@ -25,7 +31,7 @@ func (r *TableRepository) Create(ctx context.Context, t *models.Table) (int, err
 }
 
 func (r *TableRepository) GetAll(ctx context.Context) ([]models.Table, error) {
-	query := `SELECT id, category_id, name FROM tables ORDER BY id`
+	query := `SELECT id, category_id, name, number FROM tables ORDER BY number`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -34,7 +40,7 @@ func (r *TableRepository) GetAll(ctx context.Context) ([]models.Table, error) {
 	var result []models.Table
 	for rows.Next() {
 		var t models.Table
-		err := rows.Scan(&t.ID, &t.CategoryID, &t.Name)
+		err := rows.Scan(&t.ID, &t.CategoryID, &t.Name, &t.Number)
 		if err != nil {
 			return nil, err
 		}
@@ -45,8 +51,8 @@ func (r *TableRepository) GetAll(ctx context.Context) ([]models.Table, error) {
 
 func (r *TableRepository) GetByID(id int) (*models.Table, error) {
 	var table models.Table
-	err := r.db.QueryRow("SELECT id, name, category_id FROM tables WHERE id = ?", id).
-		Scan(&table.ID, &table.Name, &table.CategoryID)
+	err := r.db.QueryRow("SELECT id, name, category_id, number FROM tables WHERE id = ?", id).
+		Scan(&table.ID, &table.Name, &table.CategoryID, &table.Number)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +60,7 @@ func (r *TableRepository) GetByID(id int) (*models.Table, error) {
 }
 
 func (r *TableRepository) Update(id int, table *models.Table) error {
-	_, err := r.db.Exec("UPDATE tables SET name = ?, category_id = ? WHERE id = ?", table.Name, table.CategoryID, id)
+	_, err := r.db.Exec("UPDATE tables SET name = ?, category_id = ?, number = ? WHERE id = ?", table.Name, table.CategoryID, table.Number, id)
 	return err
 }
 
