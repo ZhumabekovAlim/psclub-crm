@@ -128,7 +128,8 @@ func Run() {
 
 	// Касса
 	cashboxRepo := repositories.NewCashboxRepository(db)
-	cashboxService := services.NewCashboxService(cashboxRepo)
+	cashboxHistRepo := repositories.NewCashboxHistoryRepository(db)
+	cashboxService := services.NewCashboxService(cashboxRepo, cashboxHistRepo, expenseService, expCatService)
 	cashboxHandler := handlers.NewCashboxHandlerCashboxHandler(cashboxService)
 
 	// Настройки
