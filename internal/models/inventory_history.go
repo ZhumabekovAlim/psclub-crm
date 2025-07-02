@@ -5,6 +5,7 @@ import "time"
 type InventoryHistory struct {
 	ID          int       `json:"id"`
 	PriceItemID int       `json:"price_item_id"`
+	Name        string    `json:"name,omitempty"`
 	Expected    float64   `json:"expected"`
 	Actual      float64   `json:"actual"`
 	Difference  float64   `json:"difference"`

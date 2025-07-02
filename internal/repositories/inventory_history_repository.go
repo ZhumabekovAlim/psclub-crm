@@ -25,7 +25,13 @@ func (r *InventoryHistoryRepository) Create(ctx context.Context, h *models.Inven
 }
 
 func (r *InventoryHistoryRepository) GetAll(ctx context.Context) ([]models.InventoryHistory, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, price_item_id, expected, actual, difference, created_at FROM inventory_history ORDER BY id DESC`)
+	rows, err := r.db.QueryContext(ctx, `
+			SELECT ih.id, ih.price_item_id, pi.name, ih.expected, ih.actual, ih.difference, ih.created_at
+			FROM inventory_history ih
+			LEFT JOIN price_items pi ON ih.price_item_id = pi.id
+			ORDER BY ih.id DESC
+		`)
+
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +39,7 @@ func (r *InventoryHistoryRepository) GetAll(ctx context.Context) ([]models.Inven
 	var list []models.InventoryHistory
 	for rows.Next() {
 		var h models.InventoryHistory
-		if err := rows.Scan(&h.ID, &h.PriceItemID, &h.Expected, &h.Actual, &h.Difference, &h.CreatedAt); err != nil {
+		if err := rows.Scan(&h.ID, &h.PriceItemID, &h.Name, &h.Expected, &h.Actual, &h.Difference, &h.CreatedAt); err != nil {
 			return nil, err
 		}
 		list = append(list, h)

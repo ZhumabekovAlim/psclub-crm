@@ -9,5 +9,7 @@
     <file url="file://$PROJECT_DIR$/db/migrations/010_settings_update.up.sql" dialect="MariaDB" />
     <file url="file://$PROJECT_DIR$/db/migrations/011_hookah_salary_type.up.sql" dialect="MariaDB" />
     <file url="file://$PROJECT_DIR$/db/migrations/012_payment_type_fee_percent.up.sql" dialect="MariaDB" />
+    <file url="file://$PROJECT_DIR$/db/migrations/013_inventory_history.up.sql" dialect="MariaDB" />
+    <file url="file://$PROJECT_DIR$/db/migrations/014_cashbox_history.up.sql" dialect="MariaDB" />
   </component>
 </project>
