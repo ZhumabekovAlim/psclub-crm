@@ -204,6 +204,9 @@ func SetupRoutes(
 	{
 		cashbox.GET("", cashboxHandler.GetCashbox)
 		cashbox.PUT("/:id", cashboxHandler.UpdateCashbox)
+		cashbox.POST("/inventory", cashboxHandler.Inventory)
+		cashbox.POST("/replenish", cashboxHandler.Replenish)
+		cashbox.GET("/history", cashboxHandler.GetHistory)
 	}
 
 	// --- Глобальные настройки

@@ -39,3 +39,38 @@ func (h *CashboxHandler) UpdateCashbox(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, box)
 }
+
+// POST /api/cashbox/inventory
+func (h *CashboxHandler) Inventory(c *gin.Context) {
+	if err := h.service.Inventory(c.Request.Context()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+// POST /api/cashbox/replenish
+func (h *CashboxHandler) Replenish(c *gin.Context) {
+	var req struct {
+		Amount float64 `json:"amount"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.service.Replenish(c.Request.Context(), req.Amount); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+// GET /api/cashbox/history
+func (h *CashboxHandler) GetHistory(c *gin.Context) {
+	list, err := h.service.GetHistory(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, list)
+}
