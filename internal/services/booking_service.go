@@ -170,17 +170,26 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	s.increaseStock(ctx, currentItems)
 
 	if err := s.checkStock(ctx, b.Items); err != nil {
-		s.decreaseStock(ctx, currentItems)
+		err := s.decreaseStock(ctx, currentItems)
+		if err != nil {
+			return err
+		}
 		return err
 	}
 	if err := s.decreaseStock(ctx, b.Items); err != nil {
-		s.decreaseStock(ctx, currentItems)
+		err := s.decreaseStock(ctx, currentItems)
+		if err != nil {
+			return err
+		}
 		return err
 	}
 	if err := s.repo.UpdateWithItems(ctx, b); err != nil {
 		// rollback stock on failure
 		s.increaseStock(ctx, b.Items)
-		s.decreaseStock(ctx, currentItems)
+		err := s.decreaseStock(ctx, currentItems)
+		if err != nil {
+			return err
+		}
 		return err
 	}
 	return nil

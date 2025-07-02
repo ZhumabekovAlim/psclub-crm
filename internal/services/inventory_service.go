@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"time"
 
 	"psclub-crm/internal/models"
@@ -54,7 +56,7 @@ func (s *InventoryService) PerformInventory(ctx context.Context, items []Invento
 				Date:        time.Now(),
 				Title:       "Инвентаризация: " + pi.Name,
 				Total:       -diff * pi.BuyPrice,
-				Description: "Недостача товара " + pi.Name,
+				Description: "Недостача товара " + pi.Name + " (" + fmt.Sprintf("%.0f", math.Abs(diff)) + " шт.)",
 				Paid:        false,
 				CategoryID:  catID,
 			}
