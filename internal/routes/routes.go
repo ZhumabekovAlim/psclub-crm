@@ -26,6 +26,7 @@ func SetupRoutes(
 	cashboxHandler *handlers.CashboxHandler,
 	settingsHandler *handlers.SettingsHandler,
 	reportHandler *handlers.ReportHandler,
+	inventoryHandler *handlers.InventoryHandler,
 ) {
 	api := r.Group("/api")
 
@@ -179,6 +180,13 @@ func SetupRoutes(
 		expenses.GET("/:id", expenseHandler.GetExpenseByID)
 		expenses.PUT("/:id", expenseHandler.UpdateExpense)
 		expenses.DELETE("/:id", expenseHandler.DeleteExpense)
+	}
+
+	// --- Инвентаризация
+	inventory := api.Group("/inventory")
+	{
+		inventory.POST("", inventoryHandler.PerformInventory)
+		inventory.GET("/history", inventoryHandler.GetHistory)
 	}
 
 	// --- Ремонты
