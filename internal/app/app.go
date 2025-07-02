@@ -112,6 +112,11 @@ func Run() {
 	expenseService := services.NewExpenseService(expenseRepo)
 	expenseHandler := handlers.NewExpenseHandler(expenseService)
 
+	// Инвентаризация
+	invHistRepo := repositories.NewInventoryHistoryRepository(db)
+	inventoryService := services.NewInventoryService(priceRepo, invHistRepo, expenseService, expCatService)
+	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
+
 	// Прайс-лист handlers depend on expense and category services
 	priceHandler := handlers.NewPriceItemHandler(priceService, expenseService, expCatService, categoryService)
 	plHistoryHandler := handlers.NewPricelistHistoryHandler(priceService, expenseService)
@@ -162,6 +167,7 @@ func Run() {
 		cashboxHandler,
 		settingsHandler,
 		reportHandler,
+		inventoryHandler,
 	)
 
 	listenAddr := fmt.Sprintf(":%d", port)
