@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"math"
+	"strings"
 	"time"
 
 	"psclub-crm/internal/models"
@@ -19,9 +20,11 @@ type BookingService struct {
 	priceItemRepo   *repositories.PriceItemRepository
 	priceSetRepo    *repositories.PriceSetRepository
 	categoryRepo    *repositories.CategoryRepository
+	paymentTypeRepo *repositories.PaymentTypeRepository
+	cashboxService  *CashboxService
 }
 
-func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories.BookingItemRepository, clientRepo *repositories.ClientRepository, settingsRepo *repositories.SettingsRepository, priceRepo *repositories.PriceItemRepository, setRepo *repositories.PriceSetRepository, categoryRepo *repositories.CategoryRepository) *BookingService {
+func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories.BookingItemRepository, clientRepo *repositories.ClientRepository, settingsRepo *repositories.SettingsRepository, priceRepo *repositories.PriceItemRepository, setRepo *repositories.PriceSetRepository, categoryRepo *repositories.CategoryRepository, ptRepo *repositories.PaymentTypeRepository, cbService *CashboxService) *BookingService {
 	return &BookingService{
 		repo:            r,
 		bookingItemRepo: itemRepo,
@@ -30,6 +33,8 @@ func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories
 		priceItemRepo:   priceRepo,
 		priceSetRepo:    setRepo,
 		categoryRepo:    categoryRepo,
+		paymentTypeRepo: ptRepo,
+		cashboxService:  cbService,
 	}
 }
 
@@ -113,6 +118,19 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 	_ = s.clientRepo.AddBonus(ctx, b.ClientID, bonus)
 	_ = s.clientRepo.AddVisits(ctx, b.ClientID, 1)
 	_ = s.clientRepo.AddIncome(ctx, b.ClientID, b.TotalAmount)
+
+	if strings.ToLower(b.PaymentStatus) == "paid" && s.cashboxService != nil {
+		if pt, err := s.paymentTypeRepo.GetByID(ctx, b.PaymentTypeID); err == nil {
+			name := strings.ToLower(pt.Name)
+			if strings.Contains(name, "нал") {
+				amount := float64(b.TotalAmount - b.BonusUsed)
+				if amount < 0 {
+					amount = 0
+				}
+				_ = s.cashboxService.Replenish(ctx, amount)
+			}
+		}
+	}
 	return id, nil
 }
 
@@ -191,6 +209,18 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 			return err
 		}
 		return err
+	}
+	if strings.ToLower(b.PaymentStatus) == "paid" && strings.ToLower(current.PaymentStatus) != "paid" && s.cashboxService != nil {
+		if pt, err := s.paymentTypeRepo.GetByID(ctx, b.PaymentTypeID); err == nil {
+			name := strings.ToLower(pt.Name)
+			if strings.Contains(name, "нал") {
+				amount := float64(b.TotalAmount - b.BonusUsed)
+				if amount < 0 {
+					amount = 0
+				}
+				_ = s.cashboxService.Replenish(ctx, amount)
+			}
+		}
 	}
 	return nil
 

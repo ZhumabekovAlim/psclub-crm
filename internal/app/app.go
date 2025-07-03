@@ -88,20 +88,10 @@ func Run() {
 	priceSetService := services.NewPriceSetService(priceSetRepo, priceRepo, categoryRepo)
 	priceSetHandler := handlers.NewPriceSetHandler(priceSetService)
 
-	// Бронирования
+	// Бронирования (инициализируем позже, после кассы)
 	bookingItemRepo := repositories.NewBookingItemRepository(db)
 	settingsRepo := repositories.NewSettingsRepository(db)
 	bookingRepo := repositories.NewBookingRepository(db)
-	bookingService := services.NewBookingService(
-		bookingRepo,
-		bookingItemRepo,
-		clientRepo,
-		settingsRepo,
-		priceRepo,
-		priceSetRepo,
-		categoryRepo,
-	)
-	bookingHandler := handlers.NewBookingHandler(bookingService)
 
 	// Категории расходов и сами расходы
 	expCatRepo := repositories.NewExpenseCategoryRepository(db)
@@ -131,6 +121,19 @@ func Run() {
 	cashboxHistRepo := repositories.NewCashboxHistoryRepository(db)
 	cashboxService := services.NewCashboxService(cashboxRepo, cashboxHistRepo, expenseService, expCatService)
 	cashboxHandler := handlers.NewCashboxHandlerCashboxHandler(cashboxService)
+
+	bookingService := services.NewBookingService(
+		bookingRepo,
+		bookingItemRepo,
+		clientRepo,
+		settingsRepo,
+		priceRepo,
+		priceSetRepo,
+		categoryRepo,
+		paymentTypeRepo,
+		cashboxService,
+	)
+	bookingHandler := handlers.NewBookingHandler(bookingService)
 
 	// Настройки
 	settingsRepo = repositories.NewSettingsRepository(db)
