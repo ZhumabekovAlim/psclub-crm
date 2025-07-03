@@ -379,8 +379,8 @@ func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[i
 
 // calculateSetQuantity determines the maximum number of sets that can be
 // assembled based on the stock levels of the items included in the set.
-func (s *BookingService) calculateSetQuantity(ctx context.Context, ps *models.PriceSet) (int, error) {
-	qty := math.MaxInt32
+func (s *BookingService) calculateSetQuantity(ctx context.Context, ps *models.PriceSet) (float64, error) {
+	qty := math.MaxFloat64
 	for _, it := range ps.Items {
 		item, err := s.priceItemRepo.GetByID(ctx, it.ItemID)
 		if err != nil {
@@ -393,12 +393,12 @@ func (s *BookingService) calculateSetQuantity(ctx context.Context, ps *models.Pr
 		if hours {
 			continue
 		}
-		avail := int(item.Quantity / it.Quantity)
+		avail := item.Quantity / it.Quantity
 		if avail < qty {
 			qty = avail
 		}
 	}
-	if qty == math.MaxInt32 {
+	if qty == math.MaxFloat64 {
 		qty = 0
 	}
 	return qty, nil
