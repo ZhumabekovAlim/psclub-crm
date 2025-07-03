@@ -32,7 +32,7 @@ type AdminReportRow struct {
 
 type SaleItem struct {
 	Name     string  `json:"name"`
-	Quantity int     `json:"quantity"`
+	Quantity float64 `json:"quantity"`
 	Revenue  float64 `json:"revenue"`
 	AvgCheck float64 `json:"avg_check"`
 	Category string  `json:"category,omitempty"`
@@ -78,7 +78,7 @@ type DataPoint struct {
 
 type CategoryStat struct {
 	Category string  `json:"category"`
-	Quantity int     `json:"quantity"`
+	Quantity float64 `json:"quantity"`
 	Revenue  float64 `json:"revenue"`
 	AvgCheck float64 `json:"avg_check"`
 }
@@ -106,7 +106,7 @@ type CategorySale struct {
 
 type ProfitItem struct {
 	Name     string  `json:"name"`
-	Quantity int     `json:"quantity"`
+	Quantity float64 `json:"quantity"`
 	Revenue  float64 `json:"revenue"`
 	Expense  float64 `json:"expense"`
 	Profit   float64 `json:"profit"`

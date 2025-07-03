@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS pricelist_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
     price_item_id INT NOT NULL,
-    quantity INT NOT NULL,
+    quantity DOUBLE NOT NULL,
     buy_price DOUBLE NOT NULL,
     total DOUBLE NOT NULL,
     user_id INT,

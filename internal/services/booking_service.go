@@ -144,7 +144,7 @@ func (s *BookingService) GetAllBookings(ctx context.Context) ([]models.Booking, 
 		items, _ := s.bookingItemRepo.GetByBookingID(ctx, bookings[i].ID)
 		for j := range items {
 			if items[j].Quantity != 0 {
-				items[j].ItemPrice = float64(items[j].Price) / float64(items[j].Quantity)
+				items[j].ItemPrice = float64(items[j].Price) / items[j].Quantity
 			}
 		}
 		bookings[i].Items = items
@@ -160,7 +160,7 @@ func (s *BookingService) GetBookingByID(ctx context.Context, id int) (*models.Bo
 	items, _ := s.bookingItemRepo.GetByBookingID(ctx, b.ID)
 	for i := range items {
 		if items[i].Quantity != 0 {
-			items[i].ItemPrice = float64(items[i].Price) / float64(items[i].Quantity)
+			items[i].ItemPrice = float64(items[i].Price) / items[i].Quantity
 		}
 	}
 	b.Items = items
@@ -284,12 +284,12 @@ func (s *BookingService) decreaseStock(ctx context.Context, items []models.Booki
 			return err
 		}
 		if !isHours {
-			if err := s.priceItemRepo.DecreaseStock(ctx, it.ItemID, float64(it.Quantity)); err != nil {
+			if err := s.priceItemRepo.DecreaseStock(ctx, it.ItemID, it.Quantity); err != nil {
 				s.restoreChanges(ctx, changes)
 				return err
 			}
 
-			changes = append(changes, stockChange{id: it.ItemID, qty: float64(it.Quantity)})
+			changes = append(changes, stockChange{id: it.ItemID, qty: it.Quantity})
 
 			affected[it.ItemID] = struct{}{}
 
@@ -315,12 +315,12 @@ func (s *BookingService) decreaseStock(ctx context.Context, items []models.Booki
 					if hoursSub {
 						continue
 					}
-					if err := s.priceItemRepo.DecreaseStock(ctx, si.ItemID, float64(si.Quantity*it.Quantity)); err != nil {
+					if err := s.priceItemRepo.DecreaseStock(ctx, si.ItemID, si.Quantity*it.Quantity); err != nil {
 						s.restoreChanges(ctx, changes)
 						return err
 					}
 
-					changes = append(changes, stockChange{id: si.ItemID, qty: float64(si.Quantity * it.Quantity)})
+					changes = append(changes, stockChange{id: si.ItemID, qty: si.Quantity * it.Quantity})
 
 					affected[si.ItemID] = struct{}{}
 				}
@@ -360,7 +360,7 @@ func (s *BookingService) updateSetQuantities(ctx context.Context, affected map[i
 				if hours {
 					continue
 				}
-				avail := int(it.Quantity / float64(si.Quantity))
+				avail := int(it.Quantity / si.Quantity)
 				if avail < qty {
 					qty = avail
 				}
@@ -393,7 +393,7 @@ func (s *BookingService) calculateSetQuantity(ctx context.Context, ps *models.Pr
 		if hours {
 			continue
 		}
-		avail := int(item.Quantity / float64(it.Quantity))
+		avail := int(item.Quantity / it.Quantity)
 		if avail < qty {
 			qty = avail
 		}
@@ -445,12 +445,12 @@ func (s *BookingService) checkStock(ctx context.Context, items []models.BookingI
 				if hoursSub {
 					continue
 				}
-				if sub.Quantity < float64(si.Quantity*it.Quantity) {
+				if sub.Quantity < si.Quantity*it.Quantity {
 					return errors.New("insufficient stock 2")
 				}
 			}
 		} else {
-			if pi.Quantity < float64(it.Quantity) {
+			if pi.Quantity < it.Quantity {
 				return errors.New("insufficient stock 1")
 			}
 		}
@@ -484,7 +484,7 @@ func (s *BookingService) increaseStock(ctx context.Context, items []models.Booki
 			continue
 		}
 
-		_ = s.priceItemRepo.IncreaseStock(ctx, it.ItemID, float64(it.Quantity))
+		_ = s.priceItemRepo.IncreaseStock(ctx, it.ItemID, it.Quantity)
 		affected[it.ItemID] = struct{}{}
 
 		if pi.IsSet {
@@ -501,7 +501,7 @@ func (s *BookingService) increaseStock(ctx context.Context, items []models.Booki
 				if err != nil || hoursSub {
 					continue
 				}
-				_ = s.priceItemRepo.IncreaseStock(ctx, si.ItemID, float64(si.Quantity*it.Quantity))
+				_ = s.priceItemRepo.IncreaseStock(ctx, si.ItemID, si.Quantity*it.Quantity)
 				affected[si.ItemID] = struct{}{}
 			}
 		}
