@@ -1,10 +1,10 @@
 package models
 
 type SummaryReport struct {
-	TotalRevenue   int            `json:"total_revenue"`
-	TotalClients   int            `json:"total_clients"`
-	AvgCheck       int            `json:"avg_check"`
-	LoadPercent    int            `json:"load_percent"`
+	TotalRevenue   float64        `json:"total_revenue"`
+	TotalClients   float64        `json:"total_clients"`
+	AvgCheck       float64        `json:"avg_check"`
+	LoadPercent    float64        `json:"load_percent"`
 	AgeUnder18     float64        `json:"age_under_18_percent"`
 	Age18To25      float64        `json:"age_18_25_percent"`
 	Age26To35      float64        `json:"age_26_35_percent"`
@@ -31,19 +31,19 @@ type AdminReportRow struct {
 }
 
 type SaleItem struct {
-	Name     string `json:"name"`
-	Quantity int    `json:"quantity"`
-	Revenue  int    `json:"revenue"`
-	AvgCheck int    `json:"avg_check"`
-	Category string `json:"category,omitempty"`
+	Name     string  `json:"name"`
+	Quantity int     `json:"quantity"`
+	Revenue  float64 `json:"revenue"`
+	AvgCheck float64 `json:"avg_check"`
+	Category string  `json:"category,omitempty"`
 }
 
 type UserSales struct {
-	Name        string `json:"name"`
-	DaysWorked  int    `json:"days_worked"`
-	HookahsSold int    `json:"hookahs_sold"`
-	SetsSold    int    `json:"sets_sold"`
-	Salary      int    `json:"salary"`
+	Name        string  `json:"name"`
+	DaysWorked  int     `json:"days_worked"`
+	HookahsSold int     `json:"hookahs_sold"`
+	SetsSold    int     `json:"sets_sold"`
+	Salary      float64 `json:"salary"`
 }
 
 type ExpenseTotal struct {
@@ -77,10 +77,10 @@ type DataPoint struct {
 }
 
 type CategoryStat struct {
-	Category string `json:"category"`
-	Quantity int    `json:"quantity"`
-	Revenue  int    `json:"revenue"`
-	AvgCheck int    `json:"avg_check"`
+	Category string  `json:"category"`
+	Quantity int     `json:"quantity"`
+	Revenue  float64 `json:"revenue"`
+	AvgCheck float64 `json:"avg_check"`
 }
 
 type DiscountsReport struct {
@@ -93,10 +93,10 @@ type DiscountsReport struct {
 }
 
 type ReasonRow struct {
-	Reason string `json:"reason"`
-	Count  int    `json:"count"`
-	Sum    int    `json:"sum"`
-	Avg    int    `json:"avg"`
+	Reason string  `json:"reason"`
+	Count  int     `json:"count"`
+	Sum    float64 `json:"sum"`
+	Avg    float64 `json:"avg"`
 }
 
 type CategorySale struct {

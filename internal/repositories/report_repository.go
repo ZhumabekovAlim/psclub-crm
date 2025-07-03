@@ -22,7 +22,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	query := `
         SELECT
-            COALESCE(ROUND(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))),0) as total_revenue,
+            COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0) as total_revenue,
             COUNT(DISTINCT client_id) as total_clients,
             COALESCE(ROUND(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))), 0) as avg_check
         FROM bookings b
@@ -67,11 +67,11 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	}
 	capacity := float64(tableCount) * hours * float64(days)
 	if capacity > 0 {
-		result.LoadPercent = int(float64(bookingsCount) * 100 / capacity)
+		result.LoadPercent = float64(bookingsCount) * 100 / capacity
 	}
 
 	// Age groups
-	var under18, age18to25, age26to35, age36Plus int
+	var under18, age18to25, age26to35, age36Plus float64
 	ageQuery := `
                 SELECT
                     SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) < 18 THEN 1 ELSE 0 END),
@@ -183,7 +183,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	}
 	result.TopItems = topItems
 
-	var prevRevenue, prevClients, prevAvgCheck int
+	var prevRevenue, prevClients, prevAvgCheck float64
 	prevFrom := from.Add(-(to.Sub(from)))
 	prevTo := from
 	prevQuery := `
@@ -431,7 +431,7 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 			DaysWorked:  days,
 			HookahsSold: hookahs,
 			SetsSold:    sets,
-			Salary:      shiftTotal + hookahTotal + setTotal,
+			Salary:      float64(shiftTotal + hookahTotal + setTotal),
 		})
 	}
 
@@ -563,14 +563,14 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 	var cats []models.CategoryStat
 	for catRows.Next() {
 		var name string
-		var qty, revenue int
+		var qty, revenue float64
 		catRows.Scan(&name, &qty, &revenue)
-		avgCheck := 0
+		avgCheck := 0.0
 		if qty > 0 {
 			avgCheck = revenue / qty
 		}
 		cats = append(cats, models.CategoryStat{
-			Category: name, Quantity: qty, Revenue: revenue, AvgCheck: avgCheck,
+			Category: name, Quantity: int(qty), Revenue: revenue, AvgCheck: avgCheck,
 		})
 	}
 	return &models.AnalyticsReport{
@@ -609,10 +609,10 @@ func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Ti
 	var reasons []models.ReasonRow
 	for rows.Next() {
 		var reason sql.NullString
-		var cnt, sum, av int
+		var cnt, sum, av float64
 		rows.Scan(&reason, &cnt, &sum, &av)
 		reasons = append(reasons, models.ReasonRow{
-			Reason: reason.String, Count: cnt, Sum: sum, Avg: av,
+			Reason: reason.String, Count: int(cnt), Sum: sum, Avg: av,
 		})
 	}
 
