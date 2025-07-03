@@ -93,3 +93,20 @@ func (h *TableHandler) DeleteTable(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
+
+// POST /api/tables/reorder
+func (h *TableHandler) ReorderTable(c *gin.Context) {
+	var req struct {
+		ID     int `json:"id"`
+		Number int `json:"number"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.service.ReorderTable(c.Request.Context(), req.ID, req.Number); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}

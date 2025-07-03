@@ -33,3 +33,7 @@ func (s *TableService) UpdateTable(id int, table *models.Table) error {
 func (s *TableService) DeleteTable(id int) error {
 	return s.repo.Delete(id)
 }
+
+func (s *TableService) ReorderTable(ctx context.Context, id int, number int) error {
+	return s.repo.Reorder(ctx, id, number)
+}

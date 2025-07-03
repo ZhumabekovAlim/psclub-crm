@@ -68,3 +68,34 @@ func (r *TableRepository) Delete(id int) error {
 	_, err := r.db.Exec("DELETE FROM tables WHERE id = ?", id)
 	return err
 }
+
+func (r *TableRepository) Reorder(ctx context.Context, id int, newNumber int) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	var current int
+	if err := tx.QueryRowContext(ctx, `SELECT number FROM tables WHERE id = ?`, id).Scan(&current); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if newNumber == current {
+		return tx.Commit()
+	}
+	if newNumber < current {
+		if _, err := tx.ExecContext(ctx, `UPDATE tables SET number = number + 1 WHERE number >= ? AND number < ?`, newNumber, current); err != nil {
+			tx.Rollback()
+			return err
+		}
+	} else {
+		if _, err := tx.ExecContext(ctx, `UPDATE tables SET number = number - 1 WHERE number > ? AND number <= ?`, current, newNumber); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE tables SET number = ? WHERE id = ?`, newNumber, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
