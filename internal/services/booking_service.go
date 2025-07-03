@@ -122,7 +122,7 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 	if strings.ToLower(b.PaymentStatus) == "paid" && s.cashboxService != nil {
 		if pt, err := s.paymentTypeRepo.GetByID(ctx, b.PaymentTypeID); err == nil {
 			name := strings.ToLower(pt.Name)
-			if strings.Contains(name, "Наличными") {
+			if strings.Contains(name, "наличными") {
 				amount := float64(b.TotalAmount - b.BonusUsed)
 				if amount < 0 {
 					amount = 0
@@ -213,7 +213,7 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	if strings.ToLower(b.PaymentStatus) == "paid" && strings.ToLower(current.PaymentStatus) != "paid" && s.cashboxService != nil {
 		if pt, err := s.paymentTypeRepo.GetByID(ctx, b.PaymentTypeID); err == nil {
 			name := strings.ToLower(pt.Name)
-			if strings.Contains(name, "Наличными") {
+			if strings.Contains(name, "наличными") {
 				amount := float64(b.TotalAmount - b.BonusUsed)
 				if amount < 0 {
 					amount = 0
