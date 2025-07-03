@@ -1,9 +1,9 @@
 package models
 
 type SummaryReport struct {
-	TotalRevenue   int            `json:"total_revenue"`
+	TotalRevenue   float64        `json:"total_revenue"`
 	TotalClients   int            `json:"total_clients"`
-	AvgCheck       int            `json:"avg_check"`
+	AvgCheck       float64        `json:"avg_check"`
 	LoadPercent    int            `json:"load_percent"`
 	AgeUnder18     float64        `json:"age_under_18_percent"`
 	Age18To25      float64        `json:"age_18_25_percent"`
