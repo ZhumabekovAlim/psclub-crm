@@ -86,6 +86,7 @@ func SetupRoutes(
 		tables.GET("/:id", tableHandler.GetTableByID)
 		tables.PUT("/:id", tableHandler.UpdateTable)
 		tables.DELETE("/:id", tableHandler.DeleteTable)
+		tables.POST("/reorder", tableHandler.ReorderTable)
 	}
 
 	// --- Категории товаров/услуг
