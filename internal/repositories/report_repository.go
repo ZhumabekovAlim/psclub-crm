@@ -20,19 +20,19 @@ func NewReportRepository(db *sql.DB) *ReportRepository {
 func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.SummaryReport, error) {
 	var result models.SummaryReport
 
-        query := `
+	query := `
         SELECT
-            COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0) as total_revenue,
+            COALESCE(ROUND(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))),0) as total_revenue,
             COUNT(DISTINCT client_id) as total_clients,
             COALESCE(ROUND(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))), 0) as avg_check
         FROM bookings b
         LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
         WHERE DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?`
 	args := []interface{}{from, to, tFrom, tTo}
-        if userID > 0 {
-                query += " AND b.user_id = ?"
-                args = append(args, userID)
-        }
+	if userID > 0 {
+		query += " AND b.user_id = ?"
+		args = append(args, userID)
+	}
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&result.TotalRevenue, &result.TotalClients, &result.AvgCheck,
 	)
@@ -42,12 +42,12 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Calculate load percent
 	var bookingsCount int
-        countQuery := `SELECT COUNT(*) FROM bookings b WHERE DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?`
+	countQuery := `SELECT COUNT(*) FROM bookings b WHERE DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?`
 	countArgs := []interface{}{from, to, tFrom, tTo}
-        if userID > 0 {
-                countQuery += " AND b.user_id = ?"
-                countArgs = append(countArgs, userID)
-        }
+	if userID > 0 {
+		countQuery += " AND b.user_id = ?"
+		countArgs = append(countArgs, userID)
+	}
 	_ = r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&bookingsCount)
 
 	var tableCount int
@@ -96,7 +96,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	}
 
 	// Category sales
-        catQuery := `
+	catQuery := `
                 SELECT categories.name, SUM(booking_items.price * (1 - IFNULL(pt.hold_percent,0)/100))
                 FROM booking_items
                 LEFT JOIN bookings ON booking_items.booking_id = bookings.id
@@ -186,16 +186,16 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	var prevRevenue, prevClients, prevAvgCheck int
 	prevFrom := from.Add(-(to.Sub(from)))
 	prevTo := from
-        prevQuery := `
+	prevQuery := `
         SELECT COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0), COUNT(DISTINCT client_id), COALESCE(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0)
         FROM bookings b
         LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
         WHERE DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?`
 	prevArgs := []interface{}{prevFrom, prevTo, tFrom, tTo}
-        if userID > 0 {
-                prevQuery += " AND b.user_id = ?"
-                prevArgs = append(prevArgs, userID)
-        }
+	if userID > 0 {
+		prevQuery += " AND b.user_id = ?"
+		prevArgs = append(prevArgs, userID)
+	}
 	_ = r.db.QueryRowContext(ctx, prevQuery, prevArgs...).Scan(&prevRevenue, &prevClients, &prevAvgCheck)
 	if prevRevenue > 0 {
 		result.RevenueChange = float64(result.TotalRevenue-prevRevenue) * 100.0 / float64(prevRevenue)
@@ -454,7 +454,7 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 		totalExp += e.Total
 	}
 
-        catQuery2 := `
+	catQuery2 := `
         SELECT categories.name, SUM((bi.price-bi.discount) * (1 - IFNULL(pt.hold_percent,0)/100))
         FROM booking_items bi
         LEFT JOIN bookings b ON bi.booking_id = b.id
@@ -501,15 +501,15 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 // --- AnalyticsReport ---
 func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.AnalyticsReport, error) {
 	// Daily revenue
-        dailyQuery := `
+	dailyQuery := `
         SELECT DATE(b.created_at), SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)) FROM bookings b
         LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
         WHERE DATE(b.created_at) BETWEEN ? AND ? AND TIME(b.created_at) BETWEEN ? AND ?`
 	dailyArgs := []interface{}{from, to, tFrom, tTo}
-        if userID > 0 {
-                dailyQuery += " AND b.user_id = ?"
-                dailyArgs = append(dailyArgs, userID)
-        }
+	if userID > 0 {
+		dailyQuery += " AND b.user_id = ?"
+		dailyArgs = append(dailyArgs, userID)
+	}
 	dailyQuery += `
         GROUP BY DATE(created_at)
         ORDER BY DATE(created_at)`
@@ -544,7 +544,7 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 	}
 
 	// Category stats
-        catQuery := `
+	catQuery := `
         SELECT categories.name, SUM(booking_items.quantity), SUM(booking_items.price * (1 - IFNULL(pt.hold_percent,0)/100))
         FROM booking_items
         LEFT JOIN bookings ON booking_items.booking_id = bookings.id
