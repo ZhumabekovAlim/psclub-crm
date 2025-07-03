@@ -30,3 +30,7 @@ func (s *PaymentTypeService) UpdatePaymentType(ctx context.Context, pt *models.P
 func (s *PaymentTypeService) DeletePaymentType(ctx context.Context, id int) error {
 	return s.repo.Delete(ctx, id)
 }
+
+func (s *PaymentTypeService) GetPaymentTypeByID(ctx context.Context, id int) (*models.PaymentType, error) {
+	return s.repo.GetByID(ctx, id)
+}
