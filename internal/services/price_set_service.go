@@ -45,7 +45,7 @@ func (s *PriceSetService) CreatePriceSet(ctx context.Context, ps *models.PriceSe
 	}
 	qty, err := s.calculateQuantity(ctx, ps)
 	if err == nil {
-		ps.Quantity = qty
+		ps.Quantity = float64(qty)
 		if err = s.itemRepo.SetStock(ctx, ps.ID, float64(qty)); err != nil {
 			return id, err
 		}
@@ -63,7 +63,7 @@ func (s *PriceSetService) GetAllPriceSets(ctx context.Context) ([]models.PriceSe
 		if err != nil {
 			return nil, err
 		}
-		sets[i].Quantity = qty
+		sets[i].Quantity = float64(qty)
 	}
 	return sets, nil
 }
@@ -75,7 +75,7 @@ func (s *PriceSetService) GetPriceSetByID(ctx context.Context, id int) (*models.
 	}
 	qty, err := s.calculateQuantity(ctx, set)
 	if err == nil {
-		set.Quantity = qty
+		set.Quantity = float64(qty)
 	}
 	return set, nil
 }
@@ -97,7 +97,7 @@ func (s *PriceSetService) UpdatePriceSet(ctx context.Context, ps *models.PriceSe
 	}
 	qty, err := s.calculateQuantity(ctx, ps)
 	if err == nil {
-		ps.Quantity = qty
+		ps.Quantity = float64(qty)
 		if err = s.itemRepo.SetStock(ctx, ps.ID, float64(qty)); err != nil {
 			return err
 		}
@@ -126,7 +126,7 @@ func (s *PriceSetService) calculateQuantity(ctx context.Context, ps *models.Pric
 		if hours {
 			continue
 		}
-		avail := int(item.Quantity / float64(it.Quantity))
+		avail := int(item.Quantity / it.Quantity)
 		if avail < qty {
 			qty = avail
 		}

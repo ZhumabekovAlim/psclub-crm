@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS booking_items (
                                              id INT AUTO_INCREMENT PRIMARY KEY,
                                              booking_id INT NOT NULL,
                                              item_id INT NOT NULL,
-                                             quantity INT NOT NULL,
+                                             quantity DOUBLE NOT NULL,
                                              price INT NOT NULL,
                                              discount INT DEFAULT 0,
                                              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

@@ -570,7 +570,7 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 			avgCheck = revenue / qty
 		}
 		cats = append(cats, models.CategoryStat{
-			Category: name, Quantity: int(qty), Revenue: revenue, AvgCheck: avgCheck,
+			Category: name, Quantity: qty, Revenue: revenue, AvgCheck: avgCheck,
 		})
 	}
 	return &models.AnalyticsReport{

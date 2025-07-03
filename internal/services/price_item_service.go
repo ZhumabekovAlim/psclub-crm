@@ -52,7 +52,7 @@ func (s *PriceItemService) AddIncome(ctx context.Context, history *models.PriceI
 		return err
 	}
 	// 2. Увеличиваем остаток в PriceItem
-	return s.repo.IncreaseStock(ctx, history.PriceItemID, float64(history.Quantity))
+	return s.repo.IncreaseStock(ctx, history.PriceItemID, history.Quantity)
 }
 
 // Списание/Продажа товара — запись в истории и уменьшение остатка
@@ -64,7 +64,7 @@ func (s *PriceItemService) AddOutcome(ctx context.Context, history *models.Price
 	if err != nil {
 		return err
 	}
-	return s.repo.DecreaseStock(ctx, history.PriceItemID, float64(history.Quantity))
+	return s.repo.DecreaseStock(ctx, history.PriceItemID, history.Quantity)
 }
 
 // Получить историю по товару
