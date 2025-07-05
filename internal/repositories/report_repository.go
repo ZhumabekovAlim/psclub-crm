@@ -16,19 +16,32 @@ func NewReportRepository(db *sql.DB) *ReportRepository {
 	return &ReportRepository{db: db}
 }
 
+func buildTimeCondition(field string, from, to time.Time, tFrom, tTo string) (string, []interface{}) {
+	if tFrom <= tTo {
+		cond := fmt.Sprintf("DATE(%s) BETWEEN ? AND ? AND TIME(%s) BETWEEN ? AND ?", field, field)
+		return cond, []interface{}{from, to, tFrom, tTo}
+	}
+	fromNext := from.AddDate(0, 0, 1)
+	toNext := to.AddDate(0, 0, 1)
+	cond := fmt.Sprintf("((DATE(%s) BETWEEN ? AND ? AND TIME(%s) >= ?) OR (DATE(%s) BETWEEN ? AND ? AND TIME(%s) <= ?))", field, field, field, field)
+	args := []interface{}{from, to, tFrom, fromNext, toNext, tTo}
+	return cond, args
+}
+
 // --- SummaryReport ---
 func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.SummaryReport, error) {
 	var result models.SummaryReport
 	fmt.Println("SummaryReport called with:", from, to, tFrom, tTo, userID)
-	query := `
+	cond, condArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+	query := fmt.Sprintf(`
         SELECT
             COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0) as total_revenue,
             COUNT(DISTINCT client_id) as total_clients,
             COALESCE(ROUND(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))), 0) as avg_check
         FROM bookings b
         LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
-        WHERE DATE(b.start_time) BETWEEN ? AND ? AND TIME(b.start_time) BETWEEN ? AND ?`
-	args := []interface{}{from, to, tFrom, tTo}
+        WHERE %s`, cond)
+	args := condArgs
 	if userID > 0 {
 		query += " AND b.user_id = ?"
 		args = append(args, userID)
@@ -42,8 +55,8 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Calculate load percent
 	var bookingsCount int
-	countQuery := `SELECT COUNT(*) FROM bookings b WHERE DATE(b.start_time) BETWEEN ? AND ? AND TIME(b.start_time) BETWEEN ? AND ?`
-	countArgs := []interface{}{from, to, tFrom, tTo}
+	condCount, countArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM bookings b WHERE %s", condCount)
 	if userID > 0 {
 		countQuery += " AND b.user_id = ?"
 		countArgs = append(countArgs, userID)
@@ -72,15 +85,15 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Age groups
 	var under18, age18to25, age26to35, age36Plus float64
-	ageQuery := `
+	condAge, ageArgs := buildTimeCondition("created_at", from, to, tFrom, tTo)
+	ageQuery := fmt.Sprintf(`
                 SELECT
                     SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) < 18 THEN 1 ELSE 0 END),
                     SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) BETWEEN 18 AND 25 THEN 1 ELSE 0 END),
                     SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) BETWEEN 26 AND 35 THEN 1 ELSE 0 END),
                     SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) > 35 THEN 1 ELSE 0 END)
                 FROM clients
-                WHERE id IN (SELECT DISTINCT client_id FROM bookings WHERE DATE(created_at) BETWEEN ? AND ? AND TIME(created_at) BETWEEN ? AND ?`
-	ageArgs := []interface{}{from, to, tFrom, tTo}
+                WHERE id IN (SELECT DISTINCT client_id FROM bookings WHERE %s`, condAge)
 	if userID > 0 {
 		ageQuery += " AND user_id = ?"
 		ageArgs = append(ageArgs, userID)
@@ -96,15 +109,15 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	}
 
 	// Category sales
-	catQuery := `
+	condCat, catArgs := buildTimeCondition("bookings.start_time", from, to, tFrom, tTo)
+	catQuery := fmt.Sprintf(`
                 SELECT categories.name, SUM(booking_items.price  * (1 - booking_items.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100))
                 FROM booking_items
                 LEFT JOIN bookings ON booking_items.booking_id = bookings.id
                 LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
                 LEFT JOIN price_items ON booking_items.item_id = price_items.id
                 LEFT JOIN categories ON price_items.category_id = categories.id
-                WHERE DATE(bookings.start_time) BETWEEN ? AND ? AND TIME(bookings.start_time) BETWEEN ? AND ?`
-	catArgs := []interface{}{from, to, tFrom, tTo}
+                WHERE %s`, condCat)
 	if userID > 0 {
 		catQuery += " AND bookings.user_id = ?"
 		catArgs = append(catArgs, userID)
@@ -121,8 +134,9 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	result.CategorySales = catSales
 
 	// Top items by profit
-	itemQuery := `
-    SELECT 
+	condItem, itemArgs := buildTimeCondition("bookings.start_time", from, to, tFrom, tTo)
+	itemQuery := fmt.Sprintf(`
+    SELECT
         price_items.name,
         SUM(booking_items.quantity),
         SUM(
@@ -148,10 +162,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
     LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
     LEFT JOIN price_items ON booking_items.item_id = price_items.id
     LEFT JOIN categories ON price_items.category_id = categories.id
-    WHERE DATE(bookings.start_time) BETWEEN ? AND ?
-      AND TIME(bookings.start_time) BETWEEN ? AND ?`
-
-	itemArgs := []interface{}{from, to, tFrom, tTo}
+    WHERE %s`, condItem)
 	if userID > 0 {
 		itemQuery += " AND bookings.user_id = ?"
 		itemArgs = append(itemArgs, userID)
@@ -186,12 +197,12 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	var prevRevenue, prevClients, prevAvgCheck float64
 	prevFrom := from.Add(-(to.Sub(from)))
 	prevTo := from
-	prevQuery := `
+	condPrev, prevArgs := buildTimeCondition("b.start_time", prevFrom, prevTo, tFrom, tTo)
+	prevQuery := fmt.Sprintf(`
         SELECT COALESCE(SUM(b.total_amount  * (1 - IFNULL(pt.hold_percent,0)/100)),0), COUNT(DISTINCT client_id), COALESCE(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0)
         FROM bookings b
         LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
-        WHERE DATE(b.start_time) BETWEEN ? AND ? AND TIME(b.start_time) BETWEEN ? AND ?`
-	prevArgs := []interface{}{prevFrom, prevTo, tFrom, tTo}
+        WHERE %s`, condPrev)
 	if userID > 0 {
 		prevQuery += " AND b.user_id = ?"
 		prevArgs = append(prevArgs, userID)
@@ -213,7 +224,8 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 // --- AdminsReport ---
 func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.AdminsReport, error) {
 
-	query := `
+	condAdmin, adminArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+	query := fmt.Sprintf(`
        SELECT u.id, u.name,
               COUNT(DISTINCT DATE(b.start_time)) AS shifts,
               SUM(
@@ -261,13 +273,13 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
               u.salary_shift, u.salary_hookah, u.hookah_salary_type, u.salary_bar
         FROM users u
        LEFT JOIN bookings b ON b.user_id = u.id
-            AND DATE(b.start_time) BETWEEN ? AND ? AND TIME(b.start_time) BETWEEN ? AND ?
+            AND %s
        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
        LEFT JOIN booking_items bi ON b.id = bi.booking_id
        LEFT JOIN price_items pi ON bi.item_id = pi.id
         LEFT JOIN categories ON pi.category_id = categories.id
-        WHERE u.role = 'admin'`
-	args := []interface{}{from, to, tFrom, tTo}
+        WHERE u.role = 'admin'`, condAdmin)
+	args := adminArgs
 	if userID > 0 {
 		query += " AND u.id = ?"
 		args = append(args, userID)
@@ -335,7 +347,8 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
 
 // --- SalesReport ---
 func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.SalesReport, error) {
-	userQuery := `
+	condUser, userArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+	userQuery := fmt.Sprintf(`
        SELECT u.id, u.name,
               COUNT(DISTINCT DATE(b.start_time)) AS days,
               SUM(
@@ -387,8 +400,7 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
        LEFT JOIN booking_items bi ON b.id = bi.booking_id
        LEFT JOIN price_items pi ON bi.item_id = pi.id
        LEFT JOIN categories ON pi.category_id = categories.id
-       WHERE DATE(b.start_time) BETWEEN ? AND ? AND TIME(b.start_time) BETWEEN ? AND ?`
-	userArgs := []interface{}{from, to, tFrom, tTo}
+       WHERE %s`, condUser)
 	if userID > 0 {
 		userQuery += " AND b.user_id = ?"
 		userArgs = append(userArgs, userID)
@@ -454,15 +466,15 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 		totalExp += e.Total
 	}
 
-	catQuery2 := `
+	condCat2, catArgs2 := buildTimeCondition("bi.created_at", from, to, tFrom, tTo)
+	catQuery2 := fmt.Sprintf(`
         SELECT categories.name, SUM((bi.price-bi.discount) * (1 - IFNULL(pt.hold_percent,0)/100))
         FROM booking_items bi
         LEFT JOIN bookings b ON bi.booking_id = b.id
         LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
         LEFT JOIN price_items pi ON bi.item_id = pi.id
         LEFT JOIN categories ON pi.category_id = categories.id
-        WHERE DATE(bi.created_at) BETWEEN ? AND ? AND TIME(bi.created_at) BETWEEN ? AND ?`
-	catArgs2 := []interface{}{from, to, tFrom, tTo}
+        WHERE %s`, condCat2)
 	if userID > 0 {
 		catQuery2 += " AND b.user_id = ?"
 		catArgs2 = append(catArgs2, userID)
@@ -501,11 +513,11 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 // --- AnalyticsReport ---
 func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.AnalyticsReport, error) {
 	// Daily revenue
-	dailyQuery := `
+	condDaily, dailyArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+	dailyQuery := fmt.Sprintf(`
         SELECT DATE(b.start_time), SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)) FROM bookings b
         LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
-        WHERE DATE(b.start_time) BETWEEN ? AND ? AND TIME(b.start_time) BETWEEN ? AND ?`
-	dailyArgs := []interface{}{from, to, tFrom, tTo}
+        WHERE %s`, condDaily)
 	if userID > 0 {
 		dailyQuery += " AND b.user_id = ?"
 		dailyArgs = append(dailyArgs, userID)
@@ -523,10 +535,10 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 	}
 
 	// Hourly load
-	hourlyQuery := `
+	condHourly, hourlyArgs := buildTimeCondition("start_time", from, to, tFrom, tTo)
+	hourlyQuery := fmt.Sprintf(`
         SELECT HOUR(start_time), COUNT(*) FROM bookings
-        WHERE DATE(start_time) BETWEEN ? AND ? AND TIME(start_time) BETWEEN ? AND ?`
-	hourlyArgs := []interface{}{from, to, tFrom, tTo}
+        WHERE %s`, condHourly)
 	if userID > 0 {
 		hourlyQuery += " AND user_id = ?"
 		hourlyArgs = append(hourlyArgs, userID)
@@ -544,15 +556,15 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 	}
 
 	// Category stats
-	catQuery := `
+	condAnalCat, catArgs := buildTimeCondition("booking_items.created_at", from, to, tFrom, tTo)
+	catQuery := fmt.Sprintf(`
         SELECT categories.name, SUM(booking_items.quantity), SUM(booking_items.price * (1 - IFNULL(pt.hold_percent,0)/100))
         FROM booking_items
         LEFT JOIN bookings ON booking_items.booking_id = bookings.id
         LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
         LEFT JOIN price_items ON booking_items.item_id = price_items.id
         LEFT JOIN categories ON price_items.category_id = categories.id
-        WHERE DATE(booking_items.created_at) BETWEEN ? AND ? AND TIME(booking_items.created_at) BETWEEN ? AND ?`
-	catArgs := []interface{}{from, to, tFrom, tTo}
+        WHERE %s`, condAnalCat)
 	if userID > 0 {
 		catQuery += " AND bookings.user_id = ?"
 		catArgs = append(catArgs, userID)
@@ -583,22 +595,22 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 // --- DiscountsReport ---
 func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.DiscountsReport, error) {
 	var total, count, avg int
-	sumQuery := `
+	condSum, sumArgs := buildTimeCondition("start_time", from, to, tFrom, tTo)
+	sumQuery := fmt.Sprintf(`
         SELECT COALESCE(SUM(discount),0), COUNT(*), COALESCE(AVG(discount),0)
         FROM bookings
-        WHERE discount > 0 AND DATE(start_time) BETWEEN ? AND ? AND TIME(start_time) BETWEEN ? AND ?`
-	sumArgs := []interface{}{from, to, tFrom, tTo}
+        WHERE discount > 0 AND %s`, condSum)
 	if userID > 0 {
 		sumQuery += " AND user_id = ?"
 		sumArgs = append(sumArgs, userID)
 	}
 	_ = r.db.QueryRowContext(ctx, sumQuery, sumArgs...).Scan(&total, &count, &avg)
 
-	reasonQuery := `
+	condReason, reasonArgs := buildTimeCondition("start_time", from, to, tFrom, tTo)
+	reasonQuery := fmt.Sprintf(`
         SELECT discount_reason, COUNT(*), SUM(discount), COALESCE(AVG(discount),0)
         FROM bookings
-        WHERE discount > 0 AND DATE(start_time) BETWEEN ? AND ? AND TIME(start_time) BETWEEN ? AND ?`
-	reasonArgs := []interface{}{from, to, tFrom, tTo}
+        WHERE discount > 0 AND %s`, condReason)
 	if userID > 0 {
 		reasonQuery += " AND user_id = ?"
 		reasonArgs = append(reasonArgs, userID)
@@ -616,10 +628,10 @@ func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Ti
 		})
 	}
 
-	distQuery := `
+	condDist, distArgs := buildTimeCondition("start_time", from, to, tFrom, tTo)
+	distQuery := fmt.Sprintf(`
         SELECT discount, COUNT(*) FROM bookings
-        WHERE discount > 0 AND DATE(start_time) BETWEEN ? AND ? AND TIME(start_time) BETWEEN ? AND ?`
-	distArgs := []interface{}{from, to, tFrom, tTo}
+        WHERE discount > 0 AND %s`, condDist)
 	if userID > 0 {
 		distQuery += " AND user_id = ?"
 		distArgs = append(distArgs, userID)
@@ -638,13 +650,13 @@ func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Ti
 	}
 
 	// Retrieve all orders with a discount within the period
-	orderQuery := `
+	condOrders, orderArgs := buildTimeCondition("start_time", from, to, tFrom, tTo)
+	orderQuery := fmt.Sprintf(`
         SELECT id, client_id, table_id, user_id, start_time, end_time, note,
                discount, discount_reason, total_amount, bonus_used,
                payment_status, payment_type_id, created_at, updated_at
         FROM bookings
-        WHERE discount > 0 AND DATE(start_time) BETWEEN ? AND ? AND TIME(start_time) BETWEEN ? AND ?`
-	orderArgs := []interface{}{from, to, tFrom, tTo}
+        WHERE discount > 0 AND %s`, condOrders)
 	if userID > 0 {
 		orderQuery += " AND user_id = ?"
 		orderArgs = append(orderArgs, userID)
