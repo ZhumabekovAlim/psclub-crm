@@ -497,7 +497,7 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 		totalInc += inc.Total
 	}
 
-	const taxPercent = 0.10
+	const taxPercent = 0
 	netProfit := totalInc*(1-taxPercent) - totalExp
 
 	return &models.SalesReport{
