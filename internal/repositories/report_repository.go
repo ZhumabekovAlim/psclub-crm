@@ -19,7 +19,7 @@ func NewReportRepository(db *sql.DB) *ReportRepository {
 // --- SummaryReport ---
 func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.SummaryReport, error) {
 	var result models.SummaryReport
-
+	fmt.Println("SummaryReport called with:", from, to, tFrom, tTo, userID)
 	query := `
         SELECT
             COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0) as total_revenue,
