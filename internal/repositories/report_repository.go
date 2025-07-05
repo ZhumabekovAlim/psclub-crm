@@ -97,7 +97,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Category sales
 	catQuery := `
-                SELECT categories.name, SUM(booking_items.price * (1 - IFNULL(pt.hold_percent,0)/100))
+                SELECT categories.name, SUM(booking_items.price  * (1 - booking_items.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100))
                 FROM booking_items
                 LEFT JOIN bookings ON booking_items.booking_id = bookings.id
                 LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
@@ -128,7 +128,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
         SUM(
             CASE
                 WHEN categories.name = 'Часы' THEN (booking_items.price - booking_items.discount) * (1 - IFNULL(pt.hold_percent,0)/100)
-                ELSE (booking_items.price - booking_items.discount) * (1 - IFNULL(pt.hold_percent,0)/100)
+                ELSE booking_items.price  * (1 - booking_items.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100)
             END
         ),
         SUM(
@@ -140,7 +140,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
         SUM(
             CASE
                 WHEN categories.name = 'Часы' THEN (booking_items.price - booking_items.discount)*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
-                ELSE (booking_items.price - booking_items.discount)*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
+                ELSE (booking_items.price * (1 - booking_items.discount / 100))*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
             END
         )
     FROM booking_items
