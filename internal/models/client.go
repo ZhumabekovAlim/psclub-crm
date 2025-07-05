@@ -11,7 +11,8 @@ type Client struct {
 	Channel     string     `json:"channel,omitempty"`
 	Bonus       int        `json:"bonus"`
 	Visits      int        `json:"visits"`
-	Income      int        `json:"income"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+        Income      int        `json:"income"`
+        Status      string     `json:"status"`
+        CreatedAt   time.Time  `json:"created_at"`
+        UpdatedAt   time.Time  `json:"updated_at"`
 }
