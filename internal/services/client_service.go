@@ -16,14 +16,17 @@ func NewClientService(r *repositories.ClientRepository) *ClientService {
 }
 
 func (s *ClientService) CreateClient(ctx context.Context, client *models.Client) (int, error) {
-	existing, err := s.repo.GetByPhone(ctx, client.Phone)
-	if err != nil {
-		return 0, err
-	}
-	if existing != nil {
-		return 0, errors.New("client with this phone number already exists")
-	}
-	return s.repo.Create(ctx, client)
+        existing, err := s.repo.GetByPhone(ctx, client.Phone)
+        if err != nil {
+                return 0, err
+        }
+        if existing != nil {
+                return 0, errors.New("client with this phone number already exists")
+        }
+        if client.Status == "" {
+                client.Status = "active"
+        }
+        return s.repo.Create(ctx, client)
 }
 
 func (s *ClientService) GetAllClients(ctx context.Context) ([]models.Client, error) {

@@ -15,10 +15,10 @@ func NewClientRepository(db *sql.DB) *ClientRepository {
 }
 
 func (r *ClientRepository) Create(ctx context.Context, c *models.Client) (int, error) {
-	query := `
-        INSERT INTO clients (name, phone,date_of_birth, channel_id, bonus, visits, income, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`
-	res, err := r.db.ExecContext(ctx, query, c.Name, c.Phone, c.DateOfBirth, c.ChannelID, c.Bonus, c.Visits, c.Income)
+        query := `
+        INSERT INTO clients (name, phone, date_of_birth, channel_id, bonus, visits, income, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`
+        res, err := r.db.ExecContext(ctx, query, c.Name, c.Phone, c.DateOfBirth, c.ChannelID, c.Bonus, c.Visits, c.Income, c.Status)
 	if err != nil {
 		return 0, err
 	}
@@ -27,11 +27,12 @@ func (r *ClientRepository) Create(ctx context.Context, c *models.Client) (int, e
 }
 
 func (r *ClientRepository) GetAll(ctx context.Context) ([]models.Client, error) {
-	query := `SELECT c.id, c.name, c.phone, c.date_of_birth, c.channel_id, IFNULL(ch.name, ''), c.bonus, c.visits, c.income, c.created_at, c.updated_at
+        query := `SELECT c.id, c.name, c.phone, c.date_of_birth, c.channel_id, IFNULL(ch.name, ''), c.bonus, c.visits, c.income, c.status, c.created_at, c.updated_at
                 FROM clients c
                 LEFT JOIN channels ch ON c.channel_id = ch.id
+                WHERE c.status <> 'deleted'
                 ORDER BY c.id`
-	rows, err := r.db.QueryContext(ctx, query)
+        rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +41,7 @@ func (r *ClientRepository) GetAll(ctx context.Context) ([]models.Client, error) 
 	for rows.Next() {
 		var c models.Client
 		var dob sql.NullTime
-		err := rows.Scan(&c.ID, &c.Name, &c.Phone, &dob, &c.ChannelID, &c.Channel, &c.Bonus, &c.Visits, &c.Income, &c.CreatedAt, &c.UpdatedAt)
+                err := rows.Scan(&c.ID, &c.Name, &c.Phone, &dob, &c.ChannelID, &c.Channel, &c.Bonus, &c.Visits, &c.Income, &c.Status, &c.CreatedAt, &c.UpdatedAt)
 		if dob.Valid {
 			c.DateOfBirth = &dob.Time
 		}
@@ -53,13 +54,13 @@ func (r *ClientRepository) GetAll(ctx context.Context) ([]models.Client, error) 
 }
 
 func (r *ClientRepository) GetByID(ctx context.Context, id int) (*models.Client, error) {
-	query := `SELECT c.id, c.name, c.phone, c.date_of_birth, c.channel_id, IFNULL(ch.name, ''), c.bonus, c.visits, c.income, c.created_at, c.updated_at
+        query := `SELECT c.id, c.name, c.phone, c.date_of_birth, c.channel_id, IFNULL(ch.name, ''), c.bonus, c.visits, c.income, c.status, c.created_at, c.updated_at
                 FROM clients c
                 LEFT JOIN channels ch ON c.channel_id = ch.id
                 WHERE c.id=?`
 	var c models.Client
 	var dob sql.NullTime
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&c.ID, &c.Name, &c.Phone, &dob, &c.ChannelID, &c.Channel, &c.Bonus, &c.Visits, &c.Income, &c.CreatedAt, &c.UpdatedAt)
+        err := r.db.QueryRowContext(ctx, query, id).Scan(&c.ID, &c.Name, &c.Phone, &dob, &c.ChannelID, &c.Channel, &c.Bonus, &c.Visits, &c.Income, &c.Status, &c.CreatedAt, &c.UpdatedAt)
 	if dob.Valid {
 		c.DateOfBirth = &dob.Time
 	}
@@ -99,8 +100,8 @@ func (r *ClientRepository) Update(ctx context.Context, c *models.Client) error {
 }
 
 func (r *ClientRepository) Delete(ctx context.Context, id int) error {
-	_, err := r.db.ExecContext(ctx, `DELETE FROM clients WHERE id=?`, id)
-	return err
+        _, err := r.db.ExecContext(ctx, `UPDATE clients SET status='deleted' WHERE id=?`, id)
+        return err
 }
 
 func (r *ClientRepository) AddBonus(ctx context.Context, clientID int, bonus int) error {
@@ -110,13 +111,13 @@ func (r *ClientRepository) AddBonus(ctx context.Context, clientID int, bonus int
 }
 
 func (r *ClientRepository) GetByPhone(ctx context.Context, phone string) (*models.Client, error) {
-	query := `SELECT c.id, c.name, c.phone, c.date_of_birth, c.channel_id, IFNULL(ch.name, ''), c.bonus, c.visits, c.income, c.created_at, c.updated_at
+        query := `SELECT c.id, c.name, c.phone, c.date_of_birth, c.channel_id, IFNULL(ch.name, ''), c.bonus, c.visits, c.income, c.status, c.created_at, c.updated_at
                 FROM clients c
                 LEFT JOIN channels ch ON c.channel_id = ch.id
                 WHERE c.phone = ?`
 	var c models.Client
 	var dob sql.NullTime
-	err := r.db.QueryRowContext(ctx, query, phone).Scan(&c.ID, &c.Name, &c.Phone, &dob, &c.ChannelID, &c.Channel, &c.Bonus, &c.Visits, &c.Income, &c.CreatedAt, &c.UpdatedAt)
+        err := r.db.QueryRowContext(ctx, query, phone).Scan(&c.ID, &c.Name, &c.Phone, &dob, &c.ChannelID, &c.Channel, &c.Bonus, &c.Visits, &c.Income, &c.Status, &c.CreatedAt, &c.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
