@@ -447,10 +447,14 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 		})
 	}
 
-	expRows, err := r.db.QueryContext(ctx, `
-        SELECT title, SUM(total) FROM expenses
-        WHERE date BETWEEN ? AND ?
-        GROUP BY title`, from, to)
+	condExp, expArgs := buildTimeCondition("e.date", from, to, tFrom, tTo)
+	expQuery := fmt.Sprintf(`
+        SELECT IFNULL(ec.name, e.category) as category, SUM(e.total)
+        FROM expenses e
+        LEFT JOIN expense_categories ec ON e.category_id = ec.id
+        WHERE %s
+        GROUP BY category`, condExp)
+	expRows, err := r.db.QueryContext(ctx, expQuery, expArgs...)
 	if err != nil {
 		return nil, err
 	}
