@@ -162,7 +162,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
     ORDER BY SUM(
         CASE
             WHEN categories.name = 'Часы' THEN (booking_items.price - booking_items.discount)*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
-            ELSE (booking_items.price - booking_items.discount)*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
+            ELSE (booking_items.price * (1 - booking_items.discount / 100))*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
         END
     ) DESC
     LIMIT 5`
@@ -187,7 +187,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	prevFrom := from.Add(-(to.Sub(from)))
 	prevTo := from
 	prevQuery := `
-        SELECT COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0), COUNT(DISTINCT client_id), COALESCE(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0)
+        SELECT COALESCE(SUM(b.total_amount  * (1 - IFNULL(pt.hold_percent,0)/100)),0), COUNT(DISTINCT client_id), COALESCE(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0)
         FROM bookings b
         LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
         WHERE DATE(b.start_time) BETWEEN ? AND ? AND TIME(b.start_time) BETWEEN ? AND ?`
