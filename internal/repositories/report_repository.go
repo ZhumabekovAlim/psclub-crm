@@ -230,12 +230,12 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
               COUNT(DISTINCT DATE(b.start_time)) AS shifts,
               SUM(
                   CASE
-                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%кальян%' THEN bi.quantity
+                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%%кальян%%' THEN bi.quantity
                       WHEN pi.is_set = 1 AND EXISTS (
                           SELECT 1 FROM set_items si
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%кальян%'
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%кальян%%'
                       ) THEN bi.quantity
                       ELSE 0
                   END) AS hookah_qty,
@@ -245,18 +245,18 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
                           SELECT 1 FROM set_items si
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%кальян%'
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%кальян%%'
                       ) THEN bi.quantity
                       ELSE 0
                   END) AS set_qty,
               SUM(
                   CASE
-                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%кальян%' THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
+                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%%кальян%%' THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       WHEN pi.is_set = 1 AND EXISTS (
                           SELECT 1 FROM set_items si
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%кальян%'
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%кальян%%'
                       ) THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       ELSE 0
                   END) AS hookah_rev,
@@ -266,7 +266,7 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
                           SELECT 1 FROM set_items si
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%кальян%'
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%кальян%%'
                       ) THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       ELSE 0
                   END) AS set_rev,
@@ -353,12 +353,12 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
               COUNT(DISTINCT DATE(b.start_time)) AS days,
               SUM(
                   CASE
-                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%' THEN bi.quantity
+                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%%\u043a\u0430\u043b\u044c\u044f\u043d%%' THEN bi.quantity
                       WHEN pi.is_set = 1 AND EXISTS (
                           SELECT 1 FROM set_items si
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%'
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%\u043a\u0430\u043b\u044c\u044f\u043d%%'
                       ) THEN bi.quantity
                       ELSE 0
                   END) AS hookahs,
@@ -368,18 +368,18 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
                           SELECT 1 FROM set_items si
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%'
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%\u043a\u0430\u043b\u044c\u044f\u043d%%'
                       ) THEN bi.quantity
                       ELSE 0
                   END) AS sets,
               SUM(
                   CASE
-                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%' THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
+                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%%\u043a\u0430\u043b\u044c\u044f\u043d%%' THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       WHEN pi.is_set = 1 AND EXISTS (
                           SELECT 1 FROM set_items si
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%'
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%\u043a\u0430\u043b\u044c\u044f\u043d%%'
                       ) THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       ELSE 0
                   END) AS hookah_rev,
@@ -389,7 +389,7 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
                           SELECT 1 FROM set_items si
                           JOIN price_items pi2 ON si.item_id = pi2.id
                           JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%\u043a\u0430\u043b\u044c\u044f\u043d%'
+                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%\u043a\u0430\u043b\u044c\u044f\u043d%%'
                       ) THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
                       ELSE 0
                   END) AS set_rev,
