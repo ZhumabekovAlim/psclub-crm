@@ -75,8 +75,8 @@ func getPeriod(c *gin.Context) (from, to time.Time, tFrom, tTo string) {
 	layoutDate := "2006-01-02"
 	fromStr := c.DefaultQuery("from", time.Now().AddDate(0, 0, -7).Format(layoutDate))
 	toStr := c.DefaultQuery("to", time.Now().Format(layoutDate))
-	tFrom = c.DefaultQuery("time_from", "00:00")
-	tTo = c.DefaultQuery("time_to", "23:59:59")
+	tFrom = c.DefaultQuery("tFrom", "00:00")
+	tTo = c.DefaultQuery("tTo", "23:59:59")
 	from, _ = time.Parse(layoutDate, fromStr)
 	to, _ = time.Parse(layoutDate, toStr)
 	return from, to, tFrom, tTo
