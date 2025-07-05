@@ -103,7 +103,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
                 LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
                 LEFT JOIN price_items ON booking_items.item_id = price_items.id
                 LEFT JOIN categories ON price_items.category_id = categories.id
-                WHERE DATE(booking_items.created_at) BETWEEN ? AND ? AND TIME(booking_items.created_at) BETWEEN ? AND ?`
+                WHERE DATE(bookings.start_time) BETWEEN ? AND ? AND TIME(bookings.start_time) BETWEEN ? AND ?`
 	catArgs := []interface{}{from, to, tFrom, tTo}
 	if userID > 0 {
 		catQuery += " AND bookings.user_id = ?"
@@ -148,8 +148,8 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
     LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
     LEFT JOIN price_items ON booking_items.item_id = price_items.id
     LEFT JOIN categories ON price_items.category_id = categories.id
-    WHERE DATE(booking_items.created_at) BETWEEN ? AND ?
-      AND TIME(booking_items.created_at) BETWEEN ? AND ?`
+    WHERE DATE(bookings.start_time) BETWEEN ? AND ?
+      AND TIME(bookings.start_time) BETWEEN ? AND ?`
 
 	itemArgs := []interface{}{from, to, tFrom, tTo}
 	if userID > 0 {
@@ -206,7 +206,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	if prevAvgCheck > 0 {
 		result.AvgCheckChange = float64(result.AvgCheck-prevAvgCheck) * 100.0 / float64(prevAvgCheck)
 	}
-	result.LoadChange = 3 // Пример
+
 	return &result, nil
 }
 
