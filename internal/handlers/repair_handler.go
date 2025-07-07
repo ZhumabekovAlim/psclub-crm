@@ -43,12 +43,13 @@ func (h *RepairHandler) CreateRepair(c *gin.Context) {
 	}
 
 	exp := models.Expense{
-		Date:        time.Now(),
-		Title:       "Починка, номер VIN: " + rep.VIN,
-		Total:       rep.Price,
-		Description: rep.Description,
-		Paid:        false,
-		CategoryID:  catID,
+		Date:             time.Now(),
+		Title:            "Починка, номер VIN: " + rep.VIN,
+		Total:            rep.Price,
+		Description:      rep.Description,
+		Paid:             false,
+		CategoryID:       catID,
+		RepairCategoryID: rep.CategoryID,
 	}
 	_, _ = h.expenses.CreateExpense(c.Request.Context(), &exp)
 
@@ -102,7 +103,7 @@ func (h *RepairHandler) UpdateRepair(c *gin.Context) {
 
 	if oldRep != nil {
 		oldTitle := "Починка, номер VIN: " + oldRep.VIN
-		_ = h.expenses.DeleteByDetails(c.Request.Context(), oldTitle, oldRep.Description, oldRep.Price)
+		_ = h.expenses.DeleteByDetails(c.Request.Context(), oldTitle, oldRep.Description, oldRep.Price, oldRep.CategoryID)
 	}
 
 	var catID int
@@ -114,12 +115,13 @@ func (h *RepairHandler) UpdateRepair(c *gin.Context) {
 	}
 
 	exp := models.Expense{
-		Date:        time.Now(),
-		Title:       "Починка, номер VIN: " + rep.VIN,
-		Total:       rep.Price,
-		Description: rep.Description,
-		Paid:        false,
-		CategoryID:  catID,
+		Date:             time.Now(),
+		Title:            "Починка, номер VIN: " + rep.VIN,
+		Total:            rep.Price,
+		Description:      rep.Description,
+		Paid:             false,
+		CategoryID:       catID,
+		RepairCategoryID: rep.CategoryID,
 	}
 	_, _ = h.expenses.CreateExpense(c.Request.Context(), &exp)
 
@@ -142,7 +144,7 @@ func (h *RepairHandler) DeleteRepair(c *gin.Context) {
 
 	if rep != nil {
 		title := "Починка, номер VIN: " + rep.VIN
-		_ = h.expenses.DeleteByDetails(c.Request.Context(), title, rep.Description, rep.Price)
+		_ = h.expenses.DeleteByDetails(c.Request.Context(), title, rep.Description, rep.Price, rep.CategoryID)
 	}
 
 	c.Status(http.StatusNoContent)

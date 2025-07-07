@@ -98,6 +98,11 @@ func Run() {
 	expCatService := services.NewExpenseCategoryService(expCatRepo)
 	expCatHandler := handlers.NewExpenseCategoryHandler(expCatService)
 
+	// Категории ремонтов
+	repCatRepo := repositories.NewRepairCategoryRepository(db)
+	repCatService := services.NewRepairCategoryService(repCatRepo)
+	repCatHandler := handlers.NewRepairCategoryHandler(repCatService)
+
 	expenseRepo := repositories.NewExpenseRepository(db)
 	expenseService := services.NewExpenseService(expenseRepo)
 	expenseHandler := handlers.NewExpenseHandler(expenseService)
@@ -168,6 +173,7 @@ func Run() {
 		plHistoryHandler,
 		priceSetHandler,
 		repairHandler,
+		repCatHandler,
 		cashboxHandler,
 		settingsHandler,
 		reportHandler,

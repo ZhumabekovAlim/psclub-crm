@@ -23,6 +23,7 @@ func SetupRoutes(
 	pricelistHistoryHandler *handlers.PricelistHistoryHandler,
 	priceSetHandler *handlers.PriceSetHandler,
 	repairHandler *handlers.RepairHandler,
+	repairCatHandler *handlers.RepairCategoryHandler,
 	cashboxHandler *handlers.CashboxHandler,
 	settingsHandler *handlers.SettingsHandler,
 	reportHandler *handlers.ReportHandler,
@@ -171,6 +172,15 @@ func SetupRoutes(
 		expenseCats.GET("", expCatHandler.GetAll)
 		expenseCats.PUT("/:id", expCatHandler.Update)
 		expenseCats.DELETE("/:id", expCatHandler.Delete)
+	}
+
+	// --- Категории ремонтов
+	repairCats := api.Group("/repair-categories")
+	{
+		repairCats.POST("", repairCatHandler.Create)
+		repairCats.GET("", repairCatHandler.GetAll)
+		repairCats.PUT("/:id", repairCatHandler.Update)
+		repairCats.DELETE("/:id", repairCatHandler.Delete)
 	}
 
 	// --- Расходы
