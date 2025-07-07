@@ -15,8 +15,9 @@ func NewRepairRepository(db *sql.DB) *RepairRepository {
 }
 
 func (r *RepairRepository) Create(ctx context.Context, rep *models.Repair) (int, error) {
-	query := `INSERT INTO repairs (date, vin, description, price, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())`
-	res, err := r.db.ExecContext(ctx, query, rep.Date, rep.VIN, rep.Description, rep.Price)
+	query := `INSERT INTO repairs (date, vin, description, price, category_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, NULLIF(?,0), NOW(), NOW())`
+	res, err := r.db.ExecContext(ctx, query, rep.Date, rep.VIN, rep.Description, rep.Price, rep.CategoryID)
 	if err != nil {
 		return 0, err
 	}
@@ -25,7 +26,10 @@ func (r *RepairRepository) Create(ctx context.Context, rep *models.Repair) (int,
 }
 
 func (r *RepairRepository) GetAll(ctx context.Context) ([]models.Repair, error) {
-	query := `SELECT id, date, vin, description, price, created_at, updated_at FROM repairs ORDER BY id DESC`
+	query := `SELECT r.id, r.date, r.vin, r.description, r.price, r.category_id, IFNULL(rc.name, ''), r.created_at, r.updated_at
+                FROM repairs r
+                LEFT JOIN repair_categories rc ON r.category_id = rc.id
+                ORDER BY r.id DESC`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -34,7 +38,7 @@ func (r *RepairRepository) GetAll(ctx context.Context) ([]models.Repair, error) 
 	var result []models.Repair
 	for rows.Next() {
 		var rep models.Repair
-		err := rows.Scan(&rep.ID, &rep.Date, &rep.VIN, &rep.Description, &rep.Price, &rep.CreatedAt, &rep.UpdatedAt)
+		err := rows.Scan(&rep.ID, &rep.Date, &rep.VIN, &rep.Description, &rep.Price, &rep.CategoryID, &rep.Category, &rep.CreatedAt, &rep.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -44,9 +48,12 @@ func (r *RepairRepository) GetAll(ctx context.Context) ([]models.Repair, error) 
 }
 
 func (r *RepairRepository) GetByID(ctx context.Context, id int) (*models.Repair, error) {
-	query := `SELECT id, date, vin, description, price, created_at, updated_at FROM repairs WHERE id = ?`
+	query := `SELECT r.id, r.date, r.vin, r.description, r.price, r.category_id, IFNULL(rc.name,''), r.created_at, r.updated_at
+                FROM repairs r
+                LEFT JOIN repair_categories rc ON r.category_id = rc.id
+                WHERE r.id = ?`
 	var rep models.Repair
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&rep.ID, &rep.Date, &rep.VIN, &rep.Description, &rep.Price, &rep.CreatedAt, &rep.UpdatedAt)
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&rep.ID, &rep.Date, &rep.VIN, &rep.Description, &rep.Price, &rep.CategoryID, &rep.Category, &rep.CreatedAt, &rep.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +61,8 @@ func (r *RepairRepository) GetByID(ctx context.Context, id int) (*models.Repair,
 }
 
 func (r *RepairRepository) Update(ctx context.Context, rep *models.Repair) error {
-	query := `UPDATE repairs SET date = ?, vin = ?, description = ?, price = ?, updated_at = NOW() WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, rep.Date, rep.VIN, rep.Description, rep.Price, rep.ID)
+	query := `UPDATE repairs SET date = ?, vin = ?, description = ?, price = ?, category_id=NULLIF(?,0), updated_at = NOW() WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, rep.Date, rep.VIN, rep.Description, rep.Price, rep.CategoryID, rep.ID)
 	return err
 }
 
