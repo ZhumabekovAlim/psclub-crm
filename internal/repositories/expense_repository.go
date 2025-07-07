@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"psclub-crm/internal/models"
+	"time"
 )
 
 type ExpenseRepository struct {
@@ -25,13 +26,14 @@ func (r *ExpenseRepository) Create(ctx context.Context, e *models.Expense) (int,
 	return int(id), err
 }
 
-func (r *ExpenseRepository) GetAll(ctx context.Context) ([]models.Expense, error) {
+func (r *ExpenseRepository) GetAll(ctx context.Context, from, to time.Time) ([]models.Expense, error) {
 	query := `SELECT e.id, e.date, e.title, e.category_id, IFNULL(ec.name, ''), e.repair_category_id, IFNULL(rc.name,''), e.total, e.description, e.paid, e.created_at
                 FROM expenses e
                 LEFT JOIN expense_categories ec ON e.category_id = ec.id
                 LEFT JOIN repair_categories rc ON e.repair_category_id = rc.id
+                WHERE DATE(e.date) BETWEEN ? AND ?
                 ORDER BY e.id DESC`
-	rows, err := r.db.QueryContext(ctx, query)
+	rows, err := r.db.QueryContext(ctx, query, from, to)
 	if err != nil {
 		return nil, err
 	}

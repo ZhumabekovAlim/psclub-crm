@@ -4,6 +4,7 @@ import (
 	"context"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/repositories"
+	"time"
 )
 
 type ExpenseService struct {
@@ -18,8 +19,8 @@ func (s *ExpenseService) CreateExpense(ctx context.Context, e *models.Expense) (
 	return s.repo.Create(ctx, e)
 }
 
-func (s *ExpenseService) GetAllExpenses(ctx context.Context) ([]models.Expense, error) {
-	return s.repo.GetAll(ctx)
+func (s *ExpenseService) GetAllExpenses(ctx context.Context, from, to time.Time) ([]models.Expense, error) {
+	return s.repo.GetAll(ctx, from, to)
 }
 
 func (s *ExpenseService) GetExpenseByID(ctx context.Context, id int) (*models.Expense, error) {

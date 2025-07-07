@@ -34,7 +34,8 @@ func (h *ExpenseHandler) CreateExpense(c *gin.Context) {
 
 // GET /api/expenses
 func (h *ExpenseHandler) GetAllExpenses(c *gin.Context) {
-	expenses, err := h.service.GetAllExpenses(c.Request.Context())
+	from, to, _, _ := getPeriod(c)
+	expenses, err := h.service.GetAllExpenses(c.Request.Context(), from, to)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
