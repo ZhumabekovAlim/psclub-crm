@@ -112,6 +112,13 @@ func Run() {
 	inventoryService := services.NewInventoryService(priceRepo, invHistRepo, expenseService, expCatService)
 	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
 
+	// Оборудование
+	equipmentRepo := repositories.NewEquipmentRepository(db)
+	equipmentInvHistRepo := repositories.NewEquipmentInventoryHistoryRepository(db)
+	equipmentService := services.NewEquipmentService(equipmentRepo)
+	equipmentInvService := services.NewEquipmentInventoryService(equipmentRepo, equipmentInvHistRepo, expenseService, expCatService)
+	equipmentHandler := handlers.NewEquipmentHandler(equipmentService, equipmentInvService)
+
 	// Прайс-лист handlers depend on expense and category services
 	priceHandler := handlers.NewPriceItemHandler(priceService, expenseService, expCatService, categoryService)
 	plHistoryHandler := handlers.NewPricelistHistoryHandler(priceService, expenseService)
@@ -172,6 +179,7 @@ func Run() {
 		priceHandler,
 		plHistoryHandler,
 		priceSetHandler,
+		equipmentHandler,
 		repairHandler,
 		repCatHandler,
 		cashboxHandler,
