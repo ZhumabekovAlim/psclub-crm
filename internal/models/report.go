@@ -60,6 +60,7 @@ type SalesReport struct {
 	Users            []UserSales      `json:"users"`
 	Expenses         []ExpenseTotal   `json:"expenses,omitempty"`
 	IncomeByCategory []CategoryIncome `json:"income_by_category,omitempty"`
+	IncomeByPayment  []CategoryIncome `json:"income_by_payment_type,omitempty"`
 	TotalIncome      float64          `json:"total_income,omitempty"`
 	TotalExpenses    float64          `json:"total_expenses,omitempty"`
 	NetProfit        float64          `json:"net_profit,omitempty"`

@@ -22,6 +22,7 @@ func SetupRoutes(
 	priceListHandler *handlers.PriceItemHandler,
 	pricelistHistoryHandler *handlers.PricelistHistoryHandler,
 	priceSetHandler *handlers.PriceSetHandler,
+	equipmentHandler *handlers.EquipmentHandler,
 	repairHandler *handlers.RepairHandler,
 	repairCatHandler *handlers.RepairCategoryHandler,
 	cashboxHandler *handlers.CashboxHandler,
@@ -140,6 +141,18 @@ func SetupRoutes(
 		sets.GET("/:id", priceSetHandler.GetPriceSetByID)
 		sets.PUT("/:id", priceSetHandler.UpdatePriceSet)
 		sets.DELETE("/:id", priceSetHandler.DeletePriceSet)
+	}
+
+	// --- Оборудование
+	equipment := api.Group("/equipment")
+	{
+		equipment.POST("", equipmentHandler.Create)
+		equipment.GET("", equipmentHandler.GetAll)
+		equipment.GET("/:id", equipmentHandler.GetByID)
+		equipment.PUT("/:id", equipmentHandler.Update)
+		equipment.DELETE("/:id", equipmentHandler.Delete)
+		equipment.POST("/inventory", equipmentHandler.PerformInventory)
+		equipment.GET("/inventory/history", equipmentHandler.GetHistory)
 	}
 
 	// --- История пополнений прайс-листа

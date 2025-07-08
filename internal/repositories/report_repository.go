@@ -502,6 +502,32 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 		totalInc += inc.Total
 	}
 
+	// Income by payment type
+	payQuery := fmt.Sprintf(`
+        SELECT IFNULL(pt.name,''), SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))
+        FROM bookings b
+        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+        WHERE %s`, condCat2)
+	payArgs := append([]interface{}{}, catArgs2...)
+	if userID > 0 {
+		payQuery += " AND b.user_id = ?"
+		payArgs = append(payArgs, userID)
+	}
+	payQuery += ` GROUP BY pt.name`
+	payRows, err := r.db.QueryContext(ctx, payQuery, payArgs...)
+	if err != nil {
+		return nil, err
+	}
+	defer payRows.Close()
+	var payIncome []models.CategoryIncome
+	for payRows.Next() {
+		var inc models.CategoryIncome
+		if err := payRows.Scan(&inc.Category, &inc.Total); err != nil {
+			return nil, err
+		}
+		payIncome = append(payIncome, inc)
+	}
+
 	const taxPercent = 0
 	netProfit := totalInc*(1-taxPercent) - totalExp
 
@@ -509,6 +535,7 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 		Users:            users,
 		Expenses:         expenses,
 		IncomeByCategory: incomes,
+		IncomeByPayment:  payIncome,
 		TotalIncome:      totalInc,
 		TotalExpenses:    totalExp,
 		NetProfit:        netProfit,
