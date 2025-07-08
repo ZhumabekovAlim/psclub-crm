@@ -27,7 +27,7 @@ func (r *ExpenseRepository) Create(ctx context.Context, e *models.Expense) (int,
 }
 
 func (r *ExpenseRepository) GetAll(ctx context.Context, from, to time.Time) ([]models.Expense, error) {
-	query := `SELECT e.id, e.date, e.title, e.category_id, IFNULL(ec.name, ''), e.repair_category_id, IFNULL(rc.name,''), e.total, e.description, e.paid, e.created_at
+	query := `SELECT e.id, e.date, e.title, IFNULL(e.category_id, 0), IFNULL(ec.name, ''), IFNULL(e.repair_category_id, 0), IFNULL(rc.name,''), e.total, e.description, e.paid, e.created_at
                 FROM expenses e
                 LEFT JOIN expense_categories ec ON e.category_id = ec.id
                 LEFT JOIN repair_categories rc ON e.repair_category_id = rc.id
@@ -51,7 +51,7 @@ func (r *ExpenseRepository) GetAll(ctx context.Context, from, to time.Time) ([]m
 }
 
 func (r *ExpenseRepository) GetByID(ctx context.Context, id int) (*models.Expense, error) {
-	query := `SELECT e.id, e.date, e.title, e.category_id, IFNULL(ec.name, ''), e.repair_category_id, IFNULL(rc.name,''), e.total, e.description, e.paid, e.created_at
+	query := `SELECT e.id, e.date, e.title, IFNULL(e.category_id, 0), IFNULL(ec.name, ''), IFNULL(e.repair_category_id, 0), IFNULL(rc.name,''), e.total, e.description, e.paid, e.created_at
                 FROM expenses e
                 LEFT JOIN expense_categories ec ON e.category_id = ec.id
                 LEFT JOIN repair_categories rc ON e.repair_category_id = rc.id

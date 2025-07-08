@@ -26,7 +26,7 @@ func (r *RepairRepository) Create(ctx context.Context, rep *models.Repair) (int,
 }
 
 func (r *RepairRepository) GetAll(ctx context.Context) ([]models.Repair, error) {
-	query := `SELECT r.id, r.date, r.vin, r.description, r.price, r.category_id, IFNULL(rc.name, ''), r.created_at, r.updated_at
+	query := `SELECT r.id, r.date, r.vin, r.description, r.price, IFNULL(r.category_id, 0), IFNULL(rc.name, ''), r.created_at, r.updated_at
                 FROM repairs r
                 LEFT JOIN repair_categories rc ON r.category_id = rc.id
                 ORDER BY r.id DESC`
@@ -48,7 +48,7 @@ func (r *RepairRepository) GetAll(ctx context.Context) ([]models.Repair, error) 
 }
 
 func (r *RepairRepository) GetByID(ctx context.Context, id int) (*models.Repair, error) {
-	query := `SELECT r.id, r.date, r.vin, r.description, r.price, r.category_id, IFNULL(rc.name,''), r.created_at, r.updated_at
+	query := `SELECT r.id, r.date, r.vin, r.description, r.price, IFNULL(r.category_id, 0), IFNULL(rc.name,''), r.created_at, r.updated_at
                 FROM repairs r
                 LEFT JOIN repair_categories rc ON r.category_id = rc.id
                 WHERE r.id = ?`

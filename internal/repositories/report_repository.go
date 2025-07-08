@@ -449,8 +449,8 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 
 	condExp, expArgs := buildTimeCondition("e.date", from, to, tFrom, tTo)
 	expQuery := fmt.Sprintf(`
-        SELECT IFNULL(ec.name, IFNULL(rc.name, e.category_id)) as category, SUM(e.total)
-        FROM expenses e
+       SELECT IFNULL(ec.name, IFNULL(rc.name, '')) as category, SUM(e.total)
+       FROM expenses e
         LEFT JOIN expense_categories ec ON e.category_id = ec.id
         LEFT JOIN repair_categories rc ON e.repair_category_id = rc.id
         WHERE %s
