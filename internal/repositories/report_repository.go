@@ -229,16 +229,17 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
        SELECT u.id, u.name,
               COUNT(DISTINCT DATE(b.start_time)) AS shifts,
               SUM(
-                  CASE
-                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%%кальян%%' THEN bi.quantity
-                      WHEN pi.is_set = 1 AND EXISTS (
-                          SELECT 1 FROM set_items si
-                          JOIN price_items pi2 ON si.item_id = pi2.id
-                          JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%кальян%%'
-                      ) THEN bi.quantity
-                      ELSE 0
-                  END) AS hookah_qty,
+				CASE
+					WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%%кальян%%' THEN bi.quantity
+				 	WHEN pi.is_set = 1 THEN bi.quantity * (
+                        SELECT COALESCE(SUM(si.quantity),0)
+                        FROM set_items si
+						JOIN price_items pi2 ON si.item_id = pi2.id
+						JOIN categories c2 ON pi2.category_id = c2.id
+						WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%кальян%%'
+				    )
+					ELSE 0
+				END) AS hookah_qty,
               SUM(
                   CASE
                       WHEN pi.is_set = 1 AND NOT EXISTS (

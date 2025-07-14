@@ -48,6 +48,26 @@ func (s *CashboxService) Inventory(ctx context.Context) error {
 	return s.repo.Update(ctx, box)
 }
 
+// AddIncome increases cashbox amount and records history without creating an expense entry
+func (s *CashboxService) AddIncome(ctx context.Context, amount float64) error {
+	box, err := s.repo.Get(ctx)
+	if err != nil {
+		return err
+	}
+	box.Amount += amount
+	if err := s.repo.Update(ctx, box); err != nil {
+		return err
+	}
+	hist := models.CashboxHistory{
+		Operation: "BOOKING_PAYMENT",
+		Amount:    amount,
+	}
+	if _, err := s.histRepo.Create(ctx, &hist); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Replenish adds money to cashbox, records history and creates expense entry
 func (s *CashboxService) Replenish(ctx context.Context, amount float64) error {
 	box, err := s.repo.Get(ctx)

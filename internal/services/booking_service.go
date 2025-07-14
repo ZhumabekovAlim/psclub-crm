@@ -127,7 +127,7 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 				if amount < 0 {
 					amount = 0
 				}
-				_ = s.cashboxService.Replenish(ctx, amount)
+				_ = s.cashboxService.AddIncome(ctx, amount)
 			}
 		}
 	}
@@ -218,7 +218,7 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 				if amount < 0 {
 					amount = 0
 				}
-				_ = s.cashboxService.Replenish(ctx, amount)
+				_ = s.cashboxService.AddIncome(ctx, amount)
 			}
 		}
 	}
