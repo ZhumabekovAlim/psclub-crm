@@ -201,6 +201,13 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 		}
 		return err
 	}
+	oldCash := 0.0
+	newCash := 0.0
+	if s.cashboxService != nil {
+		oldCash = s.getCashAmount(ctx, current)
+		newCash = s.getCashAmount(ctx, b)
+	}
+
 	if err := s.repo.UpdateWithItems(ctx, b); err != nil {
 		// rollback stock on failure
 		s.increaseStock(ctx, b.Items)
@@ -210,16 +217,12 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 		}
 		return err
 	}
-	if strings.ToLower(b.PaymentStatus) == "paid" && strings.ToLower(current.PaymentStatus) != "paid" && s.cashboxService != nil {
-		if pt, err := s.paymentTypeRepo.GetByID(ctx, b.PaymentTypeID); err == nil {
-			name := strings.ToLower(pt.Name)
-			if strings.Contains(name, "наличными") {
-				amount := float64(b.TotalAmount - b.BonusUsed)
-				if amount < 0 {
-					amount = 0
-				}
-				_ = s.cashboxService.AddIncome(ctx, amount)
-			}
+	if s.cashboxService != nil {
+		diff := newCash - oldCash
+		if diff > 0 {
+			_ = s.cashboxService.AddIncome(ctx, diff)
+		} else if diff < 0 {
+			_ = s.cashboxService.RemoveIncome(ctx, -diff)
 		}
 	}
 	return nil
@@ -234,6 +237,10 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	b, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
+	}
+	cash := 0.0
+	if s.cashboxService != nil {
+		cash = s.getCashAmount(ctx, b)
 	}
 	items, err := s.bookingItemRepo.GetByBookingID(ctx, id)
 	if err != nil {
@@ -260,6 +267,9 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	}
 	_ = s.clientRepo.AddVisits(ctx, b.ClientID, -1)
 	_ = s.clientRepo.AddIncome(ctx, b.ClientID, -b.TotalAmount)
+	if s.cashboxService != nil && cash > 0 {
+		_ = s.cashboxService.RemoveIncome(ctx, cash)
+	}
 	return nil
 }
 
@@ -508,4 +518,23 @@ func (s *BookingService) increaseStock(ctx context.Context, items []models.Booki
 	}
 
 	_ = s.updateSetQuantities(ctx, affected)
+}
+
+func (s *BookingService) getCashAmount(ctx context.Context, b *models.Booking) float64 {
+	if strings.ToLower(b.PaymentStatus) != "paid" {
+		return 0
+	}
+	pt, err := s.paymentTypeRepo.GetByID(ctx, b.PaymentTypeID)
+	if err != nil {
+		return 0
+	}
+	name := strings.ToLower(pt.Name)
+	if !strings.Contains(name, "наличными") {
+		return 0
+	}
+	amount := float64(b.TotalAmount - b.BonusUsed)
+	if amount < 0 {
+		amount = 0
+	}
+	return amount
 }

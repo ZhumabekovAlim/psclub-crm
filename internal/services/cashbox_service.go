@@ -68,6 +68,26 @@ func (s *CashboxService) AddIncome(ctx context.Context, amount float64) error {
 	return nil
 }
 
+// RemoveIncome decreases cashbox amount and records history entry.
+func (s *CashboxService) RemoveIncome(ctx context.Context, amount float64) error {
+	box, err := s.repo.Get(ctx)
+	if err != nil {
+		return err
+	}
+	box.Amount -= amount
+	if err := s.repo.Update(ctx, box); err != nil {
+		return err
+	}
+	hist := models.CashboxHistory{
+		Operation: "BOOKING_REFUND",
+		Amount:    -amount,
+	}
+	if _, err := s.histRepo.Create(ctx, &hist); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Replenish adds money to cashbox, records history and creates expense entry
 func (s *CashboxService) Replenish(ctx context.Context, amount float64) error {
 	box, err := s.repo.Get(ctx)
