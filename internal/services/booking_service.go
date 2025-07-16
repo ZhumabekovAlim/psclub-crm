@@ -160,6 +160,9 @@ func (s *BookingService) GetAllBookings(ctx context.Context) ([]models.Booking, 
 		bookings[i].Items = items
 		pays, _ := s.paymentRepo.GetByBookingID(ctx, bookings[i].ID)
 		bookings[i].Payments = pays
+		if len(pays) > 0 {
+			bookings[i].PaymentType = pays[0].PaymentType
+		}
 	}
 	return bookings, nil
 }
@@ -178,6 +181,9 @@ func (s *BookingService) GetBookingByID(ctx context.Context, id int) (*models.Bo
 	b.Items = items
 	pays, _ := s.paymentRepo.GetByBookingID(ctx, b.ID)
 	b.Payments = pays
+	if len(pays) > 0 {
+		b.PaymentType = pays[0].PaymentType
+	}
 	return b, nil
 }
 
