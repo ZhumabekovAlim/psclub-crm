@@ -20,11 +20,12 @@ type BookingService struct {
 	priceItemRepo   *repositories.PriceItemRepository
 	priceSetRepo    *repositories.PriceSetRepository
 	categoryRepo    *repositories.CategoryRepository
+	paymentRepo     *repositories.BookingPaymentRepository
 	paymentTypeRepo *repositories.PaymentTypeRepository
 	cashboxService  *CashboxService
 }
 
-func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories.BookingItemRepository, clientRepo *repositories.ClientRepository, settingsRepo *repositories.SettingsRepository, priceRepo *repositories.PriceItemRepository, setRepo *repositories.PriceSetRepository, categoryRepo *repositories.CategoryRepository, ptRepo *repositories.PaymentTypeRepository, cbService *CashboxService) *BookingService {
+func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories.BookingItemRepository, clientRepo *repositories.ClientRepository, settingsRepo *repositories.SettingsRepository, priceRepo *repositories.PriceItemRepository, setRepo *repositories.PriceSetRepository, categoryRepo *repositories.CategoryRepository, paymentRepo *repositories.BookingPaymentRepository, ptRepo *repositories.PaymentTypeRepository, cbService *CashboxService) *BookingService {
 	return &BookingService{
 		repo:            r,
 		bookingItemRepo: itemRepo,
@@ -33,6 +34,7 @@ func NewBookingService(r *repositories.BookingRepository, itemRepo *repositories
 		priceItemRepo:   priceRepo,
 		priceSetRepo:    setRepo,
 		categoryRepo:    categoryRepo,
+		paymentRepo:     paymentRepo,
 		paymentTypeRepo: ptRepo,
 		cashboxService:  cbService,
 	}
@@ -85,6 +87,9 @@ func (s *BookingService) isHoursCategory(ctx context.Context, categoryID int) (b
 }
 
 func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (int, error) {
+	if len(b.Payments) > 0 {
+		b.PaymentTypeID = b.Payments[0].PaymentTypeID
+	}
 	// получить настройки для бонуса
 	settings, err := s.settingsRepo.Get(ctx)
 	if err != nil {
@@ -119,15 +124,20 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 	_ = s.clientRepo.AddVisits(ctx, b.ClientID, 1)
 	_ = s.clientRepo.AddIncome(ctx, b.ClientID, b.TotalAmount)
 
+	if err := s.paymentRepo.Create(ctx, id, b.Payments); err != nil {
+		_ = s.repo.Delete(ctx, id)
+		return 0, err
+	}
+
 	if strings.ToLower(b.PaymentStatus) == "paid" && s.cashboxService != nil {
-		if pt, err := s.paymentTypeRepo.GetByID(ctx, b.PaymentTypeID); err == nil {
+		for _, p := range b.Payments {
+			pt, err := s.paymentTypeRepo.GetByID(ctx, p.PaymentTypeID)
+			if err != nil {
+				continue
+			}
 			name := strings.ToLower(pt.Name)
 			if strings.Contains(name, "наличными") {
-				amount := float64(b.TotalAmount - b.BonusUsed)
-				if amount < 0 {
-					amount = 0
-				}
-				_ = s.cashboxService.AddIncome(ctx, amount)
+				_ = s.cashboxService.Replenish(ctx, float64(p.Amount))
 			}
 		}
 	}
@@ -148,6 +158,8 @@ func (s *BookingService) GetAllBookings(ctx context.Context) ([]models.Booking, 
 			}
 		}
 		bookings[i].Items = items
+		pays, _ := s.paymentRepo.GetByBookingID(ctx, bookings[i].ID)
+		bookings[i].Payments = pays
 	}
 	return bookings, nil
 }
@@ -164,6 +176,8 @@ func (s *BookingService) GetBookingByID(ctx context.Context, id int) (*models.Bo
 		}
 	}
 	b.Items = items
+	pays, _ := s.paymentRepo.GetByBookingID(ctx, b.ID)
+	b.Payments = pays
 	return b, nil
 }
 
@@ -177,8 +191,24 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 		return err
 	}
 	currentItems, _ := s.bookingItemRepo.GetByBookingID(ctx, b.ID)
-	if bookingsEqual(current, b, currentItems) {
-		return nil
+	currentPays, _ := s.paymentRepo.GetByBookingID(ctx, b.ID)
+
+	equal := bookingsEqual(current, b, currentItems)
+	if equal && len(currentPays) == len(b.Payments) {
+		eq := true
+		for i, p := range b.Payments {
+			if p.PaymentTypeID != currentPays[i].PaymentTypeID || p.Amount != currentPays[i].Amount {
+				eq = false
+				break
+			}
+		}
+		if eq {
+			return nil
+		}
+	}
+
+	if len(b.Payments) > 0 {
+		b.PaymentTypeID = b.Payments[0].PaymentTypeID
 	}
 	limit := current.EndTime.Add(time.Duration(settings.BlockTime) * time.Minute)
 	if time.Now().After(limit) {
@@ -217,6 +247,8 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 		}
 		return err
 	}
+	_ = s.paymentRepo.DeleteByBookingID(ctx, b.ID)
+	_ = s.paymentRepo.Create(ctx, b.ID, b.Payments)
 	if s.cashboxService != nil {
 		diff := newCash - oldCash
 		if diff > 0 {
@@ -253,6 +285,7 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	if err := s.repo.Delete(ctx, id); err != nil {
 		return err
 	}
+	_ = s.paymentRepo.DeleteByBookingID(ctx, id)
 	s.increaseStock(ctx, items)
 
 	// отменяем начисленные бонусы и возвращаем использованные
@@ -524,17 +557,16 @@ func (s *BookingService) getCashAmount(ctx context.Context, b *models.Booking) f
 	if strings.ToLower(b.PaymentStatus) != "paid" {
 		return 0
 	}
-	pt, err := s.paymentTypeRepo.GetByID(ctx, b.PaymentTypeID)
-	if err != nil {
-		return 0
+	total := 0.0
+	for _, p := range b.Payments {
+		pt, err := s.paymentTypeRepo.GetByID(ctx, p.PaymentTypeID)
+		if err != nil {
+			continue
+		}
+		name := strings.ToLower(pt.Name)
+		if strings.Contains(name, "наличными") {
+			total += float64(p.Amount)
+		}
 	}
-	name := strings.ToLower(pt.Name)
-	if !strings.Contains(name, "наличными") {
-		return 0
-	}
-	amount := float64(b.TotalAmount - b.BonusUsed)
-	if amount < 0 {
-		amount = 0
-	}
-	return amount
+	return total
 }
