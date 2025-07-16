@@ -92,6 +92,7 @@ func Run() {
 	bookingItemRepo := repositories.NewBookingItemRepository(db)
 	settingsRepo := repositories.NewSettingsRepository(db)
 	bookingRepo := repositories.NewBookingRepository(db)
+	bookingPaymentRepo := repositories.NewBookingPaymentRepository(db)
 
 	// Категории расходов и сами расходы
 	expCatRepo := repositories.NewExpenseCategoryRepository(db)
@@ -142,6 +143,7 @@ func Run() {
 		priceRepo,
 		priceSetRepo,
 		categoryRepo,
+		bookingPaymentRepo,
 		paymentTypeRepo,
 		cashboxService,
 	)
