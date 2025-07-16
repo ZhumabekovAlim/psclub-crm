@@ -29,7 +29,11 @@ func (h *PriceItemHandler) CreatePriceItem(c *gin.Context) {
 	}
 	id, err := h.service.CreatePriceItem(c.Request.Context(), &item)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err == services.ErrNameExists {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	item.ID = id
@@ -129,7 +133,11 @@ func (h *PriceItemHandler) UpdatePriceItem(c *gin.Context) {
 	item.ID = id
 	err = h.service.UpdatePriceItem(c.Request.Context(), item)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err == services.ErrNameExists {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, item)

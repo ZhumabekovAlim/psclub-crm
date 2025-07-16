@@ -26,7 +26,11 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 	}
 	id, err := h.service.CreateCategory(c.Request.Context(), &category)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err == services.ErrNameExists {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	category.ID = id
@@ -73,7 +77,11 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 	category.ID = id
 	err = h.service.UpdateCategory(c.Request.Context(), &category)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err == services.ErrNameExists {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, category)

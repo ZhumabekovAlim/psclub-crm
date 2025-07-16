@@ -14,6 +14,19 @@ func NewPriceItemRepository(db *sql.DB) *PriceItemRepository {
 	return &PriceItemRepository{db: db}
 }
 
+func (r *PriceItemRepository) GetByName(ctx context.Context, name string) (*models.PriceItem, error) {
+	query := `SELECT id, name, category_id, subcategory_id, quantity, sale_price, buy_price, is_set FROM price_items WHERE name = ?`
+	var p models.PriceItem
+	err := r.db.QueryRowContext(ctx, query, name).Scan(&p.ID, &p.Name, &p.CategoryID, &p.SubcategoryID, &p.Quantity, &p.SalePrice, &p.BuyPrice, &p.IsSet)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 func (r *PriceItemRepository) Create(ctx context.Context, p *models.PriceItem) (int, error) {
 	query := `INSERT INTO price_items (name, category_id, subcategory_id, quantity, sale_price, buy_price, is_set)
               VALUES (?, ?, ?, ?, ?, ?, ?)`

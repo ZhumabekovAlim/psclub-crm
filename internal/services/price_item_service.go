@@ -18,6 +18,13 @@ func NewPriceItemService(r *repositories.PriceItemRepository, hr *repositories.P
 }
 
 func (s *PriceItemService) CreatePriceItem(ctx context.Context, item *models.PriceItem) (int, error) {
+	ex, err := s.repo.GetByName(ctx, item.Name)
+	if err != nil {
+		return 0, err
+	}
+	if ex != nil {
+		return 0, ErrNameExists
+	}
 	return s.repo.Create(ctx, item)
 }
 
@@ -30,6 +37,13 @@ func (s *PriceItemService) GetPriceItemByID(ctx context.Context, id int) (*model
 }
 
 func (s *PriceItemService) UpdatePriceItem(ctx context.Context, item *models.PriceItem) error {
+	ex, err := s.repo.GetByName(ctx, item.Name)
+	if err != nil {
+		return err
+	}
+	if ex != nil && ex.ID != item.ID {
+		return ErrNameExists
+	}
 	return s.repo.Update(ctx, item)
 }
 

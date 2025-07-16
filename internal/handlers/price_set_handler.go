@@ -25,7 +25,11 @@ func (h *PriceSetHandler) CreatePriceSet(c *gin.Context) {
 	}
 	id, err := h.service.CreatePriceSet(c.Request.Context(), &ps)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err == services.ErrNameExists {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	ps.ID = id
@@ -68,7 +72,11 @@ func (h *PriceSetHandler) UpdatePriceSet(c *gin.Context) {
 	}
 	ps.ID = id
 	if err := h.service.UpdatePriceSet(c.Request.Context(), &ps); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err == services.ErrNameExists {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, ps)
