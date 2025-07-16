@@ -14,6 +14,19 @@ func NewCategoryRepository(db *sql.DB) *CategoryRepository {
 	return &CategoryRepository{db: db}
 }
 
+func (r *CategoryRepository) GetByName(ctx context.Context, name string) (*models.Category, error) {
+	query := `SELECT id, name FROM categories WHERE name = ?`
+	var c models.Category
+	err := r.db.QueryRowContext(ctx, query, name).Scan(&c.ID, &c.Name)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
 func (r *CategoryRepository) Create(ctx context.Context, c *models.Category) (int, error) {
 	query := `INSERT INTO categories (name) VALUES (?)`
 	res, err := r.db.ExecContext(ctx, query, c.Name)

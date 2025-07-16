@@ -28,6 +28,11 @@ func NewPriceSetService(r *repositories.PriceSetRepository, ir *repositories.Pri
 }
 
 func (s *PriceSetService) CreatePriceSet(ctx context.Context, ps *models.PriceSet) (int, error) {
+	if ex, err := s.itemRepo.GetByName(ctx, ps.Name); err != nil {
+		return 0, err
+	} else if ex != nil {
+		return 0, ErrNameExists
+	}
 	item := models.PriceItem{
 		Name:          ps.Name,
 		CategoryID:    ps.CategoryID,
@@ -81,6 +86,11 @@ func (s *PriceSetService) GetPriceSetByID(ctx context.Context, id int) (*models.
 }
 
 func (s *PriceSetService) UpdatePriceSet(ctx context.Context, ps *models.PriceSet) error {
+	if ex, err := s.itemRepo.GetByName(ctx, ps.Name); err != nil {
+		return err
+	} else if ex != nil && ex.ID != ps.ID {
+		return ErrNameExists
+	}
 	item := models.PriceItem{
 		ID:            ps.ID,
 		Name:          ps.Name,

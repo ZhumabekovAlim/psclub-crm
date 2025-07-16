@@ -15,6 +15,13 @@ func NewCategoryService(r *repositories.CategoryRepository) *CategoryService {
 }
 
 func (s *CategoryService) CreateCategory(ctx context.Context, c *models.Category) (int, error) {
+	ex, err := s.repo.GetByName(ctx, c.Name)
+	if err != nil {
+		return 0, err
+	}
+	if ex != nil {
+		return 0, ErrNameExists
+	}
 	return s.repo.Create(ctx, c)
 }
 
@@ -27,6 +34,13 @@ func (s *CategoryService) GetCategoryByID(ctx context.Context, id int) (*models.
 }
 
 func (s *CategoryService) UpdateCategory(ctx context.Context, c *models.Category) error {
+	ex, err := s.repo.GetByName(ctx, c.Name)
+	if err != nil {
+		return err
+	}
+	if ex != nil && ex.ID != c.ID {
+		return ErrNameExists
+	}
 	return s.repo.Update(ctx, c)
 }
 
