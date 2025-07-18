@@ -38,7 +38,7 @@ func (s *CashboxService) Inventory(ctx context.Context) error {
 		return err
 	}
 	hist := models.CashboxHistory{
-		Operation: "INVENTORY",
+		Operation: "Инвентаризация",
 		Amount:    box.Amount,
 	}
 	if _, err := s.histRepo.Create(ctx, &hist); err != nil {
@@ -59,7 +59,7 @@ func (s *CashboxService) AddIncome(ctx context.Context, amount float64) error {
 		return err
 	}
 	hist := models.CashboxHistory{
-		Operation: "BOOKING_PAYMENT",
+		Operation: "Оплата брони",
 		Amount:    amount,
 	}
 	if _, err := s.histRepo.Create(ctx, &hist); err != nil {
@@ -79,7 +79,7 @@ func (s *CashboxService) RemoveIncome(ctx context.Context, amount float64) error
 		return err
 	}
 	hist := models.CashboxHistory{
-		Operation: "BOOKING_REFUND",
+		Operation: "Возврат брони",
 		Amount:    -amount,
 	}
 	if _, err := s.histRepo.Create(ctx, &hist); err != nil {
@@ -99,7 +99,7 @@ func (s *CashboxService) Replenish(ctx context.Context, amount float64) error {
 		return err
 	}
 	hist := models.CashboxHistory{
-		Operation: "REPLENISH",
+		Operation: "Пополнение",
 		Amount:    amount,
 	}
 	if _, err := s.histRepo.Create(ctx, &hist); err != nil {

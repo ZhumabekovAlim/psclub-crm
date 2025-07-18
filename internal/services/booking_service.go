@@ -137,7 +137,7 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 			}
 			name := strings.ToLower(pt.Name)
 			if strings.Contains(name, "наличными") {
-				_ = s.cashboxService.Replenish(ctx, float64(p.Amount))
+				_ = s.cashboxService.AddIncome(ctx, float64(p.Amount))
 			}
 		}
 	}
