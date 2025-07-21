@@ -37,7 +37,14 @@ func (r *BookingRepository) CreateWithItems(ctx context.Context, b *models.Booki
 		clientID = nil
 	}
 
-	res, err := tx.ExecContext(ctx, query, clientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID)
+	var tableID interface{}
+	if b.TableID > 0 {
+		tableID = b.TableID
+	} else {
+		tableID = nil
+	}
+
+	res, err := tx.ExecContext(ctx, query, clientID, tableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID)
 	if err != nil {
 		log.Printf("insert booking error: %v", err)
 		return 0, err
@@ -149,7 +156,14 @@ func (r *BookingRepository) Update(ctx context.Context, b *models.Booking) error
 		clientID = nil
 	}
 
-	_, err := r.db.ExecContext(ctx, query, clientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID)
+	var tableID interface{}
+	if b.TableID > 0 {
+		tableID = b.TableID
+	} else {
+		tableID = nil
+	}
+
+	_, err := r.db.ExecContext(ctx, query, clientID, tableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID)
 	if err != nil {
 		log.Printf("update booking error: %v", err)
 	}
@@ -178,7 +192,14 @@ func (r *BookingRepository) UpdateWithItems(ctx context.Context, b *models.Booki
 		clientID = nil
 	}
 
-	_, err = tx.ExecContext(ctx, query, clientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID)
+	var tableID interface{}
+	if b.TableID > 0 {
+		tableID = b.TableID
+	} else {
+		tableID = nil
+	}
+
+	_, err = tx.ExecContext(ctx, query, clientID, tableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID)
 	if err != nil {
 		log.Printf("update booking error: %v", err)
 		return err
