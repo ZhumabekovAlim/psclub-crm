@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"io"
 	"net/http"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
@@ -42,7 +43,20 @@ func (h *CashboxHandler) UpdateCashbox(c *gin.Context) {
 
 // POST /api/cashbox/inventory
 func (h *CashboxHandler) Inventory(c *gin.Context) {
-	if err := h.service.Inventory(c.Request.Context()); err != nil {
+	var req struct {
+		Amount *float64 `json:"amount"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var err error
+	if req.Amount != nil {
+		err = h.service.InventoryAmount(c.Request.Context(), *req.Amount)
+	} else {
+		err = h.service.Inventory(c.Request.Context())
+	}
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

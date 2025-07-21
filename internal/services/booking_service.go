@@ -110,19 +110,21 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 		log.Printf("decrease stock error: %v", err)
 		return 0, err
 	}
-	// Списываем использованные бонусы
-	if b.BonusUsed > 0 {
-		_ = s.clientRepo.AddBonus(ctx, b.ClientID, -b.BonusUsed)
+	if b.ClientID > 0 {
+		// Списываем использованные бонусы
+		if b.BonusUsed > 0 {
+			_ = s.clientRepo.AddBonus(ctx, b.ClientID, -b.BonusUsed)
+		}
+		// Начисляем бонусы с суммы, оплаченной деньгами
+		paid := b.TotalAmount - b.BonusUsed
+		if paid < 0 {
+			paid = 0
+		}
+		bonus := int(float64(paid) * float64(settings.BonusPercent) / 100)
+		_ = s.clientRepo.AddBonus(ctx, b.ClientID, bonus)
+		_ = s.clientRepo.AddVisits(ctx, b.ClientID, 1)
+		_ = s.clientRepo.AddIncome(ctx, b.ClientID, b.TotalAmount)
 	}
-	// Начисляем бонусы с суммы, оплаченной деньгами
-	paid := b.TotalAmount - b.BonusUsed
-	if paid < 0 {
-		paid = 0
-	}
-	bonus := int(float64(paid) * float64(settings.BonusPercent) / 100)
-	_ = s.clientRepo.AddBonus(ctx, b.ClientID, bonus)
-	_ = s.clientRepo.AddVisits(ctx, b.ClientID, 1)
-	_ = s.clientRepo.AddIncome(ctx, b.ClientID, b.TotalAmount)
 
 	if err := s.paymentRepo.Create(ctx, id, b.Payments); err != nil {
 		_ = s.repo.Delete(ctx, id)
@@ -294,18 +296,20 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	_ = s.paymentRepo.DeleteByBookingID(ctx, id)
 	s.increaseStock(ctx, items)
 
-	// отменяем начисленные бонусы и возвращаем использованные
-	paid := b.TotalAmount - b.BonusUsed
-	if paid < 0 {
-		paid = 0
+	if b.ClientID > 0 {
+		// отменяем начисленные бонусы и возвращаем использованные
+		paid := b.TotalAmount - b.BonusUsed
+		if paid < 0 {
+			paid = 0
+		}
+		bonus := int(float64(paid) * float64(settings.BonusPercent) / 100)
+		_ = s.clientRepo.AddBonus(ctx, b.ClientID, -bonus)
+		if b.BonusUsed > 0 {
+			_ = s.clientRepo.AddBonus(ctx, b.ClientID, b.BonusUsed)
+		}
+		_ = s.clientRepo.AddVisits(ctx, b.ClientID, -1)
+		_ = s.clientRepo.AddIncome(ctx, b.ClientID, -b.TotalAmount)
 	}
-	bonus := int(float64(paid) * float64(settings.BonusPercent) / 100)
-	_ = s.clientRepo.AddBonus(ctx, b.ClientID, -bonus)
-	if b.BonusUsed > 0 {
-		_ = s.clientRepo.AddBonus(ctx, b.ClientID, b.BonusUsed)
-	}
-	_ = s.clientRepo.AddVisits(ctx, b.ClientID, -1)
-	_ = s.clientRepo.AddIncome(ctx, b.ClientID, -b.TotalAmount)
 	if s.cashboxService != nil && cash > 0 {
 		_ = s.cashboxService.RemoveIncome(ctx, cash)
 	}

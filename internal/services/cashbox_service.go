@@ -33,18 +33,28 @@ func (s *CashboxService) UpdateCashbox(ctx context.Context, c *models.Cashbox) e
 
 // Inventory sets cashbox amount to zero and saves history record
 func (s *CashboxService) Inventory(ctx context.Context) error {
+	return s.InventoryAmount(ctx, -1)
+}
+
+// InventoryAmount performs inventory for a specified amount. If amount is less
+// than or equal to zero or greater than current cashbox amount, the whole
+// amount is inventoried.
+func (s *CashboxService) InventoryAmount(ctx context.Context, amount float64) error {
 	box, err := s.repo.Get(ctx)
 	if err != nil {
 		return err
 	}
+	if amount <= 0 || amount > box.Amount {
+		amount = box.Amount
+	}
 	hist := models.CashboxHistory{
 		Operation: "Инвентаризация",
-		Amount:    box.Amount,
+		Amount:    amount,
 	}
 	if _, err := s.histRepo.Create(ctx, &hist); err != nil {
 		return err
 	}
-	box.Amount = 0
+	box.Amount -= amount
 	return s.repo.Update(ctx, box)
 }
 
