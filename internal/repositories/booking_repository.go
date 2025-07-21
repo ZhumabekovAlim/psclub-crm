@@ -28,8 +28,16 @@ func (r *BookingRepository) CreateWithItems(ctx context.Context, b *models.Booki
 	}()
 
 	query := `INSERT INTO bookings (client_id, table_id, user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`
-	res, err := tx.ExecContext(ctx, query, b.ClientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`
+
+	var clientID interface{}
+	if b.ClientID > 0 {
+		clientID = b.ClientID
+	} else {
+		clientID = nil
+	}
+
+	res, err := tx.ExecContext(ctx, query, clientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID)
 	if err != nil {
 		log.Printf("insert booking error: %v", err)
 		return 0, err
@@ -60,12 +68,13 @@ func (r *BookingRepository) CreateWithItems(ctx context.Context, b *models.Booki
 }
 
 func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error) {
-	query := `SELECT b.id, client_id, table_id, b.user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, b.created_at, b.updated_at, c.name AS client_name, c.phone AS client_phone, payment_types.name AS payment_type, channels.name AS channel_name
-				FROM bookings b
-				JOIN clients c ON b.client_id = c.id
-        		LEFT JOIN payment_types ON b.payment_type_id = payment_types.id
-				LEFT JOIN channels ON c.channel_id = channels.id
-				ORDER BY id DESC`
+	query := `SELECT b.id, b.client_id, table_id, b.user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, b.created_at, b.updated_at,
+                               IFNULL(c.name, ''), IFNULL(c.phone, ''), payment_types.name AS payment_type, channels.name AS channel_name
+                               FROM bookings b
+                               LEFT JOIN clients c ON b.client_id = c.id
+                               LEFT JOIN payment_types ON b.payment_type_id = payment_types.id
+                               LEFT JOIN channels ON c.channel_id = channels.id
+                               ORDER BY id DESC`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		log.Printf("get all bookings query error: %v", err)
@@ -110,16 +119,18 @@ func (r *BookingItemRepository) GetByBookingID(ctx context.Context, bookingID in
 }
 
 func (r *BookingRepository) GetByID(ctx context.Context, id int) (*models.Booking, error) {
-	query := `SELECT bookings.id, client_id, table_id, user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, bookings.created_at, bookings.updated_at, payment_types.name AS payment_type, channels.name AS channel_name
-				FROM bookings 
-        		LEFT JOIN payment_types ON bookings.payment_type_id = payment_types.id
-				JOIN clients c ON bookings.client_id = c.id
-				LEFT JOIN channels ON c.channel_id = channels.id
-            	WHERE bookings.id = ?`
+	query := `SELECT bookings.id, bookings.client_id, table_id, user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, bookings.created_at, bookings.updated_at,
+                               payment_types.name AS payment_type, channels.name AS channel_name, IFNULL(c.name, ''), IFNULL(c.phone, '')
+                               FROM bookings
+                               LEFT JOIN payment_types ON bookings.payment_type_id = payment_types.id
+                               LEFT JOIN clients c ON bookings.client_id = c.id
+                               LEFT JOIN channels ON c.channel_id = channels.id
+               WHERE bookings.id = ?`
 	var b models.Booking
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&b.ID, &b.ClientID, &b.TableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason,
-		&b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.PaymentType, &b.ChannelName,
+		&b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt,
+		&b.PaymentType, &b.ChannelName, &b.ClientName, &b.ClientPhone,
 	)
 	if err != nil {
 		log.Printf("get booking by id error: %v", err)
@@ -130,7 +141,15 @@ func (r *BookingRepository) GetByID(ctx context.Context, id int) (*models.Bookin
 
 func (r *BookingRepository) Update(ctx context.Context, b *models.Booking) error {
 	query := `UPDATE bookings SET client_id=?, table_id=?, user_id=?, start_time=?, end_time=?, note=?, discount=?, discount_reason=?, total_amount=?, bonus_used=?, payment_status=?, payment_type_id=?, updated_at=NOW() WHERE id=?`
-	_, err := r.db.ExecContext(ctx, query, b.ClientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID)
+
+	var clientID interface{}
+	if b.ClientID > 0 {
+		clientID = b.ClientID
+	} else {
+		clientID = nil
+	}
+
+	_, err := r.db.ExecContext(ctx, query, clientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID)
 	if err != nil {
 		log.Printf("update booking error: %v", err)
 	}
@@ -151,7 +170,15 @@ func (r *BookingRepository) UpdateWithItems(ctx context.Context, b *models.Booki
 	}()
 
 	query := `UPDATE bookings SET client_id=?, table_id=?, user_id=?, start_time=?, end_time=?, note=?, discount=?, discount_reason=?, total_amount=?, bonus_used=?, payment_status=?, payment_type_id=?, updated_at=NOW() WHERE id=?`
-	_, err = tx.ExecContext(ctx, query, b.ClientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID)
+
+	var clientID interface{}
+	if b.ClientID > 0 {
+		clientID = b.ClientID
+	} else {
+		clientID = nil
+	}
+
+	_, err = tx.ExecContext(ctx, query, clientID, b.TableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID)
 	if err != nil {
 		log.Printf("update booking error: %v", err)
 		return err
