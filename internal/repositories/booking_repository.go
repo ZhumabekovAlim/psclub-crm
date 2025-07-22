@@ -76,7 +76,7 @@ func (r *BookingRepository) CreateWithItems(ctx context.Context, b *models.Booki
 
 func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error) {
 	query := `SELECT b.id, b.client_id, table_id, b.user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, b.created_at, b.updated_at,
-                               IFNULL(c.name, ''), IFNULL(c.phone, ''), payment_types.name AS payment_type, channels.name AS channel_name
+                               IFNULL(c.name, ''), IFNULL(c.phone, ''), payment_types.name AS payment_type, IFNULL(channels.name, '') AS channel_name
                                FROM bookings b
                                LEFT JOIN clients c ON b.client_id = c.id
                                LEFT JOIN payment_types ON b.payment_type_id = payment_types.id
@@ -93,7 +93,8 @@ func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error
 		var b models.Booking
 		var clientID sql.NullInt64
 		var tableID sql.NullInt64
-		err := rows.Scan(&b.ID, &clientID, &tableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.ClientName, &b.ClientPhone, &b.PaymentType, &b.ChannelName)
+		var channelName sql.NullString
+		err := rows.Scan(&b.ID, &clientID, &tableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.ClientName, &b.ClientPhone, &b.PaymentType, &channelName)
 		if err != nil {
 			log.Printf("scan booking error: %v", err)
 			return nil, err
@@ -103,6 +104,9 @@ func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error
 		}
 		if tableID.Valid {
 			b.TableID = int(tableID.Int64)
+		}
+		if channelName.Valid {
+			b.ChannelName = channelName.String
 		}
 		result = append(result, b)
 	}
@@ -135,7 +139,7 @@ func (r *BookingItemRepository) GetByBookingID(ctx context.Context, bookingID in
 
 func (r *BookingRepository) GetByID(ctx context.Context, id int) (*models.Booking, error) {
 	query := `SELECT bookings.id, bookings.client_id, table_id, user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, bookings.created_at, bookings.updated_at,
-                               payment_types.name AS payment_type, channels.name AS channel_name, IFNULL(c.name, ''), IFNULL(c.phone, '')
+                               payment_types.name AS payment_type, IFNULL(channels.name, '') AS channel_name, IFNULL(c.name, ''), IFNULL(c.phone, '')
                                FROM bookings
                                LEFT JOIN payment_types ON bookings.payment_type_id = payment_types.id
                                LEFT JOIN clients c ON bookings.client_id = c.id
@@ -144,10 +148,11 @@ func (r *BookingRepository) GetByID(ctx context.Context, id int) (*models.Bookin
 	var b models.Booking
 	var clientID sql.NullInt64
 	var tableID sql.NullInt64
+	var channelName sql.NullString
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&b.ID, &clientID, &tableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason,
 		&b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt,
-		&b.PaymentType, &b.ChannelName, &b.ClientName, &b.ClientPhone,
+		&b.PaymentType, &channelName, &b.ClientName, &b.ClientPhone,
 	)
 	if err != nil {
 		log.Printf("get booking by id error: %v", err)
@@ -158,6 +163,9 @@ func (r *BookingRepository) GetByID(ctx context.Context, id int) (*models.Bookin
 	}
 	if tableID.Valid {
 		b.TableID = int(tableID.Int64)
+	}
+	if channelName.Valid {
+		b.ChannelName = channelName.String
 	}
 	return &b, nil
 }
