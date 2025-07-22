@@ -11,6 +11,7 @@ type SummaryReport struct {
 	Age36Plus      float64        `json:"age_36_plus_percent"`
 	CategorySales  []CategorySale `json:"category_sales"`
 	TopItems       []ProfitItem   `json:"top_items"`
+	ChannelStats   []ChannelStat  `json:"channel_stats"`
 	RevenueChange  float64        `json:"revenue_change_percent"`
 	ClientsChange  float64        `json:"clients_change_percent"`
 	AvgCheckChange float64        `json:"avg_check_change_percent"`
@@ -111,4 +112,9 @@ type ProfitItem struct {
 	Revenue  float64 `json:"revenue"`
 	Expense  float64 `json:"expense"`
 	Profit   float64 `json:"profit"`
+}
+
+type ChannelStat struct {
+	Channel string `json:"channel"`
+	Clients int    `json:"clients"`
 }

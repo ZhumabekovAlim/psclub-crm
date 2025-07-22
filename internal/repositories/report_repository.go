@@ -98,6 +98,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 		ageQuery += " AND user_id = ?"
 		ageArgs = append(ageArgs, userID)
 	}
+
 	ageQuery += ")"
 	_ = r.db.QueryRowContext(ctx, ageQuery, ageArgs...).Scan(&under18, &age18to25, &age26to35, &age36Plus)
 	totalClients := result.TotalClients
@@ -107,6 +108,32 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 		result.Age26To35 = float64(age26to35) * 100 / float64(totalClients)
 		result.Age36Plus = float64(age36Plus) * 100 / float64(totalClients)
 	}
+
+	// Channel statistics
+	condCh, chArgs := buildTimeCondition("created_at", from, to, tFrom, tTo)
+	chQuery := fmt.Sprintf(`
+                SELECT IFNULL(ch.name, ''), COUNT(*)
+                FROM clients c
+                LEFT JOIN channels ch ON c.channel_id = ch.id
+                WHERE c.id IN (SELECT DISTINCT client_id FROM bookings WHERE %s`, condCh)
+	if userID > 0 {
+		chQuery += " AND user_id = ?"
+		chArgs = append(chArgs, userID)
+	}
+	chQuery += `)`
+	chQuery += " GROUP BY IFNULL(ch.name, '')"
+	chRows, _ := r.db.QueryContext(ctx, chQuery, chArgs...)
+	var chStats []models.ChannelStat
+	for chRows.Next() {
+		var name sql.NullString
+		var count int
+		chRows.Scan(&name, &count)
+		if !name.Valid {
+			name.String = ""
+		}
+		chStats = append(chStats, models.ChannelStat{Channel: name.String, Clients: count})
+	}
+	result.ChannelStats = chStats
 
 	// Category sales
 	condCat, catArgs := buildTimeCondition("bookings.start_time", from, to, tFrom, tTo)
