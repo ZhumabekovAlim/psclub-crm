@@ -91,10 +91,18 @@ func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error
 	var result []models.Booking
 	for rows.Next() {
 		var b models.Booking
-		err := rows.Scan(&b.ID, &b.ClientID, &b.TableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.ClientName, &b.ClientPhone, &b.PaymentType, &b.ChannelName)
+		var clientID sql.NullInt64
+		var tableID sql.NullInt64
+		err := rows.Scan(&b.ID, &clientID, &tableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.ClientName, &b.ClientPhone, &b.PaymentType, &b.ChannelName)
 		if err != nil {
 			log.Printf("scan booking error: %v", err)
 			return nil, err
+		}
+		if clientID.Valid {
+			b.ClientID = int(clientID.Int64)
+		}
+		if tableID.Valid {
+			b.TableID = int(tableID.Int64)
 		}
 		result = append(result, b)
 	}
@@ -134,14 +142,22 @@ func (r *BookingRepository) GetByID(ctx context.Context, id int) (*models.Bookin
                                LEFT JOIN channels ON c.channel_id = channels.id
                WHERE bookings.id = ?`
 	var b models.Booking
+	var clientID sql.NullInt64
+	var tableID sql.NullInt64
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&b.ID, &b.ClientID, &b.TableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason,
+		&b.ID, &clientID, &tableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason,
 		&b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt,
 		&b.PaymentType, &b.ChannelName, &b.ClientName, &b.ClientPhone,
 	)
 	if err != nil {
 		log.Printf("get booking by id error: %v", err)
 		return nil, err
+	}
+	if clientID.Valid {
+		b.ClientID = int(clientID.Int64)
+	}
+	if tableID.Valid {
+		b.TableID = int(tableID.Int64)
 	}
 	return &b, nil
 }
