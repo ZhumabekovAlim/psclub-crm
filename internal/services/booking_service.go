@@ -86,6 +86,20 @@ func (s *BookingService) isHoursCategory(ctx context.Context, categoryID int) (b
 	return cat.Name == hoursCategoryName, nil
 }
 
+// isPastDayBlocked returns true if the booking belongs to a date before today
+// and the current time has passed the global block time configured in settings.
+func (s *BookingService) isPastDayBlocked(target time.Time, block int) bool {
+	now := time.Now()
+	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	if target.Before(startOfToday) {
+		cutoff := startOfToday.Add(time.Duration(block) * time.Minute)
+		if now.After(cutoff) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (int, error) {
 	if len(b.Payments) > 0 {
 		b.PaymentTypeID = b.Payments[0].PaymentTypeID
@@ -95,6 +109,9 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 	if err != nil {
 		log.Printf("settings get error: %v", err)
 		return 0, err
+	}
+	if s.isPastDayBlocked(b.StartTime, settings.BlockTime) {
+		return 0, errors.New("booking modifications are locked")
 	}
 	if err := s.checkStock(ctx, b.Items); err != nil {
 		log.Printf("check stock error: %v", err)
@@ -198,6 +215,9 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	if err != nil {
 		return err
 	}
+	if s.isPastDayBlocked(current.StartTime, settings.BlockTime) {
+		return errors.New("booking can no longer be modified")
+	}
 	currentItems, _ := s.bookingItemRepo.GetByBookingID(ctx, b.ID)
 	currentPays, _ := s.paymentRepo.GetByBookingID(ctx, b.ID)
 
@@ -277,6 +297,9 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	b, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
+	}
+	if s.isPastDayBlocked(b.StartTime, settings.BlockTime) {
+		return errors.New("booking can no longer be removed")
 	}
 	cash := 0.0
 	if s.cashboxService != nil {
