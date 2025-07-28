@@ -93,19 +93,9 @@ func (r *PriceItemRepository) UpdateBuyPrice(ctx context.Context, id int, price 
 
 // При продаже/списании уменьшаем остаток
 func (r *PriceItemRepository) DecreaseStock(ctx context.Context, id int, amount float64) error {
-	query := `UPDATE price_items SET quantity = quantity - ? WHERE id = ? AND quantity >= ?`
-	res, err := r.db.ExecContext(ctx, query, amount, id, amount)
-	if err != nil {
-		return err
-	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rows == 0 {
-		return sql.ErrNoRows // недостаточно на складе
-	}
-	return nil
+	query := `UPDATE price_items SET quantity = quantity - ? WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, amount, id)
+	return err
 }
 
 // SetStock overrides the current quantity with the provided value.
