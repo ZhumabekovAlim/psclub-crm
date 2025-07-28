@@ -228,6 +228,7 @@ func SetupRoutes(
 	cashbox := api.Group("/cashbox")
 	{
 		cashbox.GET("", cashboxHandler.GetCashbox)
+		cashbox.GET("/day", cashboxHandler.GetDay)
 		cashbox.PUT("/:id", cashboxHandler.UpdateCashbox)
 		cashbox.POST("/inventory", cashboxHandler.Inventory)
 		cashbox.POST("/replenish", cashboxHandler.Replenish)
