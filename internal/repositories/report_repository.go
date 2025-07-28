@@ -54,6 +54,26 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 		return nil, err
 	}
 
+	// Calculate total cost for Bar and Hookah categories
+	condCost, costArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+	condCost += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
+	costQuery := fmt.Sprintf(`
+        SELECT COALESCE(SUM(
+            bi.price * (1 - bi.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100) -
+            bi.quantity * pi.buy_price
+        ),0)
+        FROM booking_items bi
+        LEFT JOIN bookings b ON bi.booking_id = b.id
+        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+        LEFT JOIN price_items pi ON bi.item_id = pi.id
+        LEFT JOIN categories c ON pi.category_id = c.id
+        WHERE %s AND (c.name = 'Бар' OR c.name = 'Кальян')`, condCost)
+	if userID > 0 {
+		costQuery += " AND b.user_id = ?"
+		costArgs = append(costArgs, userID)
+	}
+	_ = r.db.QueryRowContext(ctx, costQuery, costArgs...).Scan(&result.TotalCost)
+
 	// Calculate load percent
 	var bookingsCount int
 	condCount, countArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
