@@ -4,6 +4,7 @@ type SummaryReport struct {
 	TotalRevenue   float64        `json:"total_revenue"`
 	TotalClients   float64        `json:"total_clients"`
 	AvgCheck       float64        `json:"avg_check"`
+	TotalCost      float64        `json:"total_cost"`
 	LoadPercent    float64        `json:"load_percent"`
 	AgeUnder18     float64        `json:"age_under_18_percent"`
 	Age18To25      float64        `json:"age_18_25_percent"`
