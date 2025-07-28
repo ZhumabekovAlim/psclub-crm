@@ -186,6 +186,29 @@ func (s *BookingService) GetAllBookings(ctx context.Context) ([]models.Booking, 
 	return bookings, nil
 }
 
+// GetBookingsByClientID loads bookings for a specific client with related items and payments.
+func (s *BookingService) GetBookingsByClientID(ctx context.Context, clientID int) ([]models.Booking, error) {
+	bookings, err := s.repo.GetByClientID(ctx, clientID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range bookings {
+		items, _ := s.bookingItemRepo.GetByBookingID(ctx, bookings[i].ID)
+		for j := range items {
+			if items[j].Quantity != 0 {
+				items[j].ItemPrice = float64(items[j].Price) / items[j].Quantity
+			}
+		}
+		bookings[i].Items = items
+		pays, _ := s.paymentRepo.GetByBookingID(ctx, bookings[i].ID)
+		bookings[i].Payments = pays
+		if len(pays) > 0 {
+			bookings[i].PaymentType = pays[0].PaymentType
+		}
+	}
+	return bookings, nil
+}
+
 func (s *BookingService) GetBookingByID(ctx context.Context, id int) (*models.Booking, error) {
 	b, err := s.repo.GetByID(ctx, id)
 	if err != nil {

@@ -113,6 +113,46 @@ func (r *BookingRepository) GetAll(ctx context.Context) ([]models.Booking, error
 	return result, nil
 }
 
+// GetByClientID returns all bookings for a specific client ordered by id DESC.
+func (r *BookingRepository) GetByClientID(ctx context.Context, clientID int) ([]models.Booking, error) {
+	query := `SELECT b.id, b.client_id, table_id, b.user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, b.created_at, b.updated_at,
+                               IFNULL(c.name, ''), IFNULL(c.phone, ''), payment_types.name AS payment_type, IFNULL(channels.name, '') AS channel_name
+                               FROM bookings b
+                               LEFT JOIN clients c ON b.client_id = c.id
+                               LEFT JOIN payment_types ON b.payment_type_id = payment_types.id
+                               LEFT JOIN channels ON c.channel_id = channels.id
+                               WHERE b.client_id = ?
+                               ORDER BY b.id DESC`
+	rows, err := r.db.QueryContext(ctx, query, clientID)
+	if err != nil {
+		log.Printf("get bookings by client query error: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+	var result []models.Booking
+	for rows.Next() {
+		var b models.Booking
+		var cID sql.NullInt64
+		var tableID sql.NullInt64
+		var channelName sql.NullString
+		if err := rows.Scan(&b.ID, &cID, &tableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.ClientName, &b.ClientPhone, &b.PaymentType, &channelName); err != nil {
+			log.Printf("scan booking by client error: %v", err)
+			return nil, err
+		}
+		if cID.Valid {
+			b.ClientID = int(cID.Int64)
+		}
+		if tableID.Valid {
+			b.TableID = int(tableID.Int64)
+		}
+		if channelName.Valid {
+			b.ChannelName = channelName.String
+		}
+		result = append(result, b)
+	}
+	return result, nil
+}
+
 // Получить все позиции по бронированию
 func (r *BookingItemRepository) GetByBookingID(ctx context.Context, bookingID int) ([]models.BookingItem, error) {
 	query := `SELECT bi.id, booking_id, item_id, bi.quantity, price, discount, pi.name FROM booking_items bi

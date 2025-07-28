@@ -51,6 +51,21 @@ func (h *BookingHandler) GetAllBookings(c *gin.Context) {
 	c.JSON(http.StatusOK, bookings)
 }
 
+// GET /api/bookings/client/:id
+func (h *BookingHandler) GetBookingsByClientID(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	bookings, err := h.service.GetBookingsByClientID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, bookings)
+}
+
 // GET /api/bookings/:id
 func (h *BookingHandler) GetBookingByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))

@@ -171,6 +171,7 @@ func SetupRoutes(
 	{
 		bookings.POST("", bookingHandler.CreateBooking)
 		bookings.GET("", bookingHandler.GetAllBookings)
+		bookings.GET("/client/:id", bookingHandler.GetBookingsByClientID)
 		bookings.GET("/:id", bookingHandler.GetBookingByID)
 		bookings.PUT("/:id", bookingHandler.UpdateBooking)
 		bookings.DELETE("/:id", bookingHandler.DeleteBooking)
