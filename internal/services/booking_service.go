@@ -471,6 +471,7 @@ func (s *BookingService) checkStock(ctx context.Context, items []models.BookingI
 		if isHours {
 			continue
 		}
+
 		if pi.IsSet {
 			set, err := s.priceSetRepo.GetByID(ctx, pi.ID)
 			if err != nil {
@@ -482,29 +483,6 @@ func (s *BookingService) checkStock(ctx context.Context, items []models.BookingI
 			}
 			if err := s.priceItemRepo.SetStock(ctx, set.ID, float64(qty)); err != nil {
 				return err
-			}
-			if qty < it.Quantity {
-				return errors.New("insufficient stock 1")
-			}
-			for _, si := range set.Items {
-				sub, err := s.priceItemRepo.GetByID(ctx, si.ItemID)
-				if err != nil {
-					return err
-				}
-				hoursSub, err := s.isHoursCategory(ctx, sub.CategoryID)
-				if err != nil {
-					return err
-				}
-				if hoursSub {
-					continue
-				}
-				if sub.Quantity < si.Quantity*it.Quantity {
-					return errors.New("insufficient stock 2")
-				}
-			}
-		} else {
-			if pi.Quantity < it.Quantity {
-				return errors.New("insufficient stock 1")
 			}
 		}
 	}
