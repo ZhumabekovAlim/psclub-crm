@@ -36,6 +36,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	cond += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 	query := fmt.Sprintf(`
         SELECT
+            COALESCE(SUM(b.total_amount,0)) as total,
             COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0) as total_revenue,
             COUNT(DISTINCT client_id) as total_clients,
             COALESCE(ROUND(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))), 0) as avg_check
@@ -48,7 +49,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 		args = append(args, userID)
 	}
 	err := r.db.QueryRowContext(ctx, query, args...).Scan(
-		&result.TotalRevenue, &result.TotalClients, &result.AvgCheck,
+		&result.Total, &result.TotalRevenue, &result.TotalClients, &result.AvgCheck,
 	)
 	if err != nil {
 		return nil, err
