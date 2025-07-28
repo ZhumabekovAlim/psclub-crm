@@ -33,7 +33,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	var result models.SummaryReport
 	fmt.Println("SummaryReport called with:", from, to, tFrom, tTo, userID)
 	cond, condArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
-	cond += " AND b.payment_status <> 'UNPAID'"
+	cond += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 	query := fmt.Sprintf(`
         SELECT
             COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0) as total_revenue,
@@ -57,7 +57,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	// Calculate load percent
 	var bookingsCount int
 	condCount, countArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
-	condCount += " AND b.payment_status <> 'UNPAID'"
+	condCount += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM bookings b WHERE %s", condCount)
 	if userID > 0 {
 		countQuery += " AND b.user_id = ?"
@@ -88,7 +88,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	// Age groups
 	var under18, age18to25, age26to35, age36Plus float64
 	condAge, ageArgs := buildTimeCondition("created_at", from, to, tFrom, tTo)
-	condAge += " AND payment_status <> 'UNPAID'"
+	condAge += " AND payment_status <> 'UNPAID' AND payment_type_id <> 0"
 	ageQuery := fmt.Sprintf(`
                 SELECT
                     SUM(CASE WHEN TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) < 18 THEN 1 ELSE 0 END),
@@ -114,7 +114,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Channel statistics
 	condCh, chArgs := buildTimeCondition("created_at", from, to, tFrom, tTo)
-	condCh += " AND payment_status <> 'UNPAID'"
+	condCh += " AND payment_status <> 'UNPAID' AND payment_type_id <> 0"
 	chQuery := fmt.Sprintf(`
                 SELECT IFNULL(ch.name, ''), COUNT(*)
                 FROM clients c
@@ -141,7 +141,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Category sales
 	condCat, catArgs := buildTimeCondition("bookings.start_time", from, to, tFrom, tTo)
-	condCat += " AND bookings.payment_status <> 'UNPAID'"
+	condCat += " AND bookings.payment_status <> 'UNPAID' AND bookings.payment_type_id <> 0"
 	catQuery := fmt.Sprintf(`
                 SELECT categories.name, SUM(booking_items.price  * (1 - booking_items.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100))
                 FROM booking_items
@@ -167,7 +167,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 
 	// Top items by profit
 	condItem, itemArgs := buildTimeCondition("bookings.start_time", from, to, tFrom, tTo)
-	condItem += " AND bookings.payment_status <> 'UNPAID'"
+	condItem += " AND bookings.payment_status <> 'UNPAID' AND bookings.payment_type_id <> 0"
 	itemQuery := fmt.Sprintf(`
     SELECT
         price_items.name,
@@ -231,7 +231,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	prevFrom := from.Add(-(to.Sub(from)))
 	prevTo := from
 	condPrev, prevArgs := buildTimeCondition("b.start_time", prevFrom, prevTo, tFrom, tTo)
-	condPrev += " AND b.payment_status <> 'UNPAID'"
+	condPrev += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 	prevQuery := fmt.Sprintf(`
         SELECT COALESCE(SUM(b.total_amount  * (1 - IFNULL(pt.hold_percent,0)/100)),0), COUNT(DISTINCT client_id), COALESCE(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0)
         FROM bookings b
@@ -259,7 +259,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.AdminsReport, error) {
 
 	condAdmin, adminArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
-	condAdmin += " AND b.payment_status <> 'UNPAID'"
+	condAdmin += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 	query := fmt.Sprintf(`
        SELECT u.id, u.name,
               COUNT(DISTINCT DATE(b.start_time)) AS shifts,
@@ -384,7 +384,7 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
 // --- SalesReport ---
 func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.SalesReport, error) {
 	condUser, userArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
-	condUser += " AND b.payment_status <> 'UNPAID'"
+	condUser += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 	userQuery := fmt.Sprintf(`
        SELECT u.id, u.name,
               COUNT(DISTINCT DATE(b.start_time)) AS days,
@@ -509,7 +509,7 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 	}
 
 	condCat2, catArgs2 := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
-	condCat2 += " AND b.payment_status <> 'UNPAID'"
+	condCat2 += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 	catQuery2 := fmt.Sprintf(`
         SELECT categories.name, SUM((bi.price * (1 - bi.discount / 100)) * (1 - IFNULL(pt.hold_percent,0)/100))
         FROM booking_items bi
@@ -584,7 +584,7 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.AnalyticsReport, error) {
 	// Daily revenue
 	condDaily, dailyArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
-	condDaily += " AND b.payment_status <> 'UNPAID'"
+	condDaily += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 	dailyQuery := fmt.Sprintf(`
         SELECT DATE(b.start_time), SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)) FROM bookings b
         LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
@@ -607,7 +607,7 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 
 	// Hourly load
 	condHourly, hourlyArgs := buildTimeCondition("start_time", from, to, tFrom, tTo)
-	condHourly += " AND payment_status <> 'UNPAID'"
+	condHourly += " AND payment_status <> 'UNPAID' AND payment_type_id <> 0"
 	hourlyQuery := fmt.Sprintf(`
         SELECT HOUR(start_time), COUNT(*) FROM bookings
         WHERE %s`, condHourly)
@@ -629,7 +629,7 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 
 	// Category stats
 	condAnalCat, catArgs := buildTimeCondition("booking_items.created_at", from, to, tFrom, tTo)
-	condAnalCat += " AND bookings.payment_status <> 'UNPAID'"
+	condAnalCat += " AND bookings.payment_status <> 'UNPAID' AND bookings.payment_type_id <> 0"
 	catQuery := fmt.Sprintf(`
         SELECT categories.name, SUM(booking_items.quantity), SUM(booking_items.price * (1 - IFNULL(pt.hold_percent,0)/100))
         FROM booking_items
@@ -669,7 +669,7 @@ func (r *ReportRepository) AnalyticsReport(ctx context.Context, from, to time.Ti
 func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID int) (*models.DiscountsReport, error) {
 	var total, count, avg int
 	condSum, sumArgs := buildTimeCondition("start_time", from, to, tFrom, tTo)
-	condSum += " AND payment_status <> 'UNPAID'"
+	condSum += " AND payment_status <> 'UNPAID' AND payment_type_id <> 0"
 	sumQuery := fmt.Sprintf(`
         SELECT COALESCE(SUM(discount),0), COUNT(*), COALESCE(AVG(discount),0)
         FROM bookings
@@ -681,7 +681,7 @@ func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Ti
 	_ = r.db.QueryRowContext(ctx, sumQuery, sumArgs...).Scan(&total, &count, &avg)
 
 	condReason, reasonArgs := buildTimeCondition("start_time", from, to, tFrom, tTo)
-	condReason += " AND payment_status <> 'UNPAID'"
+	condReason += " AND payment_status <> 'UNPAID' AND payment_type_id <> 0"
 	reasonQuery := fmt.Sprintf(`
         SELECT discount_reason, COUNT(*), SUM(discount), COALESCE(AVG(discount),0)
         FROM bookings
@@ -704,7 +704,7 @@ func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Ti
 	}
 
 	condDist, distArgs := buildTimeCondition("start_time", from, to, tFrom, tTo)
-	condDist += " AND payment_status <> 'UNPAID'"
+	condDist += " AND payment_status <> 'UNPAID' AND payment_type_id <> 0"
 	distQuery := fmt.Sprintf(`
         SELECT discount, COUNT(*) FROM bookings
         WHERE discount > 0 AND %s`, condDist)
@@ -727,7 +727,7 @@ func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Ti
 
 	// Retrieve all orders with a discount within the period
 	condOrders, orderArgs := buildTimeCondition("start_time", from, to, tFrom, tTo)
-	condOrders += " AND payment_status <> 'UNPAID'"
+	condOrders += " AND payment_status <> 'UNPAID' AND payment_type_id <> 0"
 	orderQuery := fmt.Sprintf(`
         SELECT id, client_id, table_id, user_id, start_time, end_time, note,
                discount, discount_reason, total_amount, bonus_used,
