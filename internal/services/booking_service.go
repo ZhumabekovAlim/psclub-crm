@@ -111,7 +111,7 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 		return 0, err
 	}
 	if s.isPastDayBlocked(b.StartTime, settings.BlockTime) {
-		return 0, errors.New("booking modifications are locked")
+		return 0, errors.New("создание брони невозможно, дата прошла и время заблокировано")
 	}
 	if err := s.checkStock(ctx, b.Items); err != nil {
 		log.Printf("check stock error: %v", err)
@@ -216,7 +216,7 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 		return err
 	}
 	if s.isPastDayBlocked(current.StartTime, settings.BlockTime) {
-		return errors.New("booking can no longer be modified")
+		return errors.New("изменение брони невозможно, дата прошла и время заблокировано")
 	}
 	currentItems, _ := s.bookingItemRepo.GetByBookingID(ctx, b.ID)
 	currentPays, _ := s.paymentRepo.GetByBookingID(ctx, b.ID)
@@ -240,7 +240,7 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	}
 	limit := current.EndTime.Add(time.Duration(settings.BlockTime) * time.Minute)
 	if time.Now().After(limit) {
-		return errors.New("booking can no longer be modified")
+		return errors.New("удаление брони невозможно, дата прошла и время заблокировано")
 	}
 
 	s.increaseStock(ctx, currentItems)
