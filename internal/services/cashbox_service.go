@@ -137,3 +137,22 @@ func (s *CashboxService) Replenish(ctx context.Context, amount float64) error {
 func (s *CashboxService) GetHistory(ctx context.Context) ([]models.CashboxHistory, error) {
 	return s.histRepo.GetAll(ctx)
 }
+
+// GetDay returns cashbox amount at start of current day and history records for today
+func (s *CashboxService) GetDay(ctx context.Context) (float64, []models.CashboxHistory, error) {
+	today := time.Now()
+	list, err := s.histRepo.GetByDate(ctx, today)
+	if err != nil {
+		return 0, nil, err
+	}
+	box, err := s.repo.Get(ctx)
+	if err != nil {
+		return 0, nil, err
+	}
+	var sum float64
+	for _, h := range list {
+		sum += h.Amount
+	}
+	start := box.Amount - sum
+	return start, list, nil
+}

@@ -88,3 +88,13 @@ func (h *CashboxHandler) GetHistory(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, list)
 }
+
+// GET /api/cashbox/day
+func (h *CashboxHandler) GetDay(c *gin.Context) {
+	start, list, err := h.service.GetDay(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"start_amount": start, "history": list})
+}
