@@ -50,7 +50,7 @@ func (r *EquipmentRepository) GetByID(ctx context.Context, id int) (*models.Equi
 }
 
 func (r *EquipmentRepository) Update(ctx context.Context, e *models.Equipment) error {
-	_, err := r.db.ExecContext(ctx, `UPDATE equipment SET name=?, quantity=?, description=? WHERE id=?`, e.Name, e.Quantity, e.Description, e.ID)
+	_, err := r.db.ExecContext(ctx, `UPDATE equipment SET name=?,  description=? WHERE id=?`, e.Name, e.Description, e.ID)
 	return err
 }
 
