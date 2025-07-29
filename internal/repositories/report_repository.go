@@ -134,13 +134,14 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	}
 
 	// Channel statistics
-	condCh, chArgs := buildTimeCondition("created_at", from, to, tFrom, tTo)
+	// Use booking start time for consistent client counting
+	condCh, chArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
 	condCh += " AND payment_status <> 'UNPAID' AND payment_type_id <> 0"
 	chQuery := fmt.Sprintf(`
                SELECT IFNULL(ch.name, ''), COUNT(*)
                FROM clients c
                LEFT JOIN channels ch ON c.channel_id = ch.id
-               WHERE c.id IN (SELECT DISTINCT client_id FROM bookings WHERE %s`, condCh)
+               WHERE c.id IN (SELECT DISTINCT client_id FROM bookings b WHERE %s`, condCh)
 	if userID > 0 {
 		chQuery += " AND user_id = ?"
 		chArgs = append(chArgs, userID)
