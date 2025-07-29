@@ -35,14 +35,14 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	cond, condArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
 	cond += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 	query := fmt.Sprintf(`
-        SELECT
+       SELECT
            COALESCE(SUM(b.total_amount), 0) as total,
-            COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0) as total_revenue,
-            COUNT(DISTINCT client_id) as total_clients,
-            COALESCE(ROUND(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))), 0) as avg_check
-        FROM bookings b
-        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
-        WHERE %s`, cond)
+           COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0) as total_revenue,
+           COUNT(DISTINCT client_id) + SUM(CASE WHEN client_id IS NULL THEN 1 ELSE 0 END) as total_clients,
+           COALESCE(ROUND(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))), 0) as avg_check
+       FROM bookings b
+       LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+       WHERE %s`, cond)
 	args := condArgs
 	if userID > 0 {
 		query += " AND b.user_id = ?"
@@ -253,10 +253,12 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	condPrev, prevArgs := buildTimeCondition("b.start_time", prevFrom, prevTo, tFrom, tTo)
 	condPrev += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 	prevQuery := fmt.Sprintf(`
-        SELECT COALESCE(SUM(b.total_amount  * (1 - IFNULL(pt.hold_percent,0)/100)),0), COUNT(DISTINCT client_id), COALESCE(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0)
-        FROM bookings b
-        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
-        WHERE %s`, condPrev)
+       SELECT COALESCE(SUM(b.total_amount  * (1 - IFNULL(pt.hold_percent,0)/100)),0),
+              COUNT(DISTINCT client_id) + SUM(CASE WHEN client_id IS NULL THEN 1 ELSE 0 END),
+              COALESCE(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0)
+       FROM bookings b
+       LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+       WHERE %s`, condPrev)
 	if userID > 0 {
 		prevQuery += " AND b.user_id = ?"
 		prevArgs = append(prevArgs, userID)
