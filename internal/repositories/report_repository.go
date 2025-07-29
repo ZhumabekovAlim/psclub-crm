@@ -229,8 +229,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
             WHEN categories.name = 'Часы' THEN (booking_items.price * (1 - booking_items.discount / 100))*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
             ELSE (booking_items.price * (1 - booking_items.discount / 100))*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
         END
-    ) DESC
-    LIMIT 5`
+    ) DESC`
 
 	itemRows, err := r.db.QueryContext(ctx, itemQuery, itemArgs...)
 	if err != nil {
