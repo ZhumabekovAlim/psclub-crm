@@ -137,10 +137,10 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	condCh, chArgs := buildTimeCondition("created_at", from, to, tFrom, tTo)
 	condCh += " AND payment_status <> 'UNPAID' AND payment_type_id <> 0"
 	chQuery := fmt.Sprintf(`
-                SELECT IFNULL(ch.name, ''), COUNT(*)
-                FROM clients c
-                LEFT JOIN channels ch ON c.channel_id = ch.id
-                WHERE c.id IN (SELECT DISTINCT client_id FROM bookings WHERE %s`, condCh)
+               SELECT IFNULL(ch.name, ''), COUNT(*)
+               FROM clients c
+               LEFT JOIN channels ch ON c.channel_id = ch.id
+               WHERE c.id IN (SELECT DISTINCT client_id FROM bookings WHERE %s`, condCh)
 	if userID > 0 {
 		chQuery += " AND user_id = ?"
 		chArgs = append(chArgs, userID)
@@ -156,7 +156,34 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 		if !name.Valid {
 			name.String = ""
 		}
-		chStats = append(chStats, models.ChannelStat{Channel: name.String, Clients: count})
+		channelName := name.String
+		if channelName == "" {
+			channelName = "Гость"
+		}
+		chStats = append(chStats, models.ChannelStat{Channel: channelName, Clients: count})
+	}
+
+	guestCond, guestArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+	guestCond += " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0 AND b.client_id IS NULL"
+	guestQuery := fmt.Sprintf("SELECT COUNT(*) FROM bookings b WHERE %s", guestCond)
+	if userID > 0 {
+		guestQuery += " AND b.user_id = ?"
+		guestArgs = append(guestArgs, userID)
+	}
+	var guestCount int
+	_ = r.db.QueryRowContext(ctx, guestQuery, guestArgs...).Scan(&guestCount)
+	if guestCount > 0 {
+		found := false
+		for i := range chStats {
+			if chStats[i].Channel == "Гость" {
+				chStats[i].Clients += guestCount
+				found = true
+				break
+			}
+		}
+		if !found {
+			chStats = append(chStats, models.ChannelStat{Channel: "Гость", Clients: guestCount})
+		}
 	}
 	result.ChannelStats = chStats
 
