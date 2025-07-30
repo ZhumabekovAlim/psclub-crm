@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"psclub-crm/internal/models"
@@ -168,12 +169,16 @@ func getWorkDayRange(now time.Time, fromStr, toStr string) (time.Time, time.Time
 func (s *CashboxService) GetDay(ctx context.Context) (float64, []models.CashboxHistory, error) {
 	now := time.Now()
 
+	fmt.Println("Current time:", now)
+
 	settings, err := s.settingsRepo.Get(ctx)
 	if err != nil {
 		return 0, nil, err
 	}
 
 	start, end := getWorkDayRange(now, settings.WorkTimeFrom, settings.WorkTimeTo)
+	fmt.Println("start: ", start)
+	fmt.Println("end: ", end)
 
 	list, err := s.histRepo.GetByPeriod(ctx, start, end)
 	if err != nil {
