@@ -61,3 +61,22 @@ func (r *CashboxHistoryRepository) GetByDate(ctx context.Context, date time.Time
 	}
 	return list, nil
 }
+
+func (r *CashboxHistoryRepository) GetByPeriod(ctx context.Context, start, end time.Time) ([]models.CashboxHistory, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT id, operation, amount, created_at FROM cashbox_history WHERE created_at >= ? AND created_at < ? ORDER BY id`,
+		start, end)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []models.CashboxHistory
+	for rows.Next() {
+		var h models.CashboxHistory
+		if err := rows.Scan(&h.ID, &h.Operation, &h.Amount, &h.CreatedAt); err != nil {
+			return nil, err
+		}
+		list = append(list, h)
+	}
+	return list, nil
+}
