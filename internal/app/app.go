@@ -132,7 +132,7 @@ func Run() {
 	// Касса
 	cashboxRepo := repositories.NewCashboxRepository(db)
 	cashboxHistRepo := repositories.NewCashboxHistoryRepository(db)
-	cashboxService := services.NewCashboxService(cashboxRepo, cashboxHistRepo, expenseService, expCatService)
+	cashboxService := services.NewCashboxService(cashboxRepo, cashboxHistRepo, expenseService, expCatService, settingsRepo)
 	cashboxHandler := handlers.NewCashboxHandlerCashboxHandler(cashboxService)
 
 	bookingService := services.NewBookingService(

@@ -13,14 +13,15 @@ import (
 // Replenish operation increases amount and records an expense
 
 type CashboxService struct {
-	repo       *repositories.CashboxRepository
-	histRepo   *repositories.CashboxHistoryRepository
-	expenseSvc *ExpenseService
-	expCatSvc  *ExpenseCategoryService
+	repo         *repositories.CashboxRepository
+	histRepo     *repositories.CashboxHistoryRepository
+	expenseSvc   *ExpenseService
+	expCatSvc    *ExpenseCategoryService
+	settingsRepo *repositories.SettingsRepository
 }
 
-func NewCashboxService(r *repositories.CashboxRepository, hr *repositories.CashboxHistoryRepository, es *ExpenseService, ec *ExpenseCategoryService) *CashboxService {
-	return &CashboxService{repo: r, histRepo: hr, expenseSvc: es, expCatSvc: ec}
+func NewCashboxService(r *repositories.CashboxRepository, hr *repositories.CashboxHistoryRepository, es *ExpenseService, ec *ExpenseCategoryService, sr *repositories.SettingsRepository) *CashboxService {
+	return &CashboxService{repo: r, histRepo: hr, expenseSvc: es, expCatSvc: ec, settingsRepo: sr}
 }
 
 func (s *CashboxService) GetCashbox(ctx context.Context) (*models.Cashbox, error) {
@@ -138,21 +139,57 @@ func (s *CashboxService) GetHistory(ctx context.Context) ([]models.CashboxHistor
 	return s.histRepo.GetAll(ctx)
 }
 
-// GetDay returns cashbox amount at start of current day and history records for today
+// getWorkDayRange calculates current work day start and end based on settings
+func getWorkDayRange(now time.Time, fromStr, toStr string) (time.Time, time.Time) {
+	loc := now.Location()
+	wf, err := time.ParseInLocation("15:04:05", fromStr, loc)
+	if err != nil {
+		wf = time.Date(0, 1, 1, 0, 0, 0, 0, loc)
+	}
+	wt, err := time.ParseInLocation("15:04:05", toStr, loc)
+	if err != nil {
+		wt = time.Date(0, 1, 1, 23, 59, 59, 0, loc)
+	}
+
+	start := time.Date(now.Year(), now.Month(), now.Day(), wf.Hour(), wf.Minute(), wf.Second(), 0, loc)
+	if now.Before(start) {
+		start = start.AddDate(0, 0, -1)
+	}
+
+	end := time.Date(start.Year(), start.Month(), start.Day(), wt.Hour(), wt.Minute(), wt.Second(), 0, loc)
+	if !end.After(start) {
+		end = end.AddDate(0, 0, 1)
+	}
+
+	return start, end
+}
+
+// GetDay returns cashbox amount at start of current work day and history records for this work day
 func (s *CashboxService) GetDay(ctx context.Context) (float64, []models.CashboxHistory, error) {
-	today := time.Now()
-	list, err := s.histRepo.GetByDate(ctx, today)
+	now := time.Now()
+
+	settings, err := s.settingsRepo.Get(ctx)
 	if err != nil {
 		return 0, nil, err
 	}
+
+	start, end := getWorkDayRange(now, settings.WorkTimeFrom, settings.WorkTimeTo)
+
+	list, err := s.histRepo.GetByPeriod(ctx, start, end)
+	if err != nil {
+		return 0, nil, err
+	}
+
 	box, err := s.repo.Get(ctx)
 	if err != nil {
 		return 0, nil, err
 	}
+
 	var sum float64
 	for _, h := range list {
 		sum += h.Amount
 	}
-	start := box.Amount - sum
-	return start, list, nil
+
+	startAmount := box.Amount - sum
+	return startAmount, list, nil
 }
