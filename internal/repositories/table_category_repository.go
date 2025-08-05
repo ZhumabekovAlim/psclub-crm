@@ -15,8 +15,8 @@ func NewTableCategoryRepository(db *sql.DB) *TableCategoryRepository {
 }
 
 func (r *TableCategoryRepository) Create(ctx context.Context, c *models.TableCategory) (int, error) {
-	query := `INSERT INTO table_categories (name) VALUES (?)`
-	res, err := r.db.ExecContext(ctx, query, c.Name)
+	query := `INSERT INTO table_categories (name, company_id, branch_id) VALUES (?, ?, ?)`
+	res, err := r.db.ExecContext(ctx, query, c.Name, c.CompanyID, c.BranchID)
 	if err != nil {
 		return 0, err
 	}
@@ -24,9 +24,9 @@ func (r *TableCategoryRepository) Create(ctx context.Context, c *models.TableCat
 	return int(id), err
 }
 
-func (r *TableCategoryRepository) GetAll(ctx context.Context) ([]models.TableCategory, error) {
-	query := `SELECT id, name FROM table_categories ORDER BY id`
-	rows, err := r.db.QueryContext(ctx, query)
+func (r *TableCategoryRepository) GetAll(ctx context.Context, companyID, branchID int) ([]models.TableCategory, error) {
+	query := `SELECT id, name, company_id, branch_id FROM table_categories WHERE company_id=? AND branch_id=? ORDER BY id`
+	rows, err := r.db.QueryContext(ctx, query, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (r *TableCategoryRepository) GetAll(ctx context.Context) ([]models.TableCat
 	var result []models.TableCategory
 	for rows.Next() {
 		var c models.TableCategory
-		err := rows.Scan(&c.ID, &c.Name)
+		err := rows.Scan(&c.ID, &c.Name, &c.CompanyID, &c.BranchID)
 		if err != nil {
 			return nil, err
 		}
@@ -43,22 +43,22 @@ func (r *TableCategoryRepository) GetAll(ctx context.Context) ([]models.TableCat
 	return result, nil
 }
 
-func (r *TableCategoryRepository) GetByID(id int) (*models.TableCategory, error) {
+func (r *TableCategoryRepository) GetByID(ctx context.Context, id, companyID, branchID int) (*models.TableCategory, error) {
 	var category models.TableCategory
-	err := r.db.QueryRow("SELECT id, name FROM table_categories WHERE id = ?", id).
-		Scan(&category.ID, &category.Name)
+	err := r.db.QueryRowContext(ctx, "SELECT id, name, company_id, branch_id FROM table_categories WHERE id = ? AND company_id=? AND branch_id=?", id, companyID, branchID).
+		Scan(&category.ID, &category.Name, &category.CompanyID, &category.BranchID)
 	if err != nil {
 		return nil, err
 	}
 	return &category, nil
 }
 
-func (r *TableCategoryRepository) Update(id int, category *models.TableCategory) error {
-	_, err := r.db.Exec("UPDATE table_categories SET name = ? WHERE id = ?", category.Name, id)
+func (r *TableCategoryRepository) Update(ctx context.Context, category *models.TableCategory) error {
+	_, err := r.db.ExecContext(ctx, "UPDATE table_categories SET name = ? WHERE id = ? AND company_id=? AND branch_id=?", category.Name, category.ID, category.CompanyID, category.BranchID)
 	return err
 }
 
-func (r *TableCategoryRepository) Delete(id int) error {
-	_, err := r.db.Exec("DELETE FROM table_categories WHERE id = ?", id)
+func (r *TableCategoryRepository) Delete(ctx context.Context, id, companyID, branchID int) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM table_categories WHERE id = ? AND company_id=? AND branch_id=?", id, companyID, branchID)
 	return err
 }

@@ -18,18 +18,18 @@ func (s *TableCategoryService) CreateCategory(ctx context.Context, c *models.Tab
 	return s.repo.Create(ctx, c)
 }
 
-func (s *TableCategoryService) GetAllCategories(ctx context.Context) ([]models.TableCategory, error) {
-	return s.repo.GetAll(ctx)
+func (s *TableCategoryService) GetAllCategories(ctx context.Context, companyID, branchID int) ([]models.TableCategory, error) {
+	return s.repo.GetAll(ctx, companyID, branchID)
 }
 
-func (s *TableCategoryService) GetCategoryByID(id int) (*models.TableCategory, error) {
-	return s.repo.GetByID(id)
+func (s *TableCategoryService) GetCategoryByID(ctx context.Context, id, companyID, branchID int) (*models.TableCategory, error) {
+	return s.repo.GetByID(ctx, id, companyID, branchID)
 }
 
-func (s *TableCategoryService) UpdateCategory(id int, category *models.TableCategory) error {
-	return s.repo.Update(id, category)
+func (s *TableCategoryService) UpdateCategory(ctx context.Context, category *models.TableCategory) error {
+	return s.repo.Update(ctx, category)
 }
 
-func (s *TableCategoryService) DeleteCategory(id int) error {
-	return s.repo.Delete(id)
+func (s *TableCategoryService) DeleteCategory(ctx context.Context, id, companyID, branchID int) error {
+	return s.repo.Delete(ctx, id, companyID, branchID)
 }

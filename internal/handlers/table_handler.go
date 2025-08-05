@@ -24,6 +24,8 @@ func (h *TableHandler) CreateTable(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	table.CompanyID = c.GetInt("company_id")
+	table.BranchID = c.GetInt("branch_id")
 	id, err := h.service.CreateTable(c.Request.Context(), &table)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -35,7 +37,9 @@ func (h *TableHandler) CreateTable(c *gin.Context) {
 
 // GET /api/tables
 func (h *TableHandler) GetAllTables(c *gin.Context) {
-	tables, err := h.service.GetAllTables(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	tables, err := h.service.GetAllTables(c.Request.Context(), companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -50,7 +54,9 @@ func (h *TableHandler) GetTableByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	table, err := h.service.GetTableByID(id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	table, err := h.service.GetTableByID(c.Request.Context(), id, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -71,7 +77,9 @@ func (h *TableHandler) UpdateTable(c *gin.Context) {
 		return
 	}
 	table.ID = id
-	err = h.service.UpdateTable(id, &table)
+	table.CompanyID = c.GetInt("company_id")
+	table.BranchID = c.GetInt("branch_id")
+	err = h.service.UpdateTable(c.Request.Context(), &table)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -86,7 +94,9 @@ func (h *TableHandler) DeleteTable(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	err = h.service.DeleteTable(id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	err = h.service.DeleteTable(c.Request.Context(), id, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -104,7 +114,9 @@ func (h *TableHandler) ReorderTable(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.service.ReorderTable(c.Request.Context(), req.ID, req.Number); err != nil {
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	if err := h.service.ReorderTable(c.Request.Context(), req.ID, req.Number, companyID, branchID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

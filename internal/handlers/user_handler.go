@@ -24,6 +24,9 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	user.CompanyID = c.GetInt("company_id")
+	user.BranchID = c.GetInt("branch_id")
+
 	id, err := h.service.CreateUser(c.Request.Context(), &user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -35,7 +38,9 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 // GET /api/users
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
-	users, err := h.service.GetAllUsers(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	users, err := h.service.GetAllUsers(c.Request.Context(), companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -54,7 +59,9 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	user, err := h.service.GetUserByID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	user, err := h.service.GetUserByID(c.Request.Context(), id, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -76,6 +83,8 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 	user.ID = id
+	user.CompanyID = c.GetInt("company_id")
+	user.BranchID = c.GetInt("branch_id")
 	err = h.service.UpdateUser(c.Request.Context(), &user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -92,7 +101,9 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	err = h.service.DeleteUser(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	err = h.service.DeleteUser(c.Request.Context(), id, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
