@@ -18,18 +18,18 @@ func (s *UserService) CreateUser(ctx context.Context, u *models.User) (int, erro
 	return s.repo.Create(ctx, u)
 }
 
-func (s *UserService) GetAllUsers(ctx context.Context) ([]models.User, error) {
-	return s.repo.GetAll(ctx)
+func (s *UserService) GetAllUsers(ctx context.Context, companyID, branchID int) ([]models.User, error) {
+	return s.repo.GetAll(ctx, companyID, branchID)
 }
 
-func (s *UserService) GetUserByID(ctx context.Context, id int) (*models.User, error) {
-	return s.repo.GetByID(ctx, id)
+func (s *UserService) GetUserByID(ctx context.Context, id, companyID, branchID int) (*models.User, error) {
+	return s.repo.GetByID(ctx, id, companyID, branchID)
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, u *models.User) error {
 	return s.repo.Update(ctx, u)
 }
 
-func (s *UserService) DeleteUser(ctx context.Context, id int) error {
-	return s.repo.Delete(ctx, id)
+func (s *UserService) DeleteUser(ctx context.Context, id, companyID, branchID int) error {
+	return s.repo.Delete(ctx, id, companyID, branchID)
 }

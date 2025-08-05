@@ -101,7 +101,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (string,
 	}
 	// rotate token
 	_ = s.tokenRepo.Delete(ctx, hash)
-	u, err := s.userRepo.GetByID(ctx, userID)
+	u, err := s.userRepo.GetByIDNoTenant(ctx, userID)
 	if err != nil {
 		return "", "", err
 	}

@@ -18,22 +18,22 @@ func (s *TableService) CreateTable(ctx context.Context, t *models.Table) (int, e
 	return s.repo.Create(ctx, t)
 }
 
-func (s *TableService) GetAllTables(ctx context.Context) ([]models.Table, error) {
-	return s.repo.GetAll(ctx)
+func (s *TableService) GetAllTables(ctx context.Context, companyID, branchID int) ([]models.Table, error) {
+	return s.repo.GetAll(ctx, companyID, branchID)
 }
 
-func (s *TableService) GetTableByID(id int) (*models.Table, error) {
-	return s.repo.GetByID(id)
+func (s *TableService) GetTableByID(ctx context.Context, id, companyID, branchID int) (*models.Table, error) {
+	return s.repo.GetByID(ctx, id, companyID, branchID)
 }
 
-func (s *TableService) UpdateTable(id int, table *models.Table) error {
-	return s.repo.Update(id, table)
+func (s *TableService) UpdateTable(ctx context.Context, table *models.Table) error {
+	return s.repo.Update(ctx, table)
 }
 
-func (s *TableService) DeleteTable(id int) error {
-	return s.repo.Delete(id)
+func (s *TableService) DeleteTable(ctx context.Context, id, companyID, branchID int) error {
+	return s.repo.Delete(ctx, id, companyID, branchID)
 }
 
-func (s *TableService) ReorderTable(ctx context.Context, id int, number int) error {
-	return s.repo.Reorder(ctx, id, number)
+func (s *TableService) ReorderTable(ctx context.Context, id, number, companyID, branchID int) error {
+	return s.repo.Reorder(ctx, id, number, companyID, branchID)
 }
