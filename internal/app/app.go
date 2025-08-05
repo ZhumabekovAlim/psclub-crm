@@ -188,6 +188,7 @@ func Run() {
 		settingsHandler,
 		reportHandler,
 		inventoryHandler,
+		cfg.Auth.AccessSecret,
 	)
 
 	listenAddr := fmt.Sprintf(":%d", port)

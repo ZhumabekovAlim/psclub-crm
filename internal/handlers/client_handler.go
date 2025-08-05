@@ -4,7 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"context"
 	"github.com/gin-gonic/gin"
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
 )
@@ -24,7 +26,11 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, err := h.service.CreateClient(c.Request.Context(), &client)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	id, err := h.service.CreateClient(ctx, &client)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -35,7 +41,11 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 
 // GET /api/clients
 func (h *ClientHandler) GetAllClients(c *gin.Context) {
-	clients, err := h.service.GetAllClients(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	clients, err := h.service.GetAllClients(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -50,7 +60,11 @@ func (h *ClientHandler) GetClientByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	client, err := h.service.GetClientByID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	client, err := h.service.GetClientByID(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -71,7 +85,11 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 		return
 	}
 	client.ID = id
-	err = h.service.UpdateClient(c.Request.Context(), &client)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	err = h.service.UpdateClient(ctx, &client)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -86,7 +104,11 @@ func (h *ClientHandler) DeleteClient(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	err = h.service.DeleteClient(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	err = h.service.DeleteClient(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
