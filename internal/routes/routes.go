@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"psclub-crm/internal/handlers"
+	"psclub-crm/internal/middleware"
 )
 
 func SetupRoutes(
@@ -29,6 +30,7 @@ func SetupRoutes(
 	settingsHandler *handlers.SettingsHandler,
 	reportHandler *handlers.ReportHandler,
 	inventoryHandler *handlers.InventoryHandler,
+	authSecret string,
 ) {
 	api := r.Group("/api")
 
@@ -39,6 +41,8 @@ func SetupRoutes(
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/refresh", authHandler.Refresh)
 	}
+
+	api.Use(middleware.Auth(authSecret))
 
 	// --- Клиенты
 	clients := api.Group("/clients")

@@ -41,13 +41,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	access, refresh, role, permission, name, id, err := h.service.Login(c.Request.Context(), req.Phone, req.Password)
+	access, refresh, role, permission, name, id, companyID, branchID, err := h.service.Login(c.Request.Context(), req.Phone, req.Password)
 	if err != nil {
 		log.Printf("login error: %v", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"access": access, "refresh": refresh, "id": id, "role": role, "permissions": permission, "name": name})
+	c.JSON(http.StatusOK, gin.H{"access": access, "refresh": refresh, "id": id, "role": role, "permissions": permission, "name": name, "company_id": companyID, "branch_id": branchID})
 }
 
 // POST /api/auth/refresh

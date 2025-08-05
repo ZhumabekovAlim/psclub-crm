@@ -7,6 +7,8 @@ type User struct {
 	Name             string    `json:"name"`
 	Phone            string    `json:"phone"`
 	Password         string    `json:"password"`
+	CompanyID        int       `json:"company_id"`
+	BranchID         int       `json:"branch_id"`
 	Role             string    `json:"role"`
 	Permissions      []string  `json:"permissions"`
 	SalaryHookah     float64   `json:"salary_hookah"`
