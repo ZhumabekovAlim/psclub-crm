@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
 	"strconv"
@@ -31,7 +33,11 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 
 		}
 	}
-	id, err := h.service.CreateBooking(c.Request.Context(), &b)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	id, err := h.service.CreateBooking(ctx, &b)
 	if err != nil {
 		log.Printf("create booking service error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -43,7 +49,11 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 
 // GET /api/bookings
 func (h *BookingHandler) GetAllBookings(c *gin.Context) {
-	bookings, err := h.service.GetAllBookings(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	bookings, err := h.service.GetAllBookings(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -58,7 +68,11 @@ func (h *BookingHandler) GetBookingsByClientID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	bookings, err := h.service.GetBookingsByClientID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	bookings, err := h.service.GetBookingsByClientID(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -73,7 +87,11 @@ func (h *BookingHandler) GetBookingByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	b, err := h.service.GetBookingByID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	b, err := h.service.GetBookingByID(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -94,7 +112,11 @@ func (h *BookingHandler) UpdateBooking(c *gin.Context) {
 		return
 	}
 	b.ID = id
-	err = h.service.UpdateBooking(c.Request.Context(), &b)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	err = h.service.UpdateBooking(ctx, &b)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -109,7 +131,11 @@ func (h *BookingHandler) DeleteBooking(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	err = h.service.DeleteBooking(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	err = h.service.DeleteBooking(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
