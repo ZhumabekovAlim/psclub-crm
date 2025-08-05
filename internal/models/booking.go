@@ -4,6 +4,8 @@ import "time"
 
 type Booking struct {
 	ID             int              `json:"id"`
+	CompanyID      int              `json:"company_id"`
+	BranchID       int              `json:"branch_id"`
 	ClientID       int              `json:"client_id"`
 	TableID        int              `json:"table_id"`
 	UserID         int              `json:"user_id"`
@@ -29,6 +31,8 @@ type Booking struct {
 type BookingItem struct {
 	ID        int     `json:"id"`
 	BookingID int     `json:"booking_id"`
+	CompanyID int     `json:"company_id"`
+	BranchID  int     `json:"branch_id"`
 	ItemID    int     `json:"item_id"`
 	Quantity  float64 `json:"quantity"`
 	Price     int     `json:"price"`

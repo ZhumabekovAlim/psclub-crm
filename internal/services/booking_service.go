@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/repositories"
 )
@@ -101,6 +102,8 @@ func (s *BookingService) isPastDayBlocked(target time.Time, block int) bool {
 }
 
 func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (int, error) {
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
 	if len(b.Payments) > 0 {
 		b.PaymentTypeID = b.Payments[0].PaymentTypeID
 	}
@@ -117,13 +120,13 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 		log.Printf("check stock error: %v", err)
 		return 0, err
 	}
-	id, err := s.repo.CreateWithItems(ctx, b)
+	id, err := s.repo.CreateWithItems(ctx, companyID, branchID, b)
 	if err != nil {
 		log.Printf("repository create error: %v", err)
 		return 0, err
 	}
 	if err := s.decreaseStock(ctx, b.Items); err != nil {
-		_ = s.repo.Delete(ctx, id)
+		_ = s.repo.Delete(ctx, companyID, branchID, id)
 		log.Printf("decrease stock error: %v", err)
 		return 0, err
 	}
@@ -143,8 +146,8 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 		_ = s.clientRepo.AddIncome(ctx, b.ClientID, b.TotalAmount)
 	}
 
-	if err := s.paymentRepo.Create(ctx, id, b.Payments); err != nil {
-		_ = s.repo.Delete(ctx, id)
+	if err := s.paymentRepo.Create(ctx, companyID, branchID, id, b.Payments); err != nil {
+		_ = s.repo.Delete(ctx, companyID, branchID, id)
 		return 0, err
 	}
 
@@ -164,20 +167,22 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 }
 
 func (s *BookingService) GetAllBookings(ctx context.Context) ([]models.Booking, error) {
-	bookings, err := s.repo.GetAll(ctx)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	bookings, err := s.repo.GetAll(ctx, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
 	// загрузить позиции для каждой брони
 	for i := range bookings {
-		items, _ := s.bookingItemRepo.GetByBookingID(ctx, bookings[i].ID)
+		items, _ := s.bookingItemRepo.GetByBookingID(ctx, companyID, branchID, bookings[i].ID)
 		for j := range items {
 			if items[j].Quantity != 0 {
 				items[j].ItemPrice = float64(items[j].Price) / items[j].Quantity
 			}
 		}
 		bookings[i].Items = items
-		pays, _ := s.paymentRepo.GetByBookingID(ctx, bookings[i].ID)
+		pays, _ := s.paymentRepo.GetByBookingID(ctx, companyID, branchID, bookings[i].ID)
 		bookings[i].Payments = pays
 		if len(pays) > 0 {
 			bookings[i].PaymentType = pays[0].PaymentType
@@ -188,19 +193,21 @@ func (s *BookingService) GetAllBookings(ctx context.Context) ([]models.Booking, 
 
 // GetBookingsByClientID loads bookings for a specific client with related items and payments.
 func (s *BookingService) GetBookingsByClientID(ctx context.Context, clientID int) ([]models.Booking, error) {
-	bookings, err := s.repo.GetByClientID(ctx, clientID)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	bookings, err := s.repo.GetByClientID(ctx, companyID, branchID, clientID)
 	if err != nil {
 		return nil, err
 	}
 	for i := range bookings {
-		items, _ := s.bookingItemRepo.GetByBookingID(ctx, bookings[i].ID)
+		items, _ := s.bookingItemRepo.GetByBookingID(ctx, companyID, branchID, bookings[i].ID)
 		for j := range items {
 			if items[j].Quantity != 0 {
 				items[j].ItemPrice = float64(items[j].Price) / items[j].Quantity
 			}
 		}
 		bookings[i].Items = items
-		pays, _ := s.paymentRepo.GetByBookingID(ctx, bookings[i].ID)
+		pays, _ := s.paymentRepo.GetByBookingID(ctx, companyID, branchID, bookings[i].ID)
 		bookings[i].Payments = pays
 		if len(pays) > 0 {
 			bookings[i].PaymentType = pays[0].PaymentType
@@ -210,18 +217,20 @@ func (s *BookingService) GetBookingsByClientID(ctx context.Context, clientID int
 }
 
 func (s *BookingService) GetBookingByID(ctx context.Context, id int) (*models.Booking, error) {
-	b, err := s.repo.GetByID(ctx, id)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	b, err := s.repo.GetByID(ctx, companyID, branchID, id)
 	if err != nil {
 		return nil, err
 	}
-	items, _ := s.bookingItemRepo.GetByBookingID(ctx, b.ID)
+	items, _ := s.bookingItemRepo.GetByBookingID(ctx, companyID, branchID, b.ID)
 	for i := range items {
 		if items[i].Quantity != 0 {
 			items[i].ItemPrice = float64(items[i].Price) / items[i].Quantity
 		}
 	}
 	b.Items = items
-	pays, _ := s.paymentRepo.GetByBookingID(ctx, b.ID)
+	pays, _ := s.paymentRepo.GetByBookingID(ctx, companyID, branchID, b.ID)
 	b.Payments = pays
 	if len(pays) > 0 {
 		b.PaymentType = pays[0].PaymentType
@@ -230,19 +239,21 @@ func (s *BookingService) GetBookingByID(ctx context.Context, id int) (*models.Bo
 }
 
 func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) error {
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
 	settings, err := s.settingsRepo.Get(ctx)
 	if err != nil {
 		return err
 	}
-	current, err := s.repo.GetByID(ctx, b.ID)
+	current, err := s.repo.GetByID(ctx, companyID, branchID, b.ID)
 	if err != nil {
 		return err
 	}
 	if s.isPastDayBlocked(current.StartTime, settings.BlockTime) {
 		return errors.New("изменение брони невозможно, дата прошла и время заблокировано")
 	}
-	currentItems, _ := s.bookingItemRepo.GetByBookingID(ctx, b.ID)
-	currentPays, _ := s.paymentRepo.GetByBookingID(ctx, b.ID)
+	currentItems, _ := s.bookingItemRepo.GetByBookingID(ctx, companyID, branchID, b.ID)
+	currentPays, _ := s.paymentRepo.GetByBookingID(ctx, companyID, branchID, b.ID)
 
 	equal := bookingsEqual(current, b, currentItems)
 	if equal && len(currentPays) == len(b.Payments) {
@@ -289,7 +300,7 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 		newCash = s.getCashAmount(ctx, b)
 	}
 
-	if err := s.repo.UpdateWithItems(ctx, b); err != nil {
+	if err := s.repo.UpdateWithItems(ctx, companyID, branchID, b); err != nil {
 		// rollback stock on failure
 		s.increaseStock(ctx, b.Items)
 		err := s.decreaseStock(ctx, currentItems)
@@ -298,8 +309,8 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 		}
 		return err
 	}
-	_ = s.paymentRepo.DeleteByBookingID(ctx, b.ID)
-	_ = s.paymentRepo.Create(ctx, b.ID, b.Payments)
+	_ = s.paymentRepo.DeleteByBookingID(ctx, companyID, branchID, b.ID)
+	_ = s.paymentRepo.Create(ctx, companyID, branchID, b.ID, b.Payments)
 	if s.cashboxService != nil {
 		diff := newCash - oldCash
 		if diff > 0 {
@@ -313,11 +324,13 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 }
 
 func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
 	settings, err := s.settingsRepo.Get(ctx)
 	if err != nil {
 		return err
 	}
-	b, err := s.repo.GetByID(ctx, id)
+	b, err := s.repo.GetByID(ctx, companyID, branchID, id)
 	if err != nil {
 		return err
 	}
@@ -328,7 +341,7 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	if s.cashboxService != nil {
 		cash = s.getCashAmount(ctx, b)
 	}
-	items, err := s.bookingItemRepo.GetByBookingID(ctx, id)
+	items, err := s.bookingItemRepo.GetByBookingID(ctx, companyID, branchID, id)
 	if err != nil {
 		return err
 	}
@@ -336,10 +349,10 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	if time.Now().After(limit) {
 		return errors.New("booking can no longer be removed")
 	}
-	if err := s.repo.Delete(ctx, id); err != nil {
+	if err := s.repo.Delete(ctx, companyID, branchID, id); err != nil {
 		return err
 	}
-	_ = s.paymentRepo.DeleteByBookingID(ctx, id)
+	_ = s.paymentRepo.DeleteByBookingID(ctx, companyID, branchID, id)
 	s.increaseStock(ctx, items)
 
 	if b.ClientID > 0 {
