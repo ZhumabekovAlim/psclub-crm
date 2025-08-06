@@ -244,7 +244,7 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 
 	// create corresponding expense entry with automatic category mapping
 	item, _ := h.service.GetPriceItemByID(c.Request.Context(), itemID)
-	cat, _ := h.categories.GetCategoryByID(c.Request.Context(), item.CategoryID)
+	cat, _ := h.categories.GetCategoryByID(c.Request.Context(), item.CategoryID, c.GetInt("company_id"), c.GetInt("branch_id"))
 	var expCatID int
 	if cat != nil {
 		if ec, _ := h.expCats.GetByName(c.Request.Context(), cat.Name); ec != nil {

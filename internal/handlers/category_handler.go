@@ -24,6 +24,8 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	category.CompanyID = c.GetInt("company_id")
+	category.BranchID = c.GetInt("branch_id")
 	id, err := h.service.CreateCategory(c.Request.Context(), &category)
 	if err != nil {
 		if err == services.ErrNameExists {
@@ -39,7 +41,9 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 
 // GET /api/categories
 func (h *CategoryHandler) GetAllCategories(c *gin.Context) {
-	categories, err := h.service.GetAllCategories(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	categories, err := h.service.GetAllCategories(c.Request.Context(), companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -54,7 +58,9 @@ func (h *CategoryHandler) GetCategoryByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	category, err := h.service.GetCategoryByID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	category, err := h.service.GetCategoryByID(c.Request.Context(), id, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -75,6 +81,8 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 		return
 	}
 	category.ID = id
+	category.CompanyID = c.GetInt("company_id")
+	category.BranchID = c.GetInt("branch_id")
 	err = h.service.UpdateCategory(c.Request.Context(), &category)
 	if err != nil {
 		if err == services.ErrNameExists {
@@ -94,7 +102,9 @@ func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	err = h.service.DeleteCategory(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	err = h.service.DeleteCategory(c.Request.Context(), id, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
