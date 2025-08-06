@@ -24,6 +24,8 @@ func (h *SubcategoryHandler) CreateSubcategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	subcategory.CompanyID = c.GetInt("company_id")
+	subcategory.BranchID = c.GetInt("branch_id")
 	id, err := h.service.CreateSubcategory(c.Request.Context(), &subcategory)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -35,7 +37,9 @@ func (h *SubcategoryHandler) CreateSubcategory(c *gin.Context) {
 
 // GET /api/subcategories
 func (h *SubcategoryHandler) GetAllSubcategories(c *gin.Context) {
-	subcategories, err := h.service.GetAllSubcategories(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	subcategories, err := h.service.GetAllSubcategories(c.Request.Context(), companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -50,7 +54,9 @@ func (h *SubcategoryHandler) GetSubcategoryByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	subcategory, err := h.service.GetSubcategoryByID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	subcategory, err := h.service.GetSubcategoryByID(c.Request.Context(), id, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -64,7 +70,9 @@ func (h *SubcategoryHandler) GetSubcategoryByCategoryID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	subcategory, err := h.service.GetSubcategoryByCategoryID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	subcategory, err := h.service.GetSubcategoryByCategoryID(c.Request.Context(), id, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -85,6 +93,8 @@ func (h *SubcategoryHandler) UpdateSubcategory(c *gin.Context) {
 		return
 	}
 	subcategory.ID = id
+	subcategory.CompanyID = c.GetInt("company_id")
+	subcategory.BranchID = c.GetInt("branch_id")
 	err = h.service.UpdateSubcategory(c.Request.Context(), &subcategory)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -100,7 +110,9 @@ func (h *SubcategoryHandler) DeleteSubcategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	err = h.service.DeleteSubcategory(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	err = h.service.DeleteSubcategory(c.Request.Context(), id, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
