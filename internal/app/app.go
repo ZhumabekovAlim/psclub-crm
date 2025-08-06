@@ -9,6 +9,7 @@ import (
 	"psclub-crm/internal/config"
 	"psclub-crm/internal/handlers"
 	"psclub-crm/internal/middleware"
+	"psclub-crm/internal/migrations"
 	"psclub-crm/internal/repositories"
 	"psclub-crm/internal/routes"
 	"psclub-crm/internal/services"
@@ -25,6 +26,10 @@ func Run() {
 		log.Fatal("Failed to connect to DB: ", err)
 	}
 	defer db.Close()
+
+	if err := migrations.Run(db, "./migrations"); err != nil {
+		log.Fatalf("migrations run error: %v", err)
+	}
 	// ========== Инициализация зависимостей ==========
 
 	// Клиенты
