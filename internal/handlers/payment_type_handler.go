@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
 )
@@ -24,7 +26,13 @@ func (h *PaymentTypeHandler) CreatePaymentType(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, err := h.service.CreatePaymentType(c.Request.Context(), &pt)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	pt.CompanyID = companyID
+	pt.BranchID = branchID
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	id, err := h.service.CreatePaymentType(ctx, &pt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -35,7 +43,11 @@ func (h *PaymentTypeHandler) CreatePaymentType(c *gin.Context) {
 
 // GET /api/payment-types
 func (h *PaymentTypeHandler) GetAllPaymentTypes(c *gin.Context) {
-	pts, err := h.service.GetAllPaymentTypes(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	pts, err := h.service.GetAllPaymentTypes(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -55,8 +67,14 @@ func (h *PaymentTypeHandler) UpdatePaymentType(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
 	pt.ID = id
-	if err := h.service.UpdatePaymentType(c.Request.Context(), &pt); err != nil {
+	pt.CompanyID = companyID
+	pt.BranchID = branchID
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	if err := h.service.UpdatePaymentType(ctx, &pt); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -70,7 +88,11 @@ func (h *PaymentTypeHandler) DeletePaymentType(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	if err := h.service.DeletePaymentType(c.Request.Context(), id); err != nil {
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	if err := h.service.DeletePaymentType(ctx, id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

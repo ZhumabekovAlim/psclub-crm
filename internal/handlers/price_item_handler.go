@@ -1,12 +1,15 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
 	"net/http"
-	"psclub-crm/internal/models"
-	"psclub-crm/internal/services"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"psclub-crm/internal/common"
+	"psclub-crm/internal/models"
+	"psclub-crm/internal/services"
 )
 
 type PriceItemHandler struct {
@@ -27,7 +30,13 @@ func (h *PriceItemHandler) CreatePriceItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, err := h.service.CreatePriceItem(c.Request.Context(), &item)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	item.CompanyID = companyID
+	item.BranchID = branchID
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	id, err := h.service.CreatePriceItem(ctx, &item)
 	if err != nil {
 		if err == services.ErrNameExists {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -41,7 +50,11 @@ func (h *PriceItemHandler) CreatePriceItem(c *gin.Context) {
 }
 
 func (h *PriceItemHandler) GetAllPriceItems(c *gin.Context) {
-	items, err := h.service.GetAllPriceItems(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	items, err := h.service.GetAllPriceItems(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -55,7 +68,11 @@ func (h *PriceItemHandler) GetPriceItemsByCategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	items, err := h.service.GetPriceItemsByCategory(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	items, err := h.service.GetPriceItemsByCategory(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -69,7 +86,11 @@ func (h *PriceItemHandler) GetPriceItemByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	item, err := h.service.GetPriceItemByID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	item, err := h.service.GetPriceItemByID(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -84,6 +105,10 @@ func (h *PriceItemHandler) UpdatePriceItem(c *gin.Context) {
 		return
 	}
 
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
 	// Use pointers so that omitted JSON fields are nil and do not overwrite
 	// existing values in the database.
 	type updateInput struct {
@@ -102,7 +127,7 @@ func (h *PriceItemHandler) UpdatePriceItem(c *gin.Context) {
 		return
 	}
 
-	item, err := h.service.GetPriceItemByID(c.Request.Context(), id)
+	item, err := h.service.GetPriceItemByID(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -131,7 +156,7 @@ func (h *PriceItemHandler) UpdatePriceItem(c *gin.Context) {
 	}
 
 	item.ID = id
-	err = h.service.UpdatePriceItem(c.Request.Context(), item)
+	err = h.service.UpdatePriceItem(ctx, item)
 	if err != nil {
 		if err == services.ErrNameExists {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -149,7 +174,11 @@ func (h *PriceItemHandler) DeletePriceItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	err = h.service.DeletePriceItem(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	err = h.service.DeletePriceItem(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -164,8 +193,12 @@ func (h *PriceItemHandler) AddIncome(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
 	hist.Operation = "INCOME"
-	err := h.service.AddIncome(c.Request.Context(), &hist)
+	err := h.service.AddIncome(ctx, &hist)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -180,8 +213,12 @@ func (h *PriceItemHandler) AddOutcome(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
 	hist.Operation = "OUTCOME"
-	err := h.service.AddOutcome(c.Request.Context(), &hist)
+	err := h.service.AddOutcome(ctx, &hist)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -196,7 +233,11 @@ func (h *PriceItemHandler) GetHistoryByItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid price_item_id"})
 		return
 	}
-	history, err := h.service.GetHistoryByItem(c.Request.Context(), itemID)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	history, err := h.service.GetHistoryByItem(ctx, itemID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -206,7 +247,11 @@ func (h *PriceItemHandler) GetHistoryByItem(c *gin.Context) {
 
 // Получить всю историю по всем товарам
 func (h *PriceItemHandler) GetAllHistory(c *gin.Context) {
-	history, err := h.service.GetAllHistory(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	history, err := h.service.GetAllHistory(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -230,6 +275,10 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
 	hist := models.PricelistHistory{
 		PriceItemID: itemID,
 		Quantity:    in.Quantity,
@@ -237,14 +286,14 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 		Total:       in.BuyPrice * in.Quantity,
 		UserID:      in.UserID,
 	}
-	if err := h.service.Replenish(c.Request.Context(), &hist); err != nil {
+	if err := h.service.Replenish(ctx, &hist); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// create corresponding expense entry with automatic category mapping
-	item, _ := h.service.GetPriceItemByID(c.Request.Context(), itemID)
-	cat, _ := h.categories.GetCategoryByID(c.Request.Context(), item.CategoryID, c.GetInt("company_id"), c.GetInt("branch_id"))
+	item, _ := h.service.GetPriceItemByID(ctx, itemID)
+	cat, _ := h.categories.GetCategoryByID(c.Request.Context(), item.CategoryID, companyID, branchID)
 	var expCatID int
 	if cat != nil {
 		if ec, _ := h.expCats.GetByName(c.Request.Context(), cat.Name); ec != nil {

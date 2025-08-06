@@ -1,8 +1,11 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/services"
 )
 
@@ -22,7 +25,11 @@ func (h *InventoryHandler) PerformInventory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.service.PerformInventory(c.Request.Context(), req.Items); err != nil {
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	if err := h.service.PerformInventory(ctx, req.Items); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -30,7 +37,11 @@ func (h *InventoryHandler) PerformInventory(c *gin.Context) {
 }
 
 func (h *InventoryHandler) GetHistory(c *gin.Context) {
-	history, err := h.service.GetHistory(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	history, err := h.service.GetHistory(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
 )
@@ -23,7 +25,11 @@ func (h *PriceSetHandler) CreatePriceSet(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, err := h.service.CreatePriceSet(c.Request.Context(), &ps)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	id, err := h.service.CreatePriceSet(ctx, &ps)
 	if err != nil {
 		if err == services.ErrNameExists {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -37,7 +43,11 @@ func (h *PriceSetHandler) CreatePriceSet(c *gin.Context) {
 }
 
 func (h *PriceSetHandler) GetAllPriceSets(c *gin.Context) {
-	sets, err := h.service.GetAllPriceSets(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	sets, err := h.service.GetAllPriceSets(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -51,7 +61,11 @@ func (h *PriceSetHandler) GetPriceSetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	set, err := h.service.GetPriceSetByID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	set, err := h.service.GetPriceSetByID(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -70,8 +84,12 @@ func (h *PriceSetHandler) UpdatePriceSet(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
 	ps.ID = id
-	if err := h.service.UpdatePriceSet(c.Request.Context(), &ps); err != nil {
+	if err := h.service.UpdatePriceSet(ctx, &ps); err != nil {
 		if err == services.ErrNameExists {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		} else {
@@ -88,7 +106,11 @@ func (h *PriceSetHandler) DeletePriceSet(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	if err := h.service.DeletePriceSet(c.Request.Context(), id); err != nil {
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	if err := h.service.DeletePriceSet(ctx, id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

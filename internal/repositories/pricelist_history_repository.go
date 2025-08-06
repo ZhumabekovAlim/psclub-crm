@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"database/sql"
+
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 )
 
@@ -15,8 +17,10 @@ func NewPricelistHistoryRepository(db *sql.DB) *PricelistHistoryRepository {
 }
 
 func (r *PricelistHistoryRepository) Create(ctx context.Context, h *models.PricelistHistory) (int, error) {
-	query := `INSERT INTO pricelist_history (price_item_id, quantity, buy_price, total, user_id, created_at) VALUES (?, ?, ?, ?, ?, NOW())`
-	res, err := r.db.ExecContext(ctx, query, h.PriceItemID, h.Quantity, h.BuyPrice, h.Total, h.UserID)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	query := `INSERT INTO pricelist_history (price_item_id, quantity, buy_price, total, user_id, company_id, branch_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`
+	res, err := r.db.ExecContext(ctx, query, h.PriceItemID, h.Quantity, h.BuyPrice, h.Total, h.UserID, companyID, branchID)
 	if err != nil {
 		return 0, err
 	}
@@ -25,8 +29,10 @@ func (r *PricelistHistoryRepository) Create(ctx context.Context, h *models.Price
 }
 
 func (r *PricelistHistoryRepository) GetByItem(ctx context.Context, priceItemID int) ([]models.PricelistHistory, error) {
-	query := `SELECT id, price_item_id, quantity, buy_price, total, user_id, created_at FROM pricelist_history WHERE price_item_id = ? ORDER BY id DESC`
-	rows, err := r.db.QueryContext(ctx, query, priceItemID)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	query := `SELECT id, price_item_id, quantity, buy_price, total, user_id, company_id, branch_id, created_at FROM pricelist_history WHERE price_item_id = ? AND company_id=? AND branch_id=? ORDER BY id DESC`
+	rows, err := r.db.QueryContext(ctx, query, priceItemID, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +40,7 @@ func (r *PricelistHistoryRepository) GetByItem(ctx context.Context, priceItemID 
 	var result []models.PricelistHistory
 	for rows.Next() {
 		var h models.PricelistHistory
-		if err := rows.Scan(&h.ID, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CreatedAt); err != nil {
+		if err := rows.Scan(&h.ID, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CompanyID, &h.BranchID, &h.CreatedAt); err != nil {
 			return nil, err
 		}
 		result = append(result, h)
@@ -43,10 +49,13 @@ func (r *PricelistHistoryRepository) GetByItem(ctx context.Context, priceItemID 
 }
 
 func (r *PricelistHistoryRepository) GetAll(ctx context.Context) ([]models.PricelistHistory, error) {
-	query := `SELECT ph.id, pi.name, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.created_at FROM pricelist_history ph
-            JOIN price_items pi on ph.price_item_id = pi.id                                                               
-            ORDER BY id DESC`
-	rows, err := r.db.QueryContext(ctx, query)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	query := `SELECT ph.id, pi.name, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.company_id, ph.branch_id, ph.created_at FROM pricelist_history ph
+           JOIN price_items pi on ph.price_item_id = pi.id
+           WHERE ph.company_id=? AND ph.branch_id=?
+           ORDER BY id DESC`
+	rows, err := r.db.QueryContext(ctx, query, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +63,7 @@ func (r *PricelistHistoryRepository) GetAll(ctx context.Context) ([]models.Price
 	var result []models.PricelistHistory
 	for rows.Next() {
 		var h models.PricelistHistory
-		if err := rows.Scan(&h.ID, &h.ItemName, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CreatedAt); err != nil {
+		if err := rows.Scan(&h.ID, &h.ItemName, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CompanyID, &h.BranchID, &h.CreatedAt); err != nil {
 			return nil, err
 		}
 		result = append(result, h)
@@ -63,12 +72,14 @@ func (r *PricelistHistoryRepository) GetAll(ctx context.Context) ([]models.Price
 }
 
 func (r *PricelistHistoryRepository) GetByID(ctx context.Context, id int) (*models.PricelistHistory, error) {
-	query := `SELECT ph.id, pi.name, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.created_at
-                FROM pricelist_history ph
-                JOIN price_items pi ON ph.price_item_id = pi.id
-                WHERE ph.id = ?`
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	query := `SELECT ph.id, pi.name, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.company_id, ph.branch_id, ph.created_at
+               FROM pricelist_history ph
+               JOIN price_items pi ON ph.price_item_id = pi.id
+               WHERE ph.id = ? AND ph.company_id=? AND ph.branch_id=?`
 	var h models.PricelistHistory
-	err := r.db.QueryRowContext(ctx, query, id).Scan(&h.ID, &h.ItemName, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CreatedAt)
+	err := r.db.QueryRowContext(ctx, query, id, companyID, branchID).Scan(&h.ID, &h.ItemName, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CompanyID, &h.BranchID, &h.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -76,16 +87,20 @@ func (r *PricelistHistoryRepository) GetByID(ctx context.Context, id int) (*mode
 }
 
 func (r *PricelistHistoryRepository) Delete(ctx context.Context, id int) error {
-	_, err := r.db.ExecContext(ctx, `DELETE FROM pricelist_history WHERE id=?`, id)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	_, err := r.db.ExecContext(ctx, `DELETE FROM pricelist_history WHERE id=? AND company_id=? AND branch_id=?`, id, companyID, branchID)
 	return err
 }
 func (r *PricelistHistoryRepository) GetByCategory(ctx context.Context, categoryID int) ([]models.PricelistHistory, error) {
-	query := `SELECT ph.id, pi.name, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.created_at, u.name AS user_name
-                FROM pricelist_history ph
-                JOIN price_items pi ON ph.price_item_id = pi.id
-                JOIN users u ON ph.user_id = u.id
-                WHERE pi.category_id = ? ORDER BY ph.id DESC`
-	rows, err := r.db.QueryContext(ctx, query, categoryID)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	query := `SELECT ph.id, pi.name, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.company_id, ph.branch_id, ph.created_at, u.name AS user_name
+               FROM pricelist_history ph
+               JOIN price_items pi ON ph.price_item_id = pi.id
+               JOIN users u ON ph.user_id = u.id
+               WHERE pi.category_id = ? AND ph.company_id=? AND ph.branch_id=? ORDER BY ph.id DESC`
+	rows, err := r.db.QueryContext(ctx, query, categoryID, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +108,7 @@ func (r *PricelistHistoryRepository) GetByCategory(ctx context.Context, category
 	var result []models.PricelistHistory
 	for rows.Next() {
 		var h models.PricelistHistory
-		if err := rows.Scan(&h.ID, &h.ItemName, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CreatedAt, &h.UserName); err != nil {
+		if err := rows.Scan(&h.ID, &h.ItemName, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CompanyID, &h.BranchID, &h.CreatedAt, &h.UserName); err != nil {
 			return nil, err
 		}
 		result = append(result, h)

@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"database/sql"
+
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 )
 
@@ -16,8 +18,13 @@ func NewPaymentTypeRepository(db *sql.DB) *PaymentTypeRepository {
 }
 
 func (r *PaymentTypeRepository) GetByID(ctx context.Context, id int) (*models.PaymentType, error) {
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
 	var pt models.PaymentType
-	err := r.db.QueryRowContext(ctx, `SELECT id, name, hold_percent FROM payment_types WHERE id=?`, id).Scan(&pt.ID, &pt.Name, &pt.HoldPercent)
+	err := r.db.QueryRowContext(ctx,
+		`SELECT id, name, hold_percent, company_id, branch_id FROM payment_types WHERE id=? AND company_id=? AND branch_id=?`,
+		id, companyID, branchID,
+	).Scan(&pt.ID, &pt.Name, &pt.HoldPercent, &pt.CompanyID, &pt.BranchID)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +32,9 @@ func (r *PaymentTypeRepository) GetByID(ctx context.Context, id int) (*models.Pa
 }
 
 func (r *PaymentTypeRepository) GetAll(ctx context.Context) ([]models.PaymentType, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, name, hold_percent FROM payment_types ORDER BY id`)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	rows, err := r.db.QueryContext(ctx, `SELECT id, name, hold_percent, company_id, branch_id FROM payment_types WHERE company_id=? AND branch_id=? ORDER BY id`, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +43,7 @@ func (r *PaymentTypeRepository) GetAll(ctx context.Context) ([]models.PaymentTyp
 	var result []models.PaymentType
 	for rows.Next() {
 		var pt models.PaymentType
-		if err := rows.Scan(&pt.ID, &pt.Name, &pt.HoldPercent); err != nil {
+		if err := rows.Scan(&pt.ID, &pt.Name, &pt.HoldPercent, &pt.CompanyID, &pt.BranchID); err != nil {
 			return nil, err
 		}
 		result = append(result, pt)
@@ -43,7 +52,9 @@ func (r *PaymentTypeRepository) GetAll(ctx context.Context) ([]models.PaymentTyp
 }
 
 func (r *PaymentTypeRepository) Create(ctx context.Context, pt *models.PaymentType) (int, error) {
-	res, err := r.db.ExecContext(ctx, `INSERT INTO payment_types (name, hold_percent) VALUES (?, ?)`, pt.Name, pt.HoldPercent)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	res, err := r.db.ExecContext(ctx, `INSERT INTO payment_types (name, hold_percent, company_id, branch_id) VALUES (?, ?, ?, ?)`, pt.Name, pt.HoldPercent, companyID, branchID)
 	if err != nil {
 		return 0, err
 	}
@@ -52,11 +63,18 @@ func (r *PaymentTypeRepository) Create(ctx context.Context, pt *models.PaymentTy
 }
 
 func (r *PaymentTypeRepository) Update(ctx context.Context, pt *models.PaymentType) error {
-	_, err := r.db.ExecContext(ctx, `UPDATE payment_types SET name=?, hold_percent=? WHERE id=?`, pt.Name, pt.HoldPercent, pt.ID)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE payment_types SET name=?, hold_percent=? WHERE id=? AND company_id=? AND branch_id=?`,
+		pt.Name, pt.HoldPercent, pt.ID, companyID, branchID,
+	)
 	return err
 }
 
 func (r *PaymentTypeRepository) Delete(ctx context.Context, id int) error {
-	_, err := r.db.ExecContext(ctx, `DELETE FROM payment_types WHERE id=?`, id)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	_, err := r.db.ExecContext(ctx, `DELETE FROM payment_types WHERE id=? AND company_id=? AND branch_id=?`, id, companyID, branchID)
 	return err
 }
