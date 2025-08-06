@@ -12,4 +12,6 @@ type PricelistHistory struct {
 	UserID      int       `json:"user_id"`
 	CreatedAt   time.Time `json:"created_at"`
 	UserName    string    `json:"user_name,omitempty"`
+	CompanyID   int       `json:"company_id"`
+	BranchID    int       `json:"branch_id"`
 }
