@@ -49,7 +49,7 @@ func (r *SettingsRepository) Get(ctx context.Context, companyID, branchID int) (
 	s.PaymentTypes = types
 
 	// Получить список всех channels
-	chQuery := `SELECT id, name FROM channels WHERE company_id=? AND branch_id=? ORDER BY id`
+	chQuery := `SELECT id, company_id, branch_id, name FROM channels WHERE company_id=? AND branch_id=? ORDER BY id`
 	chRows, err := r.db.QueryContext(ctx, chQuery, companyID, branchID)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (r *SettingsRepository) Get(ctx context.Context, companyID, branchID int) (
 	var channels []models.Channel
 	for chRows.Next() {
 		var ch models.Channel
-		if err := chRows.Scan(&ch.ID, &ch.Name); err != nil {
+		if err := chRows.Scan(&ch.ID, &ch.CompanyID, &ch.BranchID, &ch.Name); err != nil {
 			return nil, err
 		}
 		channels = append(channels, ch)
