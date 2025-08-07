@@ -272,6 +272,7 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	}
 	currentItems, _ := s.bookingItemRepo.GetByBookingID(ctx, companyID, branchID, b.ID)
 	currentPays, _ := s.paymentRepo.GetByBookingID(ctx, companyID, branchID, b.ID)
+	current.Payments = currentPays
 
 	equal := bookingsEqual(current, b, currentItems)
 	if equal && len(currentPays) == len(b.Payments) {
@@ -352,6 +353,8 @@ func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	if err != nil {
 		return err
 	}
+	pays, _ := s.paymentRepo.GetByBookingID(ctx, companyID, branchID, id)
+	b.Payments = pays
 	if s.isPastDayBlocked(b.StartTime, settings.BlockTime) {
 		return errors.New("booking can no longer be removed")
 	}
