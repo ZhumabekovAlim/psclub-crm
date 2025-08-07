@@ -10,4 +10,6 @@ type EquipmentInventoryHistory struct {
 	Actual      float64   `json:"actual"`
 	Difference  float64   `json:"difference"`
 	CreatedAt   time.Time `json:"created_at"`
+	CompanyID   int       `json:"company_id"`
+	BranchID    int       `json:"branch_id"`
 }

@@ -15,7 +15,7 @@ func NewEquipmentInventoryHistoryRepository(db *sql.DB) *EquipmentInventoryHisto
 }
 
 func (r *EquipmentInventoryHistoryRepository) Create(ctx context.Context, h *models.EquipmentInventoryHistory) (int, error) {
-	res, err := r.db.ExecContext(ctx, `INSERT INTO equipment_inventory_history (equipment_id, expected, actual, difference, created_at) VALUES (?, ?, ?, ?, NOW())`, h.EquipmentID, h.Expected, h.Actual, h.Difference)
+	res, err := r.db.ExecContext(ctx, `INSERT INTO equipment_inventory_history (equipment_id, expected, actual, difference, created_at, company_id, branch_id) VALUES (?, ?, ?, ?, NOW(), ?, ?)`, h.EquipmentID, h.Expected, h.Actual, h.Difference, h.CompanyID, h.BranchID)
 	if err != nil {
 		return 0, err
 	}
@@ -23,12 +23,13 @@ func (r *EquipmentInventoryHistoryRepository) Create(ctx context.Context, h *mod
 	return int(id), err
 }
 
-func (r *EquipmentInventoryHistoryRepository) GetAll(ctx context.Context) ([]models.EquipmentInventoryHistory, error) {
+func (r *EquipmentInventoryHistoryRepository) GetAll(ctx context.Context, companyID, branchID int) ([]models.EquipmentInventoryHistory, error) {
 	rows, err := r.db.QueryContext(ctx, `
-        SELECT eih.id, eih.equipment_id, e.name, eih.expected, eih.actual, eih.difference, eih.created_at
+        SELECT eih.id, eih.equipment_id, e.name, eih.expected, eih.actual, eih.difference, eih.created_at, eih.company_id, eih.branch_id
         FROM equipment_inventory_history eih
         LEFT JOIN equipment e ON eih.equipment_id = e.id
-        ORDER BY eih.id DESC`)
+        WHERE eih.company_id=? AND eih.branch_id=?
+        ORDER BY eih.id DESC`, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +37,7 @@ func (r *EquipmentInventoryHistoryRepository) GetAll(ctx context.Context) ([]mod
 	var list []models.EquipmentInventoryHistory
 	for rows.Next() {
 		var h models.EquipmentInventoryHistory
-		if err := rows.Scan(&h.ID, &h.EquipmentID, &h.Name, &h.Expected, &h.Actual, &h.Difference, &h.CreatedAt); err != nil {
+		if err := rows.Scan(&h.ID, &h.EquipmentID, &h.Name, &h.Expected, &h.Actual, &h.Difference, &h.CreatedAt, &h.CompanyID, &h.BranchID); err != nil {
 			return nil, err
 		}
 		list = append(list, h)

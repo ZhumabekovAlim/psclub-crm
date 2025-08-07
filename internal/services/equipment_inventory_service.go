@@ -26,7 +26,7 @@ func NewEquipmentInventoryService(r *repositories.EquipmentRepository, hr *repos
 	return &EquipmentInventoryService{repo: r, history: hr, expenseSvc: es, expCatSvc: ec}
 }
 
-func (s *EquipmentInventoryService) PerformInventory(ctx context.Context, items []EquipmentInventoryItem) error {
+func (s *EquipmentInventoryService) PerformInventory(ctx context.Context, items []EquipmentInventoryItem, companyID, branchID int) error {
 	var catID int
 	if cat, _ := s.expCatSvc.GetByName(ctx, "Инвентаризация"); cat != nil {
 		catID = cat.ID
@@ -35,7 +35,7 @@ func (s *EquipmentInventoryService) PerformInventory(ctx context.Context, items 
 		catID, _ = s.expCatSvc.Create(ctx, &newCat)
 	}
 	for _, it := range items {
-		eq, err := s.repo.GetByID(ctx, it.EquipmentID)
+		eq, err := s.repo.GetByID(ctx, it.EquipmentID, companyID, branchID)
 		if err != nil {
 			return err
 		}
@@ -46,6 +46,8 @@ func (s *EquipmentInventoryService) PerformInventory(ctx context.Context, items 
 			Actual:      it.Actual,
 			Difference:  diff,
 			CreatedAt:   time.Now(),
+			CompanyID:   companyID,
+			BranchID:    branchID,
 		}
 		if _, err := s.history.Create(ctx, &hist); err != nil {
 			return err
@@ -63,13 +65,13 @@ func (s *EquipmentInventoryService) PerformInventory(ctx context.Context, items 
 				return err
 			}
 		}
-		if err := s.repo.SetQuantity(ctx, it.EquipmentID, it.Actual); err != nil {
+		if err := s.repo.SetQuantity(ctx, it.EquipmentID, it.Actual, companyID, branchID); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *EquipmentInventoryService) GetHistory(ctx context.Context) ([]models.EquipmentInventoryHistory, error) {
-	return s.history.GetAll(ctx)
+func (s *EquipmentInventoryService) GetHistory(ctx context.Context, companyID, branchID int) ([]models.EquipmentInventoryHistory, error) {
+	return s.history.GetAll(ctx, companyID, branchID)
 }
