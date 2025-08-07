@@ -9,6 +9,8 @@ type Settings struct {
 	WorkTimeTo       string        `json:"work_time_to"`
 	TablesCount      int           `json:"tables_count"`
 	NotificationTime int           `json:"notification_time"`
+	CompanyID        int           `json:"company_id"`
+	BranchID         int           `json:"branch_id"`
 	PaymentTypes     []PaymentType `json:"payment_types"` // список всех типов
 	Channels         []Channel     `json:"channels"`      // список всех каналов
 }

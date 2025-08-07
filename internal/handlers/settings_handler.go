@@ -18,7 +18,9 @@ func NewSettingsHandler(s *services.SettingsService) *SettingsHandler {
 
 // GET /api/settings
 func (h *SettingsHandler) GetSettings(c *gin.Context) {
-	set, err := h.service.GetSettings(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	set, err := h.service.GetSettings(c.Request.Context(), companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -33,6 +35,8 @@ func (h *SettingsHandler) UpdateSettings(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	set.CompanyID = c.GetInt("company_id")
+	set.BranchID = c.GetInt("branch_id")
 	err := h.service.UpdateSettings(c.Request.Context(), &set)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -48,6 +52,8 @@ func (h *SettingsHandler) CreateSettings(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	set.CompanyID = c.GetInt("company_id")
+	set.BranchID = c.GetInt("branch_id")
 	id, err := h.service.CreateSettings(c.Request.Context(), &set)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -65,7 +71,9 @@ func (h *SettingsHandler) DeleteSettings(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	if err := h.service.DeleteSettings(c.Request.Context(), id); err != nil {
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	if err := h.service.DeleteSettings(c.Request.Context(), id, companyID, branchID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -73,7 +81,9 @@ func (h *SettingsHandler) DeleteSettings(c *gin.Context) {
 }
 
 func (h *SettingsHandler) GetTablesCount(c *gin.Context) {
-	cnt, err := h.service.GetTablesCount(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	cnt, err := h.service.GetTablesCount(c.Request.Context(), companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -82,7 +92,9 @@ func (h *SettingsHandler) GetTablesCount(c *gin.Context) {
 }
 
 func (h *SettingsHandler) GetNotificationTime(c *gin.Context) {
-	n, err := h.service.GetNotificationTime(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	n, err := h.service.GetNotificationTime(c.Request.Context(), companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

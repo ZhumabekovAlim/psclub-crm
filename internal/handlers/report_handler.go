@@ -19,7 +19,9 @@ func NewReportHandler(service *services.ReportService) *ReportHandler {
 func (h *ReportHandler) GetSummaryReport(c *gin.Context) {
 	from, to, tFrom, tTo := getPeriod(c)
 	userID := getUserID(c)
-	data, err := h.service.SummaryReport(c.Request.Context(), from, to, tFrom, tTo, userID)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	data, err := h.service.SummaryReport(c.Request.Context(), from, to, tFrom, tTo, userID, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -30,7 +32,9 @@ func (h *ReportHandler) GetSummaryReport(c *gin.Context) {
 func (h *ReportHandler) GetAdminsReport(c *gin.Context) {
 	from, to, tFrom, tTo := getPeriod(c)
 	userID := getUserID(c)
-	data, err := h.service.AdminsReport(c.Request.Context(), from, to, tFrom, tTo, userID)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	data, err := h.service.AdminsReport(c.Request.Context(), from, to, tFrom, tTo, userID, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -41,7 +45,9 @@ func (h *ReportHandler) GetAdminsReport(c *gin.Context) {
 func (h *ReportHandler) GetSalesReport(c *gin.Context) {
 	from, to, tFrom, tTo := getPeriod(c)
 	userID := getUserID(c)
-	data, err := h.service.SalesReport(c.Request.Context(), from, to, tFrom, tTo, userID)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	data, err := h.service.SalesReport(c.Request.Context(), from, to, tFrom, tTo, userID, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -52,7 +58,9 @@ func (h *ReportHandler) GetSalesReport(c *gin.Context) {
 func (h *ReportHandler) GetAnalyticsReport(c *gin.Context) {
 	from, to, tFrom, tTo := getPeriod(c)
 	userID := getUserID(c)
-	data, err := h.service.AnalyticsReport(c.Request.Context(), from, to, tFrom, tTo, userID)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	data, err := h.service.AnalyticsReport(c.Request.Context(), from, to, tFrom, tTo, userID, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -63,7 +71,9 @@ func (h *ReportHandler) GetAnalyticsReport(c *gin.Context) {
 func (h *ReportHandler) GetDiscountsReport(c *gin.Context) {
 	from, to, tFrom, tTo := getPeriod(c)
 	userID := getUserID(c)
-	data, err := h.service.DiscountsReport(c.Request.Context(), from, to, tFrom, tTo, userID)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	data, err := h.service.DiscountsReport(c.Request.Context(), from, to, tFrom, tTo, userID, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
