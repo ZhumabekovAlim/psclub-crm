@@ -108,7 +108,7 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 		b.PaymentTypeID = b.Payments[0].PaymentTypeID
 	}
 	// получить настройки для бонуса
-	settings, err := s.settingsRepo.Get(ctx)
+	settings, err := s.settingsRepo.Get(ctx, companyID, branchID)
 	if err != nil {
 		log.Printf("settings get error: %v", err)
 		return 0, err
@@ -241,7 +241,7 @@ func (s *BookingService) GetBookingByID(ctx context.Context, id int) (*models.Bo
 func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) error {
 	companyID := ctx.Value(common.CtxCompanyID).(int)
 	branchID := ctx.Value(common.CtxBranchID).(int)
-	settings, err := s.settingsRepo.Get(ctx)
+	settings, err := s.settingsRepo.Get(ctx, companyID, branchID)
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 func (s *BookingService) DeleteBooking(ctx context.Context, id int) error {
 	companyID := ctx.Value(common.CtxCompanyID).(int)
 	branchID := ctx.Value(common.CtxBranchID).(int)
-	settings, err := s.settingsRepo.Get(ctx)
+	settings, err := s.settingsRepo.Get(ctx, companyID, branchID)
 	if err != nil {
 		return err
 	}

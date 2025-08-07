@@ -173,8 +173,10 @@ func (s *CashboxService) GetDay(ctx context.Context) (float64, []models.CashboxH
 	now := time.Now()
 
 	fmt.Println("Current time:", now)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
 
-	settings, err := s.settingsRepo.Get(ctx)
+	settings, err := s.settingsRepo.Get(ctx, companyID, branchID)
 	if err != nil {
 		return 0, nil, err
 	}
