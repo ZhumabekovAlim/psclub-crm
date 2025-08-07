@@ -116,6 +116,15 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 	if s.isPastDayBlocked(b.StartTime, settings.BlockTime) {
 		return 0, errors.New("создание брони невозможно, дата прошла и время заблокировано")
 	}
+	if b.TableID > 0 {
+		ok, err := s.repo.IsTableAvailable(ctx, companyID, branchID, b.TableID, 0, b.StartTime, b.EndTime)
+		if err != nil {
+			return 0, err
+		}
+		if !ok {
+			return 0, errors.New("выбранное время занято")
+		}
+	}
 	if err := s.checkStock(ctx, b.Items); err != nil {
 		log.Printf("check stock error: %v", err)
 		return 0, err
@@ -251,6 +260,15 @@ func (s *BookingService) UpdateBooking(ctx context.Context, b *models.Booking) e
 	}
 	if s.isPastDayBlocked(current.StartTime, settings.BlockTime) {
 		return errors.New("изменение брони невозможно, дата прошла и время заблокировано")
+	}
+	if b.TableID > 0 {
+		ok, err := s.repo.IsTableAvailable(ctx, companyID, branchID, b.TableID, b.ID, b.StartTime, b.EndTime)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return errors.New("выбранное время занято")
+		}
 	}
 	currentItems, _ := s.bookingItemRepo.GetByBookingID(ctx, companyID, branchID, b.ID)
 	currentPays, _ := s.paymentRepo.GetByBookingID(ctx, companyID, branchID, b.ID)

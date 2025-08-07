@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"time"
+
 	"psclub-crm/internal/models"
 )
 
@@ -274,4 +276,20 @@ func (r *BookingRepository) Delete(ctx context.Context, companyID, branchID, id 
 		log.Printf("delete booking error: %v", err)
 	}
 	return err
+}
+
+func (r *BookingRepository) IsTableAvailable(ctx context.Context, companyID, branchID, tableID, excludeID int, start, end time.Time) (bool, error) {
+	query := `SELECT COUNT(1) FROM bookings WHERE company_id=? AND branch_id=? AND table_id=? AND ? < end_time AND ? > start_time`
+	args := []interface{}{companyID, branchID, tableID, start, end}
+	if excludeID > 0 {
+		query += " AND id <> ?"
+		args = append(args, excludeID)
+	}
+	var cnt int
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(&cnt)
+	if err != nil {
+		log.Printf("check table availability error: %v", err)
+		return false, err
+	}
+	return cnt == 0, nil
 }
