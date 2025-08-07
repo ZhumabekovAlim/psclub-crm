@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"database/sql"
+
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 )
 
@@ -15,7 +17,9 @@ func NewRepairCategoryRepository(db *sql.DB) *RepairCategoryRepository {
 }
 
 func (r *RepairCategoryRepository) Create(ctx context.Context, c *models.RepairCategory) (int, error) {
-	res, err := r.db.ExecContext(ctx, `INSERT INTO repair_categories (name) VALUES (?)`, c.Name)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	res, err := r.db.ExecContext(ctx, `INSERT INTO repair_categories (name, company_id, branch_id) VALUES (?, ?, ?)`, c.Name, companyID, branchID)
 	if err != nil {
 		return 0, err
 	}
@@ -24,7 +28,9 @@ func (r *RepairCategoryRepository) Create(ctx context.Context, c *models.RepairC
 }
 
 func (r *RepairCategoryRepository) GetAll(ctx context.Context) ([]models.RepairCategory, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, name FROM repair_categories ORDER BY id`)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	rows, err := r.db.QueryContext(ctx, `SELECT id, name, company_id, branch_id FROM repair_categories WHERE company_id=? AND branch_id=? ORDER BY id`, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +38,7 @@ func (r *RepairCategoryRepository) GetAll(ctx context.Context) ([]models.RepairC
 	var list []models.RepairCategory
 	for rows.Next() {
 		var c models.RepairCategory
-		if err := rows.Scan(&c.ID, &c.Name); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.CompanyID, &c.BranchID); err != nil {
 			return nil, err
 		}
 		list = append(list, c)
@@ -41,18 +47,24 @@ func (r *RepairCategoryRepository) GetAll(ctx context.Context) ([]models.RepairC
 }
 
 func (r *RepairCategoryRepository) Update(ctx context.Context, c *models.RepairCategory) error {
-	_, err := r.db.ExecContext(ctx, `UPDATE repair_categories SET name=? WHERE id=?`, c.Name, c.ID)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	_, err := r.db.ExecContext(ctx, `UPDATE repair_categories SET name=? WHERE id=? AND company_id=? AND branch_id=?`, c.Name, c.ID, companyID, branchID)
 	return err
 }
 
 func (r *RepairCategoryRepository) Delete(ctx context.Context, id int) error {
-	_, err := r.db.ExecContext(ctx, `DELETE FROM repair_categories WHERE id=?`, id)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	_, err := r.db.ExecContext(ctx, `DELETE FROM repair_categories WHERE id=? AND company_id=? AND branch_id=?`, id, companyID, branchID)
 	return err
 }
 
 func (r *RepairCategoryRepository) GetByName(ctx context.Context, name string) (*models.RepairCategory, error) {
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
 	var c models.RepairCategory
-	err := r.db.QueryRowContext(ctx, `SELECT id, name FROM repair_categories WHERE name=?`, name).Scan(&c.ID, &c.Name)
+	err := r.db.QueryRowContext(ctx, `SELECT id, name, company_id, branch_id FROM repair_categories WHERE name=? AND company_id=? AND branch_id=?`, name, companyID, branchID).Scan(&c.ID, &c.Name, &c.CompanyID, &c.BranchID)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
