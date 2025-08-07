@@ -145,8 +145,12 @@ func (h *RepairHandler) DeleteRepair(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	rep, _ := h.service.GetRepairByID(c.Request.Context(), id)
-	err = h.service.DeleteRepair(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	rep, _ := h.service.GetRepairByID(ctx, id)
+	err = h.service.DeleteRepair(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -154,7 +158,7 @@ func (h *RepairHandler) DeleteRepair(c *gin.Context) {
 
 	if rep != nil {
 		title := "Починка, номер VIN: " + rep.VIN
-		_ = h.expenses.DeleteByDetails(c.Request.Context(), title, rep.Description, rep.Price, rep.CategoryID)
+		_ = h.expenses.DeleteByDetails(ctx, title, rep.Description, rep.Price, rep.CategoryID)
 	}
 
 	c.Status(http.StatusNoContent)

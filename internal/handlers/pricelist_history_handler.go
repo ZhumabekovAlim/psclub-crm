@@ -116,7 +116,7 @@ func (h *PricelistHistoryHandler) Delete(c *gin.Context) {
 	if item != nil {
 		title := "Пополнение " + item.Name
 		desc := "Пополнение товара " + item.Name + " в количестве " + strconv.FormatFloat(hist.Quantity, 'f', -1, 64) + " шт."
-		_ = h.expenses.DeleteByDetails(c.Request.Context(), title, desc, hist.Total, 0)
+		_ = h.expenses.DeleteByDetails(ctx, title, desc, hist.Total, 0)
 	}
 	c.Status(http.StatusNoContent)
 }

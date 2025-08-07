@@ -1,11 +1,14 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
 	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
-	"strconv"
 )
 
 type ExpenseHandler struct {
@@ -23,7 +26,13 @@ func (h *ExpenseHandler) CreateExpense(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, err := h.service.CreateExpense(c.Request.Context(), &e)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	e.CompanyID = companyID
+	e.BranchID = branchID
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	id, err := h.service.CreateExpense(ctx, &e)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -34,8 +43,12 @@ func (h *ExpenseHandler) CreateExpense(c *gin.Context) {
 
 // GET /api/expenses
 func (h *ExpenseHandler) GetAllExpenses(c *gin.Context) {
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
 	from, to, _, _ := getPeriod(c)
-	expenses, err := h.service.GetAllExpenses(c.Request.Context(), from, to)
+	expenses, err := h.service.GetAllExpenses(ctx, from, to)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -50,7 +63,11 @@ func (h *ExpenseHandler) GetExpenseByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	e, err := h.service.GetExpenseByID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	e, err := h.service.GetExpenseByID(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -70,8 +87,14 @@ func (h *ExpenseHandler) UpdateExpense(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
 	e.ID = id
-	err = h.service.UpdateExpense(c.Request.Context(), &e)
+	e.CompanyID = companyID
+	e.BranchID = branchID
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	err = h.service.UpdateExpense(ctx, &e)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -86,7 +109,11 @@ func (h *ExpenseHandler) DeleteExpense(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	err = h.service.DeleteExpense(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	err = h.service.DeleteExpense(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

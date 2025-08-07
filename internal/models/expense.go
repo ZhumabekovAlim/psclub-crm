@@ -14,4 +14,6 @@ type Expense struct {
 	Description      string    `json:"description"`
 	Paid             bool      `json:"paid"`
 	CreatedAt        time.Time `json:"created_at"`
+	CompanyID        int       `json:"company_id"`
+	BranchID         int       `json:"branch_id"`
 }
