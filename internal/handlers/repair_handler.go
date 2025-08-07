@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
 	"strconv"
@@ -26,7 +28,11 @@ func (h *RepairHandler) CreateRepair(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, err := h.service.CreateRepair(c.Request.Context(), &rep)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	id, err := h.service.CreateRepair(ctx, &rep)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -35,11 +41,11 @@ func (h *RepairHandler) CreateRepair(c *gin.Context) {
 
 	// ensure expense category "Ремонт" exists
 	var catID int
-	if cat, _ := h.expCats.GetByName(c.Request.Context(), "Ремонт"); cat != nil {
+	if cat, _ := h.expCats.GetByName(ctx, "Ремонт"); cat != nil {
 		catID = cat.ID
 	} else {
-		newCat := models.ExpenseCategory{Name: "Ремонт"}
-		catID, _ = h.expCats.Create(c.Request.Context(), &newCat)
+		newCat := models.ExpenseCategory{Name: "Ремонт", CompanyID: companyID, BranchID: branchID}
+		catID, _ = h.expCats.Create(ctx, &newCat)
 	}
 
 	exp := models.Expense{
@@ -51,7 +57,7 @@ func (h *RepairHandler) CreateRepair(c *gin.Context) {
 		CategoryID:       catID,
 		RepairCategoryID: rep.CategoryID,
 	}
-	_, _ = h.expenses.CreateExpense(c.Request.Context(), &exp)
+	_, _ = h.expenses.CreateExpense(ctx, &exp)
 
 	c.JSON(http.StatusCreated, rep)
 }
@@ -93,9 +99,13 @@ func (h *RepairHandler) UpdateRepair(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	oldRep, _ := h.service.GetRepairByID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	oldRep, _ := h.service.GetRepairByID(ctx, id)
 	rep.ID = id
-	err = h.service.UpdateRepair(c.Request.Context(), &rep)
+	err = h.service.UpdateRepair(ctx, &rep)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -103,15 +113,15 @@ func (h *RepairHandler) UpdateRepair(c *gin.Context) {
 
 	if oldRep != nil {
 		oldTitle := "Починка, номер VIN: " + oldRep.VIN
-		_ = h.expenses.DeleteByDetails(c.Request.Context(), oldTitle, oldRep.Description, oldRep.Price, oldRep.CategoryID)
+		_ = h.expenses.DeleteByDetails(ctx, oldTitle, oldRep.Description, oldRep.Price, oldRep.CategoryID)
 	}
 
 	var catID int
-	if cat, _ := h.expCats.GetByName(c.Request.Context(), "Ремонт"); cat != nil {
+	if cat, _ := h.expCats.GetByName(ctx, "Ремонт"); cat != nil {
 		catID = cat.ID
 	} else {
-		newCat := models.ExpenseCategory{Name: "Ремонт"}
-		catID, _ = h.expCats.Create(c.Request.Context(), &newCat)
+		newCat := models.ExpenseCategory{Name: "Ремонт", CompanyID: companyID, BranchID: branchID}
+		catID, _ = h.expCats.Create(ctx, &newCat)
 	}
 
 	exp := models.Expense{
@@ -123,7 +133,7 @@ func (h *RepairHandler) UpdateRepair(c *gin.Context) {
 		CategoryID:       catID,
 		RepairCategoryID: rep.CategoryID,
 	}
-	_, _ = h.expenses.CreateExpense(c.Request.Context(), &exp)
+	_, _ = h.expenses.CreateExpense(ctx, &exp)
 
 	c.JSON(http.StatusOK, rep)
 }

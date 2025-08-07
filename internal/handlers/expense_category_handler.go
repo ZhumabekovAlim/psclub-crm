@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
 )
@@ -23,7 +25,13 @@ func (h *ExpenseCategoryHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, err := h.service.Create(c.Request.Context(), &cat)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	cat.CompanyID = companyID
+	cat.BranchID = branchID
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	id, err := h.service.Create(ctx, &cat)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -33,7 +41,11 @@ func (h *ExpenseCategoryHandler) Create(c *gin.Context) {
 }
 
 func (h *ExpenseCategoryHandler) GetAll(c *gin.Context) {
-	cats, err := h.service.GetAll(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	cats, err := h.service.GetAll(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -52,8 +64,14 @@ func (h *ExpenseCategoryHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
 	cat.ID = id
-	if err := h.service.Update(c.Request.Context(), &cat); err != nil {
+	cat.CompanyID = companyID
+	cat.BranchID = branchID
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	if err := h.service.Update(ctx, &cat); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -66,7 +84,11 @@ func (h *ExpenseCategoryHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	if err := h.service.Delete(c.Request.Context(), id); err != nil {
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	if err := h.service.Delete(ctx, id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

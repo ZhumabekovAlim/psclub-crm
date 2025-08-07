@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
 )
@@ -18,7 +20,11 @@ func NewCashboxHandlerCashboxHandler(service *services.CashboxService) *CashboxH
 
 // GET /api/cashbox
 func (h *CashboxHandler) GetCashbox(c *gin.Context) {
-	box, err := h.service.GetCashbox(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	box, err := h.service.GetCashbox(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -33,7 +39,11 @@ func (h *CashboxHandler) UpdateCashbox(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err := h.service.UpdateCashbox(c.Request.Context(), &box)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	err := h.service.UpdateCashbox(ctx, &box)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -50,11 +60,15 @@ func (h *CashboxHandler) Inventory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
 	var err error
 	if req.Amount != nil {
-		err = h.service.InventoryAmount(c.Request.Context(), *req.Amount)
+		err = h.service.InventoryAmount(ctx, *req.Amount)
 	} else {
-		err = h.service.Inventory(c.Request.Context())
+		err = h.service.Inventory(ctx)
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -72,7 +86,11 @@ func (h *CashboxHandler) Replenish(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.service.Replenish(c.Request.Context(), req.Amount); err != nil {
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	if err := h.service.Replenish(ctx, req.Amount); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -81,7 +99,11 @@ func (h *CashboxHandler) Replenish(c *gin.Context) {
 
 // GET /api/cashbox/history
 func (h *CashboxHandler) GetHistory(c *gin.Context) {
-	list, err := h.service.GetHistory(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	list, err := h.service.GetHistory(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -91,7 +113,11 @@ func (h *CashboxHandler) GetHistory(c *gin.Context) {
 
 // GET /api/cashbox/day
 func (h *CashboxHandler) GetDay(c *gin.Context) {
-	start, list, err := h.service.GetDay(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	start, list, err := h.service.GetDay(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
