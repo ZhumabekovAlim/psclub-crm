@@ -30,7 +30,7 @@ func (r *BookingRepository) CreateWithItems(ctx context.Context, companyID, bran
 	}()
 
 	query := `INSERT INTO bookings (company_id, branch_id, client_id, table_id, user_id, start_time, end_time, note, discount, discount_reason, total_amount, bonus_used, payment_status, payment_type_id, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`
 
 	var clientID interface{}
 	if b.ClientID > 0 {
