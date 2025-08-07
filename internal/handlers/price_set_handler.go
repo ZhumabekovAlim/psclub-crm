@@ -29,6 +29,8 @@ func (h *PriceSetHandler) CreatePriceSet(c *gin.Context) {
 	branchID := c.GetInt("branch_id")
 	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
 	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	ps.CompanyID = companyID
+	ps.BranchID = branchID
 	id, err := h.service.CreatePriceSet(ctx, &ps)
 	if err != nil {
 		if err == services.ErrNameExists {
@@ -89,6 +91,8 @@ func (h *PriceSetHandler) UpdatePriceSet(c *gin.Context) {
 	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
 	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
 	ps.ID = id
+	ps.CompanyID = companyID
+	ps.BranchID = branchID
 	if err := h.service.UpdatePriceSet(ctx, &ps); err != nil {
 		if err == services.ErrNameExists {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})

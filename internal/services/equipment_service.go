@@ -18,22 +18,22 @@ func (s *EquipmentService) Create(ctx context.Context, e *models.Equipment) (int
 	return s.repo.Create(ctx, e)
 }
 
-func (s *EquipmentService) GetAll(ctx context.Context) ([]models.Equipment, error) {
-	return s.repo.GetAll(ctx)
+func (s *EquipmentService) GetAll(ctx context.Context, companyID, branchID int) ([]models.Equipment, error) {
+	return s.repo.GetAll(ctx, companyID, branchID)
 }
 
-func (s *EquipmentService) GetByID(ctx context.Context, id int) (*models.Equipment, error) {
-	return s.repo.GetByID(ctx, id)
+func (s *EquipmentService) GetByID(ctx context.Context, id, companyID, branchID int) (*models.Equipment, error) {
+	return s.repo.GetByID(ctx, id, companyID, branchID)
 }
 
 func (s *EquipmentService) Update(ctx context.Context, e *models.Equipment) error {
 	return s.repo.Update(ctx, e)
 }
 
-func (s *EquipmentService) Delete(ctx context.Context, id int) error {
-	return s.repo.Delete(ctx, id)
+func (s *EquipmentService) Delete(ctx context.Context, id, companyID, branchID int) error {
+	return s.repo.Delete(ctx, id, companyID, branchID)
 }
 
-func (s *EquipmentService) SetQuantity(ctx context.Context, id int, qty float64) error {
-	return s.repo.SetQuantity(ctx, id, qty)
+func (s *EquipmentService) SetQuantity(ctx context.Context, id int, qty float64, companyID, branchID int) error {
+	return s.repo.SetQuantity(ctx, id, qty, companyID, branchID)
 }

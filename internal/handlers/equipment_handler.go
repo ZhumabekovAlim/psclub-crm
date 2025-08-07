@@ -23,6 +23,8 @@ func (h *EquipmentHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	eq.CompanyID = c.GetInt("company_id")
+	eq.BranchID = c.GetInt("branch_id")
 	id, err := h.service.Create(c.Request.Context(), &eq)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -33,7 +35,9 @@ func (h *EquipmentHandler) Create(c *gin.Context) {
 }
 
 func (h *EquipmentHandler) GetAll(c *gin.Context) {
-	list, err := h.service.GetAll(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	list, err := h.service.GetAll(c.Request.Context(), companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -47,7 +51,9 @@ func (h *EquipmentHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	eq, err := h.service.GetByID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	eq, err := h.service.GetByID(c.Request.Context(), id, companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -67,6 +73,8 @@ func (h *EquipmentHandler) Update(c *gin.Context) {
 		return
 	}
 	eq.ID = id
+	eq.CompanyID = c.GetInt("company_id")
+	eq.BranchID = c.GetInt("branch_id")
 	if err := h.service.Update(c.Request.Context(), &eq); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -80,7 +88,9 @@ func (h *EquipmentHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	if err := h.service.Delete(c.Request.Context(), id); err != nil {
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	if err := h.service.Delete(c.Request.Context(), id, companyID, branchID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -95,7 +105,9 @@ func (h *EquipmentHandler) PerformInventory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.inventoryServ.PerformInventory(c.Request.Context(), req.Items); err != nil {
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	if err := h.inventoryServ.PerformInventory(c.Request.Context(), req.Items, companyID, branchID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -103,7 +115,9 @@ func (h *EquipmentHandler) PerformInventory(c *gin.Context) {
 }
 
 func (h *EquipmentHandler) GetHistory(c *gin.Context) {
-	list, err := h.inventoryServ.GetHistory(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	list, err := h.inventoryServ.GetHistory(c.Request.Context(), companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -15,7 +15,7 @@ func NewEquipmentRepository(db *sql.DB) *EquipmentRepository {
 }
 
 func (r *EquipmentRepository) Create(ctx context.Context, e *models.Equipment) (int, error) {
-	res, err := r.db.ExecContext(ctx, `INSERT INTO equipment (name, quantity, description) VALUES (?, ?, ?)`, e.Name, e.Quantity, e.Description)
+	res, err := r.db.ExecContext(ctx, `INSERT INTO equipment (name, quantity, description, company_id, branch_id) VALUES (?, ?, ?, ?, ?)`, e.Name, e.Quantity, e.Description, e.CompanyID, e.BranchID)
 	if err != nil {
 		return 0, err
 	}
@@ -23,8 +23,8 @@ func (r *EquipmentRepository) Create(ctx context.Context, e *models.Equipment) (
 	return int(id), err
 }
 
-func (r *EquipmentRepository) GetAll(ctx context.Context) ([]models.Equipment, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, name, quantity, IFNULL(description,'') FROM equipment ORDER BY id`)
+func (r *EquipmentRepository) GetAll(ctx context.Context, companyID, branchID int) ([]models.Equipment, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT id, name, quantity, IFNULL(description,''), company_id, branch_id FROM equipment WHERE company_id=? AND branch_id=? ORDER BY id`, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (r *EquipmentRepository) GetAll(ctx context.Context) ([]models.Equipment, e
 	var list []models.Equipment
 	for rows.Next() {
 		var e models.Equipment
-		if err := rows.Scan(&e.ID, &e.Name, &e.Quantity, &e.Description); err != nil {
+		if err := rows.Scan(&e.ID, &e.Name, &e.Quantity, &e.Description, &e.CompanyID, &e.BranchID); err != nil {
 			return nil, err
 		}
 		list = append(list, e)
@@ -40,9 +40,9 @@ func (r *EquipmentRepository) GetAll(ctx context.Context) ([]models.Equipment, e
 	return list, nil
 }
 
-func (r *EquipmentRepository) GetByID(ctx context.Context, id int) (*models.Equipment, error) {
+func (r *EquipmentRepository) GetByID(ctx context.Context, id, companyID, branchID int) (*models.Equipment, error) {
 	var e models.Equipment
-	err := r.db.QueryRowContext(ctx, `SELECT id, name, quantity, IFNULL(description,'') FROM equipment WHERE id=?`, id).Scan(&e.ID, &e.Name, &e.Quantity, &e.Description)
+	err := r.db.QueryRowContext(ctx, `SELECT id, name, quantity, IFNULL(description,''), company_id, branch_id FROM equipment WHERE id=? AND company_id=? AND branch_id=?`, id, companyID, branchID).Scan(&e.ID, &e.Name, &e.Quantity, &e.Description, &e.CompanyID, &e.BranchID)
 	if err != nil {
 		return nil, err
 	}
@@ -50,16 +50,16 @@ func (r *EquipmentRepository) GetByID(ctx context.Context, id int) (*models.Equi
 }
 
 func (r *EquipmentRepository) Update(ctx context.Context, e *models.Equipment) error {
-	_, err := r.db.ExecContext(ctx, `UPDATE equipment SET name=?,  description=? WHERE id=?`, e.Name, e.Description, e.ID)
+	_, err := r.db.ExecContext(ctx, `UPDATE equipment SET name=?,  description=? WHERE id=? AND company_id=? AND branch_id=?`, e.Name, e.Description, e.ID, e.CompanyID, e.BranchID)
 	return err
 }
 
-func (r *EquipmentRepository) Delete(ctx context.Context, id int) error {
-	_, err := r.db.ExecContext(ctx, `DELETE FROM equipment WHERE id=?`, id)
+func (r *EquipmentRepository) Delete(ctx context.Context, id, companyID, branchID int) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM equipment WHERE id=? AND company_id=? AND branch_id=?`, id, companyID, branchID)
 	return err
 }
 
-func (r *EquipmentRepository) SetQuantity(ctx context.Context, id int, qty float64) error {
-	_, err := r.db.ExecContext(ctx, `UPDATE equipment SET quantity=? WHERE id=?`, qty, id)
+func (r *EquipmentRepository) SetQuantity(ctx context.Context, id int, qty float64, companyID, branchID int) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE equipment SET quantity=? WHERE id=? AND company_id=? AND branch_id=?`, qty, id, companyID, branchID)
 	return err
 }
