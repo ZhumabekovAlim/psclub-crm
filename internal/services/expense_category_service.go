@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/repositories"
 )
@@ -15,6 +16,13 @@ func NewExpenseCategoryService(r *repositories.ExpenseCategoryRepository) *Expen
 }
 
 func (s *ExpenseCategoryService) Create(ctx context.Context, c *models.ExpenseCategory) (int, error) {
+	ex, err := s.repo.GetByName(ctx, c.Name)
+	if err != nil {
+		return 0, err
+	}
+	if ex != nil {
+		return 0, ErrNameExists
+	}
 	return s.repo.Create(ctx, c)
 }
 
@@ -23,6 +31,13 @@ func (s *ExpenseCategoryService) GetAll(ctx context.Context) ([]models.ExpenseCa
 }
 
 func (s *ExpenseCategoryService) Update(ctx context.Context, c *models.ExpenseCategory) error {
+	ex, err := s.repo.GetByName(ctx, c.Name)
+	if err != nil {
+		return err
+	}
+	if ex != nil && ex.ID != c.ID {
+		return ErrNameExists
+	}
 	return s.repo.Update(ctx, c)
 }
 

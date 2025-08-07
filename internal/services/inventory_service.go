@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/repositories"
 )
@@ -27,11 +28,13 @@ func NewInventoryService(pr *repositories.PriceItemRepository, hr *repositories.
 }
 
 func (s *InventoryService) PerformInventory(ctx context.Context, items []InventoryItem) error {
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
 	var catID int
 	if cat, _ := s.expCatSvc.GetByName(ctx, "Инвентаризация"); cat != nil {
 		catID = cat.ID
 	} else {
-		newCat := models.ExpenseCategory{Name: "Инвентаризация"}
+		newCat := models.ExpenseCategory{Name: "Инвентаризация", CompanyID: companyID, BranchID: branchID}
 		catID, _ = s.expCatSvc.Create(ctx, &newCat)
 	}
 	for _, it := range items {

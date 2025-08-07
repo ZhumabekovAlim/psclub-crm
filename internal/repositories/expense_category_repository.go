@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"database/sql"
+
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 )
 
@@ -15,7 +17,9 @@ func NewExpenseCategoryRepository(db *sql.DB) *ExpenseCategoryRepository {
 }
 
 func (r *ExpenseCategoryRepository) Create(ctx context.Context, c *models.ExpenseCategory) (int, error) {
-	res, err := r.db.ExecContext(ctx, `INSERT INTO expense_categories (name) VALUES (?)`, c.Name)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	res, err := r.db.ExecContext(ctx, `INSERT INTO expense_categories (name, company_id, branch_id) VALUES (?, ?, ?)`, c.Name, companyID, branchID)
 	if err != nil {
 		return 0, err
 	}
@@ -24,7 +28,9 @@ func (r *ExpenseCategoryRepository) Create(ctx context.Context, c *models.Expens
 }
 
 func (r *ExpenseCategoryRepository) GetAll(ctx context.Context) ([]models.ExpenseCategory, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, name FROM expense_categories ORDER BY id`)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	rows, err := r.db.QueryContext(ctx, `SELECT id, name, company_id, branch_id FROM expense_categories WHERE company_id=? AND branch_id=? ORDER BY id`, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +38,7 @@ func (r *ExpenseCategoryRepository) GetAll(ctx context.Context) ([]models.Expens
 	var list []models.ExpenseCategory
 	for rows.Next() {
 		var c models.ExpenseCategory
-		if err := rows.Scan(&c.ID, &c.Name); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.CompanyID, &c.BranchID); err != nil {
 			return nil, err
 		}
 		list = append(list, c)
@@ -41,19 +47,25 @@ func (r *ExpenseCategoryRepository) GetAll(ctx context.Context) ([]models.Expens
 }
 
 func (r *ExpenseCategoryRepository) Update(ctx context.Context, c *models.ExpenseCategory) error {
-	_, err := r.db.ExecContext(ctx, `UPDATE expense_categories SET name=? WHERE id=?`, c.Name, c.ID)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	_, err := r.db.ExecContext(ctx, `UPDATE expense_categories SET name=? WHERE id=? AND company_id=? AND branch_id=?`, c.Name, c.ID, companyID, branchID)
 	return err
 }
 
 func (r *ExpenseCategoryRepository) Delete(ctx context.Context, id int) error {
-	_, err := r.db.ExecContext(ctx, `DELETE FROM expense_categories WHERE id=?`, id)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	_, err := r.db.ExecContext(ctx, `DELETE FROM expense_categories WHERE id=? AND company_id=? AND branch_id=?`, id, companyID, branchID)
 	return err
 }
 
 func (r *ExpenseCategoryRepository) GetByName(ctx context.Context, name string) (*models.ExpenseCategory, error) {
-	query := `SELECT id, name FROM expense_categories WHERE name = ?`
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	query := `SELECT id, name, company_id, branch_id FROM expense_categories WHERE name = ? AND company_id=? AND branch_id=?`
 	var c models.ExpenseCategory
-	err := r.db.QueryRowContext(ctx, query, name).Scan(&c.ID, &c.Name)
+	err := r.db.QueryRowContext(ctx, query, name, companyID, branchID).Scan(&c.ID, &c.Name, &c.CompanyID, &c.BranchID)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

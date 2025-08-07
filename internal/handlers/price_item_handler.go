@@ -296,11 +296,11 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 	cat, _ := h.categories.GetCategoryByID(c.Request.Context(), item.CategoryID, companyID, branchID)
 	var expCatID int
 	if cat != nil {
-		if ec, _ := h.expCats.GetByName(c.Request.Context(), cat.Name); ec != nil {
+		if ec, _ := h.expCats.GetByName(ctx, cat.Name); ec != nil {
 			expCatID = ec.ID
 		} else {
-			newCat := models.ExpenseCategory{Name: cat.Name}
-			expCatID, _ = h.expCats.Create(c.Request.Context(), &newCat)
+			newCat := models.ExpenseCategory{Name: cat.Name, CompanyID: companyID, BranchID: branchID}
+			expCatID, _ = h.expCats.Create(ctx, &newCat)
 		}
 	}
 
@@ -312,7 +312,7 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 		CategoryID:  expCatID,
 		Description: "Пополнение товара " + item.Name + " в количестве " + strconv.FormatFloat(in.Quantity, 'f', -1, 64) + " шт.",
 	}
-	_, _ = h.expenses.CreateExpense(c.Request.Context(), &exp)
+	_, _ = h.expenses.CreateExpense(ctx, &exp)
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }

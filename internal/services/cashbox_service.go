@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/repositories"
 )
@@ -118,11 +119,13 @@ func (s *CashboxService) Replenish(ctx context.Context, amount float64) error {
 		return err
 	}
 
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
 	var catID int
 	if cat, _ := s.expCatSvc.GetByName(ctx, "Касса"); cat != nil {
 		catID = cat.ID
 	} else {
-		newCat := models.ExpenseCategory{Name: "Касса"}
+		newCat := models.ExpenseCategory{Name: "Касса", CompanyID: companyID, BranchID: branchID}
 		catID, _ = s.expCatSvc.Create(ctx, &newCat)
 	}
 	exp := models.Expense{
