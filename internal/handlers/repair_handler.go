@@ -64,7 +64,11 @@ func (h *RepairHandler) CreateRepair(c *gin.Context) {
 
 // GET /api/repairs
 func (h *RepairHandler) GetAllRepairs(c *gin.Context) {
-	repairs, err := h.service.GetAllRepairs(c.Request.Context())
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	repairs, err := h.service.GetAllRepairs(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -79,7 +83,11 @@ func (h *RepairHandler) GetRepairByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	rep, err := h.service.GetRepairByID(c.Request.Context(), id)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	rep, err := h.service.GetRepairByID(ctx, id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
