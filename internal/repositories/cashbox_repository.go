@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"database/sql"
+
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 )
 
@@ -15,9 +17,11 @@ func NewCashboxRepository(db *sql.DB) *CashboxRepository {
 }
 
 func (r *CashboxRepository) Get(ctx context.Context) (*models.Cashbox, error) {
-	query := `SELECT id, amount FROM cashbox LIMIT 1`
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	query := `SELECT id, amount FROM cashbox WHERE company_id=? AND branch_id=? LIMIT 1`
 	var c models.Cashbox
-	err := r.db.QueryRowContext(ctx, query).Scan(&c.ID, &c.Amount)
+	err := r.db.QueryRowContext(ctx, query, companyID, branchID).Scan(&c.ID, &c.Amount)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +29,9 @@ func (r *CashboxRepository) Get(ctx context.Context) (*models.Cashbox, error) {
 }
 
 func (r *CashboxRepository) Update(ctx context.Context, c *models.Cashbox) error {
-	query := `UPDATE cashbox SET amount=? WHERE id=?`
-	_, err := r.db.ExecContext(ctx, query, c.Amount, c.ID)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	query := `UPDATE cashbox SET amount=? WHERE id=? AND company_id=? AND branch_id=?`
+	_, err := r.db.ExecContext(ctx, query, c.Amount, c.ID, companyID, branchID)
 	return err
 }
