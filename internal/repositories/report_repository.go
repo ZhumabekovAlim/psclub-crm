@@ -876,7 +876,7 @@ func (r *ReportRepository) TablesReport(ctx context.Context, from, to time.Time,
 		cond, condArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
 		cond = "b.company_id=? AND b.branch_id=? AND b.table_id=? AND " + cond + " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 		args := append([]interface{}{companyID, branchID, tID}, condArgs...)
-		query := fmt.Sprintf(`SELECT COALESCE(SUM(b.total_amount),0), COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0), COUNT(DISTINCT b.client_id) + SUM(CASE WHEN b.client_id IS NULL THEN 1 ELSE 0 END), COALESCE(ROUND(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))),0), COUNT(*) FROM bookings b LEFT JOIN payment_types pt ON b.payment_type_id = pt.id WHERE %s`, cond)
+		query := fmt.Sprintf(`SELECT COALESCE(SUM(b.total_amount),0), COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0), COALESCE(COUNT(DISTINCT b.client_id) + SUM(CASE WHEN b.client_id IS NULL THEN 1 ELSE 0 END),0), COALESCE(ROUND(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))),0), COUNT(*) FROM bookings b LEFT JOIN payment_types pt ON b.payment_type_id = pt.id WHERE %s`, cond)
 		if userID > 0 {
 			query += " AND b.user_id = ?"
 			args = append(args, userID)
