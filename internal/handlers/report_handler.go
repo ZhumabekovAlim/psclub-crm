@@ -81,6 +81,19 @@ func (h *ReportHandler) GetDiscountsReport(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 
+func (h *ReportHandler) GetTablesReport(c *gin.Context) {
+	from, to, tFrom, tTo := getPeriod(c)
+	userID := getUserID(c)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	data, err := h.service.TablesReport(c.Request.Context(), from, to, tFrom, tTo, userID, companyID, branchID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
 func getPeriod(c *gin.Context) (from, to time.Time, tFrom, tTo string) {
 	layoutDate := "2006-01-02"
 	fromStr := c.DefaultQuery("from", time.Now().AddDate(0, 0, -7).Format(layoutDate))

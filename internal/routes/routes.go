@@ -257,6 +257,7 @@ func SetupRoutes(
 		reports.GET("/admins", reportHandler.GetAdminsReport)
 		reports.GET("/sales", reportHandler.GetSalesReport)
 		reports.GET("/analytics", reportHandler.GetAnalyticsReport)
+		reports.GET("/tables", reportHandler.GetTablesReport)
 		reports.GET("/discounts", reportHandler.GetDiscountsReport)
 	}
 }
