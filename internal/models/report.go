@@ -120,3 +120,15 @@ type ChannelStat struct {
 	Channel string `json:"channel"`
 	Clients int    `json:"clients"`
 }
+
+type TableReport struct {
+	TableID           int              `json:"table_id"`
+	TableName         string           `json:"table_name"`
+	Total             float64          `json:"total"`
+	TotalRevenue      float64          `json:"total_revenue"`
+	AvgCheck          float64          `json:"avg_check"`
+	LoadPercent       float64          `json:"load_percent"`
+	Visits            float64          `json:"visits"`
+	PaymentTypeIncome []CategoryIncome `json:"income_by_payment_type"`
+	TotalCost         float64          `json:"total_cost"`
+}

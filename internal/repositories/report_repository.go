@@ -843,3 +843,112 @@ func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Ti
 		Orders:            orders,
 	}, nil
 }
+
+func (r *ReportRepository) TablesReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID, companyID, branchID int) ([]models.TableReport, error) {
+	var workFrom, workTo string
+	_ = r.db.QueryRowContext(ctx, `SELECT work_time_from, work_time_to FROM settings WHERE company_id=? AND branch_id=? LIMIT 1`, companyID, branchID).Scan(&workFrom, &workTo)
+	wf, _ := time.Parse("15:04:05", workFrom)
+	wt, _ := time.Parse("15:04:05", workTo)
+	hours := wt.Sub(wf).Hours()
+	if hours < 0 {
+		hours += 24
+	}
+	days := int(to.Sub(from).Hours()/24 + 0.5)
+	if days <= 0 {
+		days = 1
+	}
+	capacity := hours * float64(days)
+
+	tableRows, err := r.db.QueryContext(ctx, `SELECT id, name FROM tables WHERE company_id=? AND branch_id=?`, companyID, branchID)
+	if err != nil {
+		return nil, err
+	}
+	defer tableRows.Close()
+
+	var result []models.TableReport
+	for tableRows.Next() {
+		var tID int
+		var tName string
+		if err := tableRows.Scan(&tID, &tName); err != nil {
+			return nil, err
+		}
+
+		cond, condArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+		cond = "b.company_id=? AND b.branch_id=? AND b.table_id=? AND " + cond + " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
+		args := append([]interface{}{companyID, branchID, tID}, condArgs...)
+		query := fmt.Sprintf(`SELECT COALESCE(SUM(b.total_amount),0), COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0), COUNT(DISTINCT b.client_id) + SUM(CASE WHEN b.client_id IS NULL THEN 1 ELSE 0 END), COALESCE(ROUND(AVG(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))),0), COUNT(*) FROM bookings b LEFT JOIN payment_types pt ON b.payment_type_id = pt.id WHERE %s`, cond)
+		if userID > 0 {
+			query += " AND b.user_id = ?"
+			args = append(args, userID)
+		}
+		var total, totalRev, clients, avgCheck float64
+		var bookingsCount int
+		if err := r.db.QueryRowContext(ctx, query, args...).Scan(&total, &totalRev, &clients, &avgCheck, &bookingsCount); err != nil {
+			return nil, err
+		}
+		loadPercent := 0.0
+		if capacity > 0 {
+			loadPercent = float64(bookingsCount) * 100 / capacity
+		}
+
+		condCost, costArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+		condCost = "b.company_id=? AND b.branch_id=? AND b.table_id=? AND " + condCost + " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
+		costArgs = append([]interface{}{companyID, branchID, tID}, costArgs...)
+		costQuery := fmt.Sprintf(`SELECT COALESCE(SUM(
+            bi.price * (1 - bi.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100) -
+            bi.quantity * pi.buy_price
+        ),0)
+        FROM booking_items bi
+        LEFT JOIN bookings b ON bi.booking_id = b.id
+        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+        LEFT JOIN price_items pi ON bi.item_id = pi.id
+        LEFT JOIN categories c ON pi.category_id = c.id
+        WHERE %s AND (c.name = 'Бар' OR c.name = 'Кальян')`, condCost)
+		if userID > 0 {
+			costQuery += " AND b.user_id = ?"
+			costArgs = append(costArgs, userID)
+		}
+		var totalCost float64
+		_ = r.db.QueryRowContext(ctx, costQuery, costArgs...).Scan(&totalCost)
+
+		condPay, payArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+		condPay = "b.company_id=? AND b.branch_id=? AND b.table_id=? AND " + condPay + " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
+		payArgs = append([]interface{}{companyID, branchID, tID}, payArgs...)
+		payQuery := fmt.Sprintf(`SELECT IFNULL(pt.name,''), COALESCE(SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100)),0)
+            FROM bookings b
+            LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+            WHERE %s`, condPay)
+		if userID > 0 {
+			payQuery += " AND b.user_id = ?"
+			payArgs = append(payArgs, userID)
+		}
+		payQuery += " GROUP BY IFNULL(pt.name,'')"
+		payRows, _ := r.db.QueryContext(ctx, payQuery, payArgs...)
+		var payStats []models.CategoryIncome
+		for payRows.Next() {
+			var name sql.NullString
+			var amt float64
+			payRows.Scan(&name, &amt)
+			n := name.String
+			if !name.Valid {
+				n = ""
+			}
+			payStats = append(payStats, models.CategoryIncome{Category: n, Total: amt})
+		}
+		payRows.Close()
+
+		result = append(result, models.TableReport{
+			TableID:           tID,
+			TableName:         tName,
+			Total:             total,
+			TotalRevenue:      totalRev,
+			AvgCheck:          avgCheck,
+			LoadPercent:       loadPercent,
+			Visits:            clients,
+			PaymentTypeIncome: payStats,
+			TotalCost:         totalCost,
+		})
+	}
+
+	return result, nil
+}

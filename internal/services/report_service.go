@@ -30,3 +30,7 @@ func (s *ReportService) AnalyticsReport(ctx context.Context, from, to time.Time,
 func (s *ReportService) DiscountsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID, companyID, branchID int) (*models.DiscountsReport, error) {
 	return s.repo.DiscountsReport(ctx, from, to, tFrom, tTo, userID, companyID, branchID)
 }
+
+func (s *ReportService) TablesReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID, companyID, branchID int) ([]models.TableReport, error) {
+	return s.repo.TablesReport(ctx, from, to, tFrom, tTo, userID, companyID, branchID)
+}
