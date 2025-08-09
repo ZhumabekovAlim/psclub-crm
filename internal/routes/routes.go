@@ -9,6 +9,7 @@ import (
 func SetupRoutes(
 	r *gin.Engine,
 	authHandler *handlers.AuthHandler,
+	companyHandler *handlers.CompanyHandler,
 	clientHandler *handlers.ClientHandler,
 	channelHandler *handlers.ChannelHandler,
 	userHandler *handlers.UserHandler,
@@ -40,6 +41,11 @@ func SetupRoutes(
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/refresh", authHandler.Refresh)
+	}
+
+	companies := api.Group("/companies")
+	{
+		companies.POST("", companyHandler.Create)
 	}
 
 	api.Use(middleware.Auth(authSecret))
