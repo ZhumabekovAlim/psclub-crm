@@ -159,6 +159,20 @@ func Run() {
 	reportService := services.NewReportService(reportRepo)
 	reportHandler := handlers.NewReportHandler(reportService)
 
+	// Компании
+	companyRepo := repositories.NewCompanyRepository(db)
+	companyService := services.NewCompanyService(
+		companyRepo,
+		channelRepo,
+		tableCategoryRepo,
+		tableRepo,
+		categoryRepo,
+		paymentTypeRepo,
+		settingsRepo,
+		expCatRepo,
+	)
+	companyHandler := handlers.NewCompanyHandler(companyService)
+
 	// ========== Роутер и middlewares ==========
 	router := gin.New()
 	router.Use(middleware.RequestLogger())
@@ -167,6 +181,7 @@ func Run() {
 	routes.SetupRoutes(
 		router,
 		authHandler,
+		companyHandler,
 		clientHandler,
 		channelHandler,
 		userHandler,
