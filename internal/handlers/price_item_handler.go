@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -62,17 +63,20 @@ func (h *PriceItemHandler) GetAllPriceItems(c *gin.Context) {
 	c.JSON(http.StatusOK, items)
 }
 
-func (h *PriceItemHandler) GetPriceItemsByCategory(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+func (h *PriceItemHandler) GetPriceItemsByCategoryName(c *gin.Context) {
+	name := strings.TrimSpace(c.Param("name"))
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "category name required"})
 		return
 	}
+
 	companyID := c.GetInt("company_id")
 	branchID := c.GetInt("branch_id")
+
 	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
 	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
-	items, err := h.service.GetPriceItemsByCategory(ctx, id)
+
+	items, err := h.service.GetPriceItemsByCategoryName(ctx, name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

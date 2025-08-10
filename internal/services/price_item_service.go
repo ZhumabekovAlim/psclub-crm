@@ -51,8 +51,8 @@ func (s *PriceItemService) DeletePriceItem(ctx context.Context, id int) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *PriceItemService) GetPriceItemsByCategory(ctx context.Context, categoryID int) ([]models.PriceItem, error) {
-	return s.repo.GetByCategory(ctx, categoryID)
+func (s *PriceItemService) GetPriceItemsByCategoryName(ctx context.Context, categoryName string) ([]models.PriceItem, error) {
+	return s.repo.GetByCategoryName(ctx, categoryName)
 }
 
 // Приход товара на склад — создаёт запись в истории и увеличивает остаток

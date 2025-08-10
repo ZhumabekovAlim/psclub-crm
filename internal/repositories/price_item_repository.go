@@ -126,15 +126,21 @@ func (r *PriceItemRepository) SetStock(ctx context.Context, id int, quantity flo
 	return err
 }
 
-func (r *PriceItemRepository) GetByCategory(ctx context.Context, categoryID int) ([]models.PriceItem, error) {
+func (r *PriceItemRepository) GetByCategoryName(ctx context.Context, categoryName string) ([]models.PriceItem, error) {
 	companyID := ctx.Value(common.CtxCompanyID).(int)
 	branchID := ctx.Value(common.CtxBranchID).(int)
-	query := `SELECT pi.id, pi.name, pi.category_id, subcategory_id, quantity, sale_price, buy_price, is_set, s.name AS subcategory_name, pi.company_id, pi.branch_id
-               FROM price_items pi
-               JOIN subcategories s ON pi.subcategory_id = s.id
-               WHERE pi.category_id = ? AND pi.company_id = ? AND pi.branch_id = ? ORDER BY id`
 
-	rows, err := r.db.QueryContext(ctx, query, categoryID, companyID, branchID)
+	query := `
+        SELECT pi.id, pi.name, pi.category_id, pi.subcategory_id, pi.quantity,
+               pi.sale_price, pi.buy_price, pi.is_set, s.name AS subcategory_name,
+               pi.company_id, pi.branch_id
+        FROM price_items pi
+        JOIN categories c   ON c.id = pi.category_id
+        JOIN subcategories s ON s.id = pi.subcategory_id
+        WHERE c.name = ? AND pi.company_id = ? AND pi.branch_id = ?
+        ORDER BY pi.id
+    `
+	rows, err := r.db.QueryContext(ctx, query, categoryName, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -143,16 +149,11 @@ func (r *PriceItemRepository) GetByCategory(ctx context.Context, categoryID int)
 	var list []models.PriceItem
 	for rows.Next() {
 		var p models.PriceItem
-
-		if err := rows.Scan(&p.ID, &p.Name, &p.CategoryID, &p.SubcategoryID, &p.Quantity, &p.SalePrice, &p.BuyPrice, &p.IsSet, &p.SubcategoryName, &p.CompanyID, &p.BranchID); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.CategoryID, &p.SubcategoryID, &p.Quantity,
+			&p.SalePrice, &p.BuyPrice, &p.IsSet, &p.SubcategoryName, &p.CompanyID, &p.BranchID); err != nil {
 			return nil, err
 		}
 		list = append(list, p)
 	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return list, nil
+	return list, rows.Err()
 }
