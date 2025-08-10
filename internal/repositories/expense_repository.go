@@ -30,16 +30,16 @@ func (r *ExpenseRepository) Create(ctx context.Context, e *models.Expense) (int,
 	return int(id), err
 }
 
-func (r *ExpenseRepository) GetAll(ctx context.Context, from, to time.Time) ([]models.Expense, error) {
+func (r *ExpenseRepository) GetAll(ctx context.Context) ([]models.Expense, error) {
 	companyID := ctx.Value(common.CtxCompanyID).(int)
 	branchID := ctx.Value(common.CtxBranchID).(int)
 	query := `SELECT e.id, e.date, e.title, IFNULL(e.category_id, 0), IFNULL(ec.name, ''), IFNULL(e.repair_category_id, 0), IFNULL(rc.name,''), e.total, e.description, e.paid, e.created_at, e.company_id, e.branch_id
                 FROM expenses e
                 LEFT JOIN expense_categories ec ON e.category_id = ec.id
                 LEFT JOIN repair_categories rc ON e.repair_category_id = rc.id
-                WHERE e.company_id=? AND e.branch_id=? AND DATE(e.date) BETWEEN ? AND ?
+                WHERE e.company_id=? AND e.branch_id=?
                 ORDER BY e.id DESC`
-	rows, err := r.db.QueryContext(ctx, query, companyID, branchID, from, to)
+	rows, err := r.db.QueryContext(ctx, query, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}

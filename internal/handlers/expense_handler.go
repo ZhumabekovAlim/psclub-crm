@@ -47,8 +47,8 @@ func (h *ExpenseHandler) GetAllExpenses(c *gin.Context) {
 	branchID := c.GetInt("branch_id")
 	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
 	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
-	from, to, _, _ := getPeriod(c)
-	expenses, err := h.service.GetAllExpenses(ctx, from, to)
+
+	expenses, err := h.service.GetAllExpenses(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
