@@ -3,8 +3,6 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"time"
-
 	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 )
