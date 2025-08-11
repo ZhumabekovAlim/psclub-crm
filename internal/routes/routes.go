@@ -171,7 +171,7 @@ func SetupRoutes(
 		plHistory.POST("", pricelistHistoryHandler.Create)
 		plHistory.GET("", pricelistHistoryHandler.GetAll)
 		plHistory.GET("/item/:id", pricelistHistoryHandler.GetByItem)
-		plHistory.GET("/category/:id", pricelistHistoryHandler.GetByCategory)
+		plHistory.GET("/category/name/:name", pricelistHistoryHandler.GetByCategoryName)
 		plHistory.DELETE("/:id", pricelistHistoryHandler.Delete)
 
 	}

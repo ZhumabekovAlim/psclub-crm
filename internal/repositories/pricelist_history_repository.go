@@ -115,3 +115,28 @@ func (r *PricelistHistoryRepository) GetByCategory(ctx context.Context, category
 	}
 	return result, nil
 }
+
+func (r *PricelistHistoryRepository) GetByCategoryName(ctx context.Context, categoryName string) ([]models.PricelistHistory, error) {
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	query := `SELECT ph.id, pi.name, ph.price_item_id, ph.quantity, ph.buy_price, ph.total, ph.user_id, ph.company_id, ph.branch_id, ph.created_at, u.name AS user_name
+              FROM pricelist_history ph
+              JOIN price_items pi ON ph.price_item_id = pi.id
+              JOIN categories c ON c.id = pi.category_id
+              JOIN users u ON ph.user_id = u.id
+              WHERE c.name = ? AND ph.company_id=? AND ph.branch_id=? ORDER BY ph.id DESC`
+	rows, err := r.db.QueryContext(ctx, query, categoryName, companyID, branchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []models.PricelistHistory
+	for rows.Next() {
+		var h models.PricelistHistory
+		if err := rows.Scan(&h.ID, &h.ItemName, &h.PriceItemID, &h.Quantity, &h.BuyPrice, &h.Total, &h.UserID, &h.CompanyID, &h.BranchID, &h.CreatedAt, &h.UserName); err != nil {
+			return nil, err
+		}
+		result = append(result, h)
+	}
+	return result, nil
+}
