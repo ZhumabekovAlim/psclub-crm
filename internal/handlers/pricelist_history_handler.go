@@ -75,17 +75,17 @@ func (h *PricelistHistoryHandler) GetByItem(c *gin.Context) {
 	c.JSON(http.StatusOK, history)
 }
 
-func (h *PricelistHistoryHandler) GetByCategory(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+func (h *PricelistHistoryHandler) GetByCategoryName(c *gin.Context) {
+	name := c.Param("name")
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid name"})
 		return
 	}
 	companyID := c.GetInt("company_id")
 	branchID := c.GetInt("branch_id")
 	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
 	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
-	history, err := h.service.GetPricelistHistoryByCategory(ctx, id)
+	history, err := h.service.GetPricelistHistoryByCategoryName(ctx, name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
