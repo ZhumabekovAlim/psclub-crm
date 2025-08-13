@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 	"psclub-crm/internal/services"
 )
@@ -23,7 +25,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	access, refresh, err := h.service.Register(c.Request.Context(), &u)
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	u.CompanyID = companyID
+	u.BranchID = branchID
+	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
+	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
+	access, refresh, err := h.service.Register(ctx, &u)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
