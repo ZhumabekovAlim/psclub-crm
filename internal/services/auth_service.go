@@ -119,6 +119,9 @@ func (s *AuthService) generateTokenPair(ctx context.Context, u *models.User) (st
 	}
 	hash := s.hashToken(refreshRaw)
 	exp := time.Now().Add(s.refreshTTL)
+	if err := s.tokenRepo.DeleteByUser(ctx, u.ID); err != nil {
+		return "", "", err
+	}
 	if err := s.tokenRepo.Save(ctx, u.ID, hash, exp); err != nil {
 		return "", "", err
 	}
