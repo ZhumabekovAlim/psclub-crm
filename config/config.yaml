@@ -7,5 +7,5 @@ database:
 auth:
   access_secret: "accesssecret"
   refresh_secret: "refreshsecret"
-  access_ttl: 900
-  refresh_ttl: 604800
+  access_ttl: 43200
+  refresh_ttl: 2419200

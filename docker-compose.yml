@@ -47,12 +47,15 @@ services:
     environment:
       DSN: ${DSN}
       APP_PORT: ${APP_PORT}
+      TZ: Asia/Almaty
     ports:
       - "${APP_PORT}:4000"
     command: ["./wait-for-mysql.sh", "./app"]
     volumes:
       - ./config:/app/config
       - ./wait-for-mysql.sh:/app/wait-for-mysql.sh
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     networks:
       - psclubnet
 
