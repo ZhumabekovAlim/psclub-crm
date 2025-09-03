@@ -605,12 +605,15 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 	}
 
 	// Income by payment type
+	payCond, payArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+	payCond = "b.company_id=? AND b.branch_id=? AND " + payCond + " AND b.payment_status <> 'UNPAID'"
 	payQuery := fmt.Sprintf(`
-        SELECT IFNULL(pt.name,''), SUM(b.total_amount * (1 - IFNULL(pt.hold_percent,0)/100))
-        FROM bookings b
-        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
-        WHERE %s`, condCat2)
-	payArgs := append([]interface{}{}, catArgs2...)
+       SELECT IFNULL(pt.name,''), SUM(bp.amount * (1 - IFNULL(pt.hold_percent,0)/100))
+       FROM bookings b
+       LEFT JOIN booking_payments bp ON b.id = bp.booking_id AND b.company_id = bp.company_id AND b.branch_id = bp.branch_id
+       LEFT JOIN payment_types pt ON bp.payment_type_id = pt.id
+       WHERE %s AND bp.payment_type_id <> 0`, payCond)
+	payArgs = append([]interface{}{companyID, branchID}, payArgs...)
 	if userID > 0 {
 		payQuery += " AND b.user_id = ?"
 		payArgs = append(payArgs, userID)
