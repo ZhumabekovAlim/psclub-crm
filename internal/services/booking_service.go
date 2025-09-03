@@ -101,6 +101,25 @@ func (s *BookingService) isPastDayBlocked(target time.Time, block int) bool {
 	return false
 }
 
+func (s *BookingService) isPastDayBlockedForCreate(start time.Time, blockMinutes int) bool {
+	if blockMinutes <= 0 {
+		return false // если блокировка не задана, разрешаем
+	}
+
+	loc, err := time.LoadLocation("Asia/Almaty")
+	if err != nil {
+		loc = time.Local
+	}
+
+	now := time.Now().In(loc)
+
+	// Пороговое время: текущее время минус blockMinutes
+	threshold := now.Add(-time.Duration(blockMinutes) * time.Minute)
+
+	// Если время брони раньше порогового → запрещаем
+	return start.Before(threshold)
+}
+
 func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (int, error) {
 	companyID := ctx.Value(common.CtxCompanyID).(int)
 	branchID := ctx.Value(common.CtxBranchID).(int)
@@ -113,7 +132,7 @@ func (s *BookingService) CreateBooking(ctx context.Context, b *models.Booking) (
 		log.Printf("settings get error: %v", err)
 		return 0, err
 	}
-	if s.isPastDayBlocked(b.StartTime, settings.BlockTime) {
+	if s.isPastDayBlockedForCreate(b.StartTime, settings.BlockTime) {
 		return 0, errors.New("создание брони невозможно, дата прошла и время заблокировано")
 	}
 	if b.TableID > 0 {
