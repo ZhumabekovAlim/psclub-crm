@@ -38,7 +38,7 @@ func SetupRoutes(
 	// --- Аутентификация
 	auth := api.Group("/auth")
 	{
-		auth.POST("/register", authHandler.Register)
+		auth.POST("/register", authHandler.Register, middleware.Auth(authSecret))
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/refresh", authHandler.Refresh)
 	}
