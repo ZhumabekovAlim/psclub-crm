@@ -38,7 +38,7 @@ func SetupRoutes(
 	// --- Аутентификация
 	auth := api.Group("/auth")
 	{
-		auth.POST("/register", authHandler.Register, middleware.Auth(authSecret))
+
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/refresh", authHandler.Refresh)
 	}
@@ -49,6 +49,8 @@ func SetupRoutes(
 	}
 
 	api.Use(middleware.Auth(authSecret))
+
+	auth.POST("/register", authHandler.Register)
 
 	// --- Клиенты
 	clients := api.Group("/clients")
