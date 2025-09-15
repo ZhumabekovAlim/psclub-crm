@@ -142,7 +142,7 @@ func (r *PriceItemRepository) GetByCategoryName(ctx context.Context, categoryNam
 	query := `
         SELECT pi.id, pi.name, pi.category_id, pi.subcategory_id, pi.quantity,
                pi.sale_price, pi.buy_price, pi.is_set, s.name AS subcategory_name,
-               pi.company_id, pi.branch_id
+               pi.company_id, pi.branch_id, c.name AS category_name
         FROM price_items pi
         JOIN categories c   ON c.id = pi.category_id
         JOIN subcategories s ON s.id = pi.subcategory_id
@@ -159,7 +159,7 @@ func (r *PriceItemRepository) GetByCategoryName(ctx context.Context, categoryNam
 	for rows.Next() {
 		var p models.PriceItem
 		if err := rows.Scan(&p.ID, &p.Name, &p.CategoryID, &p.SubcategoryID, &p.Quantity,
-			&p.SalePrice, &p.BuyPrice, &p.IsSet, &p.SubcategoryName, &p.CompanyID, &p.BranchID); err != nil {
+			&p.SalePrice, &p.BuyPrice, &p.IsSet, &p.SubcategoryName, &p.CompanyID, &p.BranchID, &p.CategoryName); err != nil {
 			return nil, err
 		}
 		list = append(list, p)
