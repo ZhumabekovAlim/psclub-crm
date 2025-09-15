@@ -86,10 +86,12 @@ func (r *PriceSetRepository) getItems(ctx context.Context, setID int) ([]models.
 func (r *PriceSetRepository) GetAll(ctx context.Context) ([]models.PriceSet, error) {
 	companyID := ctx.Value(common.CtxCompanyID).(int)
 	branchID := ctx.Value(common.CtxBranchID).(int)
-	rows, err := r.db.QueryContext(ctx, `SELECT price_sets.id, price_sets.name, price_sets.category_id, subcategory_id, price, subcategories.name, price_sets.company_id, price_sets.branch_id FROM price_sets
-                                                   JOIN subcategories ON price_sets.subcategory_id = subcategories.id
-                                                   WHERE price_sets.company_id=? AND price_sets.branch_id=?
-                                                   ORDER BY id`, companyID, branchID)
+	rows, err := r.db.QueryContext(ctx, `SELECT ps.id, ps.name, ps.category_id, ps.subcategory_id, ps.price,
+                                                  c.name, subcategories.name, ps.company_id, ps.branch_id FROM price_sets ps
+                                                  JOIN categories c ON ps.category_id = c.id
+                                                  JOIN subcategories ON ps.subcategory_id = subcategories.id
+                                                  WHERE ps.company_id=? AND ps.branch_id=?
+                                                  ORDER BY ps.id`, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +99,7 @@ func (r *PriceSetRepository) GetAll(ctx context.Context) ([]models.PriceSet, err
 	var sets []models.PriceSet
 	for rows.Next() {
 		var s models.PriceSet
-		if err := rows.Scan(&s.ID, &s.Name, &s.CategoryID, &s.SubcategoryID, &s.Price, &s.SubcategoryName, &s.CompanyID, &s.BranchID); err != nil {
+		if err := rows.Scan(&s.ID, &s.Name, &s.CategoryID, &s.SubcategoryID, &s.Price, &s.CategoryName, &s.SubcategoryName, &s.CompanyID, &s.BranchID); err != nil {
 			return nil, err
 		}
 		s.Items, _ = r.getItems(ctx, s.ID)
@@ -110,8 +112,10 @@ func (r *PriceSetRepository) GetByID(ctx context.Context, id int) (*models.Price
 	companyID := ctx.Value(common.CtxCompanyID).(int)
 	branchID := ctx.Value(common.CtxBranchID).(int)
 	var s models.PriceSet
-	err := r.db.QueryRowContext(ctx, `SELECT price_sets.id, price_sets.name, price_sets.category_id, subcategory_id, price, subcategories.name, price_sets.company_id, price_sets.branch_id FROM price_sets
-                                                     JOIN subcategories ON price_sets.subcategory_id = subcategories.id WHERE price_sets.id = ? AND price_sets.company_id=? AND price_sets.branch_id=?`, id, companyID, branchID).Scan(&s.ID, &s.Name, &s.CategoryID, &s.SubcategoryID, &s.Price, &s.SubcategoryName, &s.CompanyID, &s.BranchID)
+	err := r.db.QueryRowContext(ctx, `SELECT ps.id, ps.name, ps.category_id, ps.subcategory_id, ps.price,
+                                                     c.name, subcategories.name, ps.company_id, ps.branch_id FROM price_sets ps
+                                                     JOIN categories c ON ps.category_id = c.id
+                                                     JOIN subcategories ON ps.subcategory_id = subcategories.id WHERE ps.id = ? AND ps.company_id=? AND ps.branch_id=?`, id, companyID, branchID).Scan(&s.ID, &s.Name, &s.CategoryID, &s.SubcategoryID, &s.Price, &s.CategoryName, &s.SubcategoryName, &s.CompanyID, &s.BranchID)
 	if err != nil {
 		return nil, err
 	}

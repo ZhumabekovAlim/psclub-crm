@@ -12,4 +12,5 @@ type PriceItem struct {
 	SubcategoryName string  `json:"subcategory_name,omitempty"` // имя подкатегории, если есть
 	CompanyID       int     `json:"company_id"`
 	BranchID        int     `json:"branch_id"`
+	CategoryName    string  `json:"category_name,omitempty"`
 }

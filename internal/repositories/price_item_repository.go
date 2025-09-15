@@ -47,7 +47,16 @@ func (r *PriceItemRepository) Create(ctx context.Context, p *models.PriceItem) (
 func (r *PriceItemRepository) GetAll(ctx context.Context) ([]models.PriceItem, error) {
 	companyID := ctx.Value(common.CtxCompanyID).(int)
 	branchID := ctx.Value(common.CtxBranchID).(int)
-	query := `SELECT id, name, category_id, subcategory_id, quantity, sale_price, buy_price, is_set, company_id, branch_id FROM price_items WHERE company_id=? AND branch_id=? ORDER BY id`
+	query := `
+        SELECT pi.id, pi.name, pi.category_id, pi.subcategory_id, pi.quantity,
+               pi.sale_price, pi.buy_price, pi.is_set,
+               s.name AS subcategory_name, pi.company_id, pi.branch_id,
+               c.name AS category_name
+        FROM price_items pi
+        JOIN categories c ON c.id = pi.category_id
+        JOIN subcategories s ON s.id = pi.subcategory_id
+        WHERE pi.company_id=? AND pi.branch_id=?
+        ORDER BY pi.id`
 	rows, err := r.db.QueryContext(ctx, query, companyID, branchID)
 	if err != nil {
 		return nil, err
@@ -56,7 +65,7 @@ func (r *PriceItemRepository) GetAll(ctx context.Context) ([]models.PriceItem, e
 	var result []models.PriceItem
 	for rows.Next() {
 		var p models.PriceItem
-		err := rows.Scan(&p.ID, &p.Name, &p.CategoryID, &p.SubcategoryID, &p.Quantity, &p.SalePrice, &p.BuyPrice, &p.IsSet, &p.CompanyID, &p.BranchID)
+		err := rows.Scan(&p.ID, &p.Name, &p.CategoryID, &p.SubcategoryID, &p.Quantity, &p.SalePrice, &p.BuyPrice, &p.IsSet, &p.SubcategoryName, &p.CompanyID, &p.BranchID, &p.CategoryName)
 		if err != nil {
 			return nil, err
 		}
