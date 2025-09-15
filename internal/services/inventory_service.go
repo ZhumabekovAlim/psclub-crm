@@ -80,6 +80,6 @@ func (s *InventoryService) PerformInventory(ctx context.Context, items []Invento
 	return nil
 }
 
-func (s *InventoryService) GetHistory(ctx context.Context) ([]models.InventoryHistory, error) {
-	return s.historyRepo.GetAll(ctx)
+func (s *InventoryService) GetHistory(ctx context.Context, companyID, branchID int) ([]models.InventoryHistory, error) {
+	return s.historyRepo.GetAll(ctx, companyID, branchID)
 }

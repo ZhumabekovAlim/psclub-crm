@@ -24,13 +24,13 @@ func (r *InventoryHistoryRepository) Create(ctx context.Context, h *models.Inven
 	return int(id), err
 }
 
-func (r *InventoryHistoryRepository) GetAll(ctx context.Context) ([]models.InventoryHistory, error) {
+func (r *InventoryHistoryRepository) GetAll(ctx context.Context, companyID, branchID int) ([]models.InventoryHistory, error) {
 	rows, err := r.db.QueryContext(ctx, `
 			SELECT ih.id, ih.price_item_id, pi.name, ih.expected, ih.actual, ih.difference, ih.created_at
 			FROM inventory_history ih
 			LEFT JOIN price_items pi ON ih.price_item_id = pi.id
-			ORDER BY ih.id DESC
-		`)
+			WHERE ih.company_id = ? AND ih.branch_id = ?
+			ORDER BY ih.id DESC`, companyID, branchID)
 
 	if err != nil {
 		return nil, err

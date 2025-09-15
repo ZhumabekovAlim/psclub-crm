@@ -41,7 +41,7 @@ func (h *InventoryHandler) GetHistory(c *gin.Context) {
 	branchID := c.GetInt("branch_id")
 	ctx := context.WithValue(c.Request.Context(), common.CtxCompanyID, companyID)
 	ctx = context.WithValue(ctx, common.CtxBranchID, branchID)
-	history, err := h.service.GetHistory(ctx)
+	history, err := h.service.GetHistory(c.Request.Context(), companyID, branchID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
