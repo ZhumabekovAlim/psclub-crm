@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 
+	"psclub-crm/internal/common"
 	"psclub-crm/internal/models"
 )
 
@@ -17,8 +18,10 @@ func NewCashboxHistoryRepository(db *sql.DB) *CashboxHistoryRepository {
 }
 
 func (r *CashboxHistoryRepository) Create(ctx context.Context, h *models.CashboxHistory) (int, error) {
-	query := `INSERT INTO cashbox_history (operation, amount, created_at) VALUES (?, ?, NOW())`
-	res, err := r.db.ExecContext(ctx, query, h.Operation, h.Amount)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	query := `INSERT INTO cashbox_history (operation, amount, company_id, branch_id, created_at) VALUES (?, ?, ?, ?, NOW())`
+	res, err := r.db.ExecContext(ctx, query, h.Operation, h.Amount, companyID, branchID)
 	if err != nil {
 		return 0, err
 	}
@@ -27,7 +30,9 @@ func (r *CashboxHistoryRepository) Create(ctx context.Context, h *models.Cashbox
 }
 
 func (r *CashboxHistoryRepository) GetAll(ctx context.Context) ([]models.CashboxHistory, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT id, operation, amount, created_at FROM cashbox_history ORDER BY id DESC`)
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
+	rows, err := r.db.QueryContext(ctx, `SELECT id, operation, amount, created_at FROM cashbox_history WHERE company_id=? AND branch_id=? ORDER BY id DESC`, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +49,11 @@ func (r *CashboxHistoryRepository) GetAll(ctx context.Context) ([]models.Cashbox
 }
 
 func (r *CashboxHistoryRepository) GetByDate(ctx context.Context, date time.Time) ([]models.CashboxHistory, error) {
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, operation, amount, created_at FROM cashbox_history WHERE DATE(created_at)=? ORDER BY id`,
-		date.Format("2006-01-02"))
+		`SELECT id, operation, amount, created_at FROM cashbox_history WHERE DATE(created_at)=? AND company_id=? AND branch_id=? ORDER BY id`,
+		date.Format("2006-01-02"), companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -63,9 +70,11 @@ func (r *CashboxHistoryRepository) GetByDate(ctx context.Context, date time.Time
 }
 
 func (r *CashboxHistoryRepository) GetByPeriod(ctx context.Context, start, end time.Time) ([]models.CashboxHistory, error) {
+	companyID := ctx.Value(common.CtxCompanyID).(int)
+	branchID := ctx.Value(common.CtxBranchID).(int)
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, operation, amount, created_at FROM cashbox_history WHERE created_at >= ? AND created_at < ? ORDER BY id`,
-		start, end)
+		`SELECT id, operation, amount, created_at FROM cashbox_history WHERE created_at >= ? AND created_at < ? AND company_id=? AND branch_id=? ORDER BY id`,
+		start, end, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
