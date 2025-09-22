@@ -50,7 +50,10 @@ func SetupRoutes(
 
 	api.Use(middleware.Auth(authSecret))
 
-	auth.POST("/register", authHandler.Register)
+	authProtected := api.Group("/auth")
+	{
+		authProtected.POST("/register", authHandler.Register)
+	}
 
 	// --- Клиенты
 	clients := api.Group("/clients")
