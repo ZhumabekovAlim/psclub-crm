@@ -13,6 +13,7 @@ import (
 	"psclub-crm/internal/repositories"
 	"psclub-crm/internal/routes"
 	"psclub-crm/internal/services"
+	"strings"
 	"time"
 )
 
@@ -179,8 +180,7 @@ func Run() {
 	router.Use(corsMiddleware([]string{
 		"https://siva.kz",
 		"https://www.siva.kz",
-		"http://localhost:3000",
-		"http://localhost:8080",
+		"*",
 	}))
 	router.Use(middleware.RequestLogger())
 	router.Use(gin.Recovery())
@@ -221,36 +221,63 @@ func Run() {
 }
 
 func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
-	allowed := map[string]struct{}{}
+	// Быстрая проверка наличия "*"
+	allowAll := false
+	allowed := make(map[string]struct{}, len(allowedOrigins))
 	for _, o := range allowedOrigins {
-		allowed[o] = struct{}{}
+		if o == "*" {
+			allowAll = true
+		}
+		allowed[strings.TrimSpace(o)] = struct{}{}
 	}
 
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		if _, ok := allowed[origin]; ok {
-			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Vary", "Origin")
-			c.Header("Access-Control-Allow-Credentials", "true")
+
+		// Разрешаем Origin
+		if origin != "" {
+			if allowAll {
+				// Эхо-возврат конкретного Origin (важно для credentials)
+				c.Header("Access-Control-Allow-Origin", origin)
+				c.Header("Vary", "Origin")
+				c.Header("Access-Control-Allow-Credentials", "true")
+			} else if _, ok := allowed[origin]; ok {
+				c.Header("Access-Control-Allow-Origin", origin)
+				c.Header("Vary", "Origin")
+				c.Header("Access-Control-Allow-Credentials", "true")
+			}
 		}
-		// эхо для preflight
-		if m := c.GetHeader("Access-Control-Request-Method"); m != "" {
-			c.Header("Access-Control-Allow-Methods", m+", OPTIONS")
+
+		// Методы
+		reqMethod := c.GetHeader("Access-Control-Request-Method")
+		if reqMethod != "" {
+			// Эхо запрошенного метода + OPTIONS
+			c.Header("Access-Control-Allow-Methods", reqMethod+", OPTIONS")
 		} else {
 			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		}
-		if h := c.GetHeader("Access-Control-Request-Headers"); h != "" {
-			c.Header("Access-Control-Allow-Headers", h)
+
+		// Разрешенные заголовки (эхо, если пришли)
+		reqHeaders := c.GetHeader("Access-Control-Request-Headers")
+		if reqHeaders != "" {
+			c.Header("Access-Control-Allow-Headers", reqHeaders)
+			c.Header("Vary", "Access-Control-Request-Headers")
 		} else {
 			c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
 		}
+
+		// Что можно читать из ответа на фронте
 		c.Header("Access-Control-Expose-Headers", "Content-Type, Authorization")
+
+		// Можно кэшировать preflight
 		c.Header("Access-Control-Max-Age", "86400")
 
+		// Preflight
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
+
 		c.Next()
 	}
 }
