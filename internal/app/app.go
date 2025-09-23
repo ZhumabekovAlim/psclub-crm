@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
+	"net/http"
 	"psclub-crm/internal/config"
 	"psclub-crm/internal/handlers"
 	"psclub-crm/internal/middleware"
@@ -173,11 +174,17 @@ func Run() {
 	)
 	companyHandler := handlers.NewCompanyHandler(companyService)
 
-	// ========== Роутер и middlewares ==========
+	// =========router := gin.New()= Роутер и middlewares ==========
 	router := gin.New()
+	router.Use(corsMiddleware([]string{
+		"https://siva.kz",
+		"https://www.siva.kz",
+		"http://localhost:3000",
+		"http://localhost:8080",
+	}))
 	router.Use(middleware.RequestLogger())
 	router.Use(gin.Recovery())
-	router.Use(corsMiddleware())
+
 	routes.SetupRoutes(
 		router,
 		authHandler,
@@ -213,13 +220,35 @@ func Run() {
 	}
 }
 
-func corsMiddleware() gin.HandlerFunc {
+func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
+	allowed := map[string]struct{}{}
+	for _, o := range allowedOrigins {
+		allowed[o] = struct{}{}
+	}
+
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+		origin := c.GetHeader("Origin")
+		if _, ok := allowed[origin]; ok {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Vary", "Origin")
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
+		// эхо для preflight
+		if m := c.GetHeader("Access-Control-Request-Method"); m != "" {
+			c.Header("Access-Control-Allow-Methods", m+", OPTIONS")
+		} else {
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		}
+		if h := c.GetHeader("Access-Control-Request-Headers"); h != "" {
+			c.Header("Access-Control-Allow-Headers", h)
+		} else {
+			c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
+		}
+		c.Header("Access-Control-Expose-Headers", "Content-Type, Authorization")
+		c.Header("Access-Control-Max-Age", "86400")
+
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 		c.Next()

@@ -38,7 +38,6 @@ func SetupRoutes(
 	// --- Аутентификация
 	auth := api.Group("/auth")
 	{
-
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/refresh", authHandler.Refresh)
 	}
