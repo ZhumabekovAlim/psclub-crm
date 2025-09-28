@@ -195,11 +195,17 @@ func (s *CashboxService) GetDay(ctx context.Context) (float64, []models.CashboxH
 		return 0, nil, err
 	}
 
-	var sum float64
+	startAmount := box.Amount
 	for _, h := range list {
-		sum += h.Amount
+		switch h.Operation {
+		case "Пополнение", "Инвентаризация":
+			startAmount += h.Amount
+		case "Оплата брони", "Возврат брони":
+			startAmount -= h.Amount
+		default:
+			startAmount -= h.Amount
+		}
 	}
 
-	startAmount := box.Amount - sum
 	return startAmount, list, nil
 }
