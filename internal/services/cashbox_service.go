@@ -206,6 +206,7 @@ func (s *CashboxService) GetDay(ctx context.Context) (float64, []models.CashboxH
 			startAmount -= h.Amount
 		}
 	}
+	fmt.Println("LIST: ", list)
 
 	return startAmount, list, nil
 }
