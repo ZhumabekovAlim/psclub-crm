@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"time"
 
 	"psclub-crm/internal/common"
@@ -73,10 +72,13 @@ func (r *CashboxHistoryRepository) GetByDate(ctx context.Context, date time.Time
 func (r *CashboxHistoryRepository) GetByPeriod(ctx context.Context, start, end time.Time) ([]models.CashboxHistory, error) {
 	companyID := ctx.Value(common.CtxCompanyID).(int)
 	branchID := ctx.Value(common.CtxBranchID).(int)
-	fmt.Println("vse:", start, end, companyID, branchID)
+
+	startStr := start.Format("2006-01-02 15:04:05")
+	endStr := end.Format("2006-01-02 15:04:05")
+
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT id, operation, amount, created_at FROM cashbox_history WHERE created_at >= ? AND created_at < ? AND company_id=? AND branch_id=? ORDER BY id`,
-		start, end, companyID, branchID)
+		startStr, endStr, companyID, branchID)
 	if err != nil {
 		return nil, err
 	}
