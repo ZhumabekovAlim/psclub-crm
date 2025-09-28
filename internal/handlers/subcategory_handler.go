@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -87,15 +89,36 @@ func (h *SubcategoryHandler) UpdateSubcategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	var subcategory models.Subcategory
-	if err := c.ShouldBindJSON(&subcategory); err != nil {
+	var input struct {
+		CategoryID *int    `json:"category_id"`
+		Name       *string `json:"name"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	subcategory.ID = id
-	subcategory.CompanyID = c.GetInt("company_id")
-	subcategory.BranchID = c.GetInt("branch_id")
-	err = h.service.UpdateSubcategory(c.Request.Context(), &subcategory)
+	if input.CategoryID == nil && input.Name == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no fields to update"})
+		return
+	}
+	companyID := c.GetInt("company_id")
+	branchID := c.GetInt("branch_id")
+	subcategory, err := h.service.GetSubcategoryByID(c.Request.Context(), id, companyID, branchID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "subcategory not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if input.CategoryID != nil {
+		subcategory.CategoryID = *input.CategoryID
+	}
+	if input.Name != nil {
+		subcategory.Name = *input.Name
+	}
+	err = h.service.UpdateSubcategory(c.Request.Context(), subcategory)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
