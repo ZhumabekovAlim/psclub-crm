@@ -132,7 +132,7 @@ func (s *CashboxService) Replenish(ctx context.Context, amount float64) error {
 		Date:       time.Now(),
 		Title:      "Пополнение кассы",
 		Total:      amount,
-		Paid:       false,
+		Paid:       true,
 		CategoryID: catID,
 	}
 	_, _ = s.expenseSvc.CreateExpense(ctx, &exp)

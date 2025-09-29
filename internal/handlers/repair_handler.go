@@ -53,7 +53,7 @@ func (h *RepairHandler) CreateRepair(c *gin.Context) {
 		Title:            "Починка, номер VIN: " + rep.VIN,
 		Total:            rep.Price,
 		Description:      rep.Description,
-		Paid:             false,
+		Paid:             true,
 		CategoryID:       catID,
 		RepairCategoryID: rep.CategoryID,
 	}
@@ -137,7 +137,7 @@ func (h *RepairHandler) UpdateRepair(c *gin.Context) {
 		Title:            "Починка, номер VIN: " + rep.VIN,
 		Total:            rep.Price,
 		Description:      rep.Description,
-		Paid:             false,
+		Paid:             true,
 		CategoryID:       catID,
 		RepairCategoryID: rep.CategoryID,
 	}
