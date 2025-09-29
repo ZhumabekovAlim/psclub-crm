@@ -61,7 +61,7 @@ func (s *EquipmentInventoryService) PerformInventory(ctx context.Context, items 
 				Title:       "Инвентаризация: " + eq.Name,
 				Total:       0,
 				Description: "Недостача оборудования " + eq.Name + " (" + fmt.Sprintf("%.0f", math.Abs(diff)) + " шт.)",
-				Paid:        false,
+				Paid:        true,
 				CategoryID:  catID,
 			}
 			if _, err := s.expenseSvc.CreateExpense(ctx, &exp); err != nil {

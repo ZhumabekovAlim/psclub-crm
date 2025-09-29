@@ -312,7 +312,7 @@ func (h *PriceItemHandler) Replenish(c *gin.Context) {
 		Date:        time.Now(),
 		Title:       "Пополнение " + item.Name,
 		Total:       hist.Total,
-		Paid:        false,
+		Paid:        true,
 		CategoryID:  expCatID,
 		Description: "Пополнение товара " + item.Name + " в количестве " + strconv.FormatFloat(in.Quantity, 'f', -1, 64) + " шт.",
 	}

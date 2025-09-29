@@ -60,7 +60,7 @@ func (s *InventoryService) PerformInventory(ctx context.Context, items []Invento
 				Title:       "Инвентаризация: " + pi.Name,
 				Total:       -diff * pi.BuyPrice,
 				Description: "Недостача товара " + pi.Name + " (" + fmt.Sprintf("%.0f", math.Abs(diff)) + " шт.)",
-				Paid:        false,
+				Paid:        true,
 				CategoryID:  catID,
 			}
 			if _, err := s.expenseSvc.CreateExpense(ctx, &exp); err != nil {
