@@ -198,9 +198,9 @@ func (s *CashboxService) GetDay(ctx context.Context) (float64, []models.CashboxH
 	startAmount := box.Amount
 	for _, h := range list {
 		switch h.Operation {
-		case "Возврат брони", "Инвентаризация":
+		case "Инвентаризация":
 			startAmount += h.Amount
-		case "Оплата брони", "Пополнение":
+		case "Оплата брони", "Пополнение", "Возврат брони":
 			startAmount -= h.Amount
 		default:
 			startAmount -= h.Amount
