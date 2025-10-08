@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math"
 	"psclub-crm/internal/models"
 	"time"
 )
@@ -319,69 +320,62 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
 	condAdmin, adminArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
 	condAdmin = "b.company_id=? AND b.branch_id=? AND " + condAdmin + " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
 	query := fmt.Sprintf(`
-       SELECT u.id, u.name,
-              COUNT(DISTINCT DATE(b.start_time)) AS shifts,
-              SUM(
-                                CASE
-					WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%%кальян%%' THEN bi.quantity
-				 	WHEN pi.is_set = 1 THEN bi.quantity * (
-                        SELECT COALESCE(SUM(si.quantity),0)
-                        FROM set_items si
-						JOIN price_items pi2 ON si.item_id = pi2.id
-						JOIN categories c2 ON pi2.category_id = c2.id
-						WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%кальян%%'
-				    )
-					ELSE 0
-				END) AS hookah_qty,
-              SUM(
-                  CASE
-                      WHEN pi.is_set = 1 AND EXISTS (
-                          SELECT 1 FROM set_items si
-                          JOIN price_items pi2 ON si.item_id = pi2.id
-                          JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%кальян%%'
-                      ) THEN bi.quantity
-                      ELSE 0
-                  END) AS set_qty,
-              SUM(
-                  CASE
-                      WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%%кальян%%' THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
-                      WHEN pi.is_set = 1 AND EXISTS (
-                          SELECT 1 FROM set_items si
-                          JOIN price_items pi2 ON si.item_id = pi2.id
-                          JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%кальян%%'
-                      ) THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
-                      ELSE 0
-                  END) AS hookah_rev,
-              SUM(
-                  CASE
-                      WHEN pi.is_set = 1 AND EXISTS (
-                          SELECT 1 FROM set_items si
-                          JOIN price_items pi2 ON si.item_id = pi2.id
-                          JOIN categories c2 ON pi2.category_id = c2.id
-                          WHERE si.price_set_id = pi.id AND LOWER(c2.name) LIKE '%%кальян%%'
-                      ) THEN bi.price * bi.quantity * (1 - IFNULL(pt.hold_percent,0)/100)
-                      ELSE 0
-                  END) AS set_rev,
-              u.salary_shift, u.salary_hookah, u.hookah_salary_type, u.salary_bar
-        FROM users u
-       LEFT JOIN bookings b ON b.user_id = u.id
-            AND %s
-       LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
-       LEFT JOIN booking_items bi ON b.id = bi.booking_id
-       LEFT JOIN price_items pi ON bi.item_id = pi.id
+    WITH filtered_bookings AS (
+        SELECT b.id, b.user_id, DATE(b.start_time) AS shift_date, COALESCE(pt.hold_percent, 0) AS hold_percent
+        FROM bookings b
+        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+        WHERE %s
+    ),
+    shifts AS (
+        SELECT user_id, COUNT(DISTINCT shift_date) AS shifts
+        FROM filtered_bookings
+        GROUP BY user_id
+    ),
+    set_hookahs AS (
+        SELECT si.price_set_id AS set_id,
+               SUM(CASE WHEN LOWER(c2.name) LIKE '%%кальян%%' THEN si.quantity ELSE 0 END) AS hookah_qty
+        FROM set_items si
+        JOIN price_items pi2 ON si.item_id = pi2.id
+        LEFT JOIN categories c2 ON pi2.category_id = c2.id
+        JOIN price_sets ps ON si.price_set_id = ps.id
+        WHERE ps.company_id = ? AND ps.branch_id = ?
+        GROUP BY si.price_set_id
+    ),
+    items AS (
+        SELECT fb.user_id,
+               SUM(CASE WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%%кальян%%' THEN bi.quantity ELSE 0 END) AS hookah_qty,
+               SUM(CASE WHEN pi.is_set = 0 AND LOWER(categories.name) LIKE '%%кальян%%' THEN bi.price * bi.quantity * (1 - fb.hold_percent/100) ELSE 0 END) AS hookah_rev,
+               SUM(CASE WHEN pi.is_set = 1 THEN bi.quantity ELSE 0 END) AS set_qty,
+               SUM(CASE WHEN pi.is_set = 1 THEN bi.price * bi.quantity * (1 - fb.hold_percent/100) ELSE 0 END) AS set_rev,
+               SUM(CASE WHEN pi.is_set = 1 THEN bi.quantity * COALESCE(sh.hookah_qty, 0) ELSE 0 END) AS set_hookah_qty
+        FROM filtered_bookings fb
+        JOIN booking_items bi ON fb.id = bi.booking_id
+        JOIN price_items pi ON bi.item_id = pi.id
         LEFT JOIN categories ON pi.category_id = categories.id
-        WHERE u.role = 'admin' AND u.company_id=? AND u.branch_id=?`, condAdmin)
+        LEFT JOIN set_hookahs sh ON pi.id = sh.set_id
+        GROUP BY fb.user_id
+    )
+    SELECT u.id, u.name,
+           COALESCE(s.shifts, 0) AS shifts,
+           COALESCE(items.hookah_qty, 0) + COALESCE(items.set_hookah_qty, 0) AS hookah_qty,
+           COALESCE(items.set_qty, 0) AS set_qty,
+           COALESCE(items.hookah_rev, 0) AS hookah_rev,
+           COALESCE(items.set_rev, 0) AS set_rev,
+           u.salary_shift, u.salary_hookah, u.hookah_salary_type, u.salary_bar
+    FROM users u
+    LEFT JOIN shifts s ON u.id = s.user_id
+    LEFT JOIN items ON u.id = items.user_id
+    WHERE u.role = 'admin' AND u.company_id=? AND u.branch_id=?`, condAdmin)
 	args := append([]interface{}{companyID, branchID}, adminArgs...)
+	args = append(args, companyID, branchID)
 	args = append(args, companyID, branchID)
 	if userID > 0 {
 		query += " AND u.id = ?"
 		args = append(args, userID)
 	}
 	query += `
-       GROUP BY u.id, u.name, u.salary_shift, u.salary_hookah, u.hookah_salary_type, u.salary_bar
-       ORDER BY u.name`
+    GROUP BY u.id, u.name, s.shifts, items.hookah_qty, items.set_hookah_qty, items.set_qty, items.hookah_rev, items.set_rev, u.salary_shift, u.salary_hookah, u.hookah_salary_type, u.salary_bar
+    ORDER BY u.name`
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -392,39 +386,44 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
 	var report models.AdminsReport
 	for rows.Next() {
 		var (
-			id                    int
-			name                  string
-			shifts, hookahs, sets int
-			hookahRev, setRev     float64
-			shiftSalary           int
-			hookahValue           float64
-			hookahType            string
-			setPercent            float64
+			id           int
+			name         string
+			shifts       int
+			hookahsFloat float64
+			setsFloat    float64
+			hookahRev    float64
+			setRev       float64
+			shiftSalary  int
+			hookahValue  float64
+			hookahType   string
+			setPercent   float64
 		)
-		if err := rows.Scan(&id, &name, &shifts, &hookahs, &sets, &hookahRev, &setRev, &shiftSalary, &hookahValue, &hookahType, &setPercent); err != nil {
+		if err := rows.Scan(&id, &name, &shifts, &hookahsFloat, &setsFloat, &hookahRev, &setRev, &shiftSalary, &hookahValue, &hookahType, &setPercent); err != nil {
 			return nil, err
 		}
 
+		hookahs := int(math.Round(hookahsFloat))
+		sets := int(math.Round(setsFloat))
 		shiftTotal := shifts * shiftSalary
 		var hookahTotal int
 		if hookahType == "percent" {
-			hookahTotal = int(hookahRev * hookahValue / 100)
+			hookahTotal = int(math.Round(hookahRev * hookahValue / 100))
 		} else {
-			hookahTotal = int(float64(hookahs) * hookahValue)
+			hookahTotal = int(math.Round(float64(hookahs) * hookahValue))
 		}
-		setTotal := int(setRev * setPercent / 100)
+		setTotal := int(math.Round(setRev * setPercent / 100))
 		salary := shiftTotal + hookahTotal + setTotal
 
 		var hookahDetail string
 		if hookahType == "percent" {
-			hookahDetail = fmt.Sprintf("%d₸ × %.0f%% = %d₸", int(hookahRev), hookahValue, hookahTotal)
+			hookahDetail = fmt.Sprintf("%d₸ × %.0f%% = %d₸", int(math.Round(hookahRev)), hookahValue, hookahTotal)
 		} else {
 			hookahDetail = fmt.Sprintf("%d × %.0f₸ = %d₸", hookahs, hookahValue, hookahTotal)
 		}
 		detail := fmt.Sprintf("Смены: %d × %d = %d₸, кальяны: %s, сеты: %d₸ × %.0f%% = %d₸",
 			shifts, shiftSalary, shiftTotal,
 			hookahDetail,
-			int(setRev), setPercent, setTotal)
+			int(math.Round(setRev)), setPercent, setTotal)
 
 		report.Admins = append(report.Admins, models.AdminReportRow{
 			Name:         name,
