@@ -317,11 +317,35 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 // --- AdminsReport ---
 func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time, tFrom, tTo string, userID, companyID, branchID int) (*models.AdminsReport, error) {
 
-	condAdmin, adminArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
+	adminTFrom := tFrom
+	adminTTo := tTo
+	var workFrom, workTo sql.NullString
+	if err := r.db.QueryRowContext(ctx, `SELECT work_time_from, work_time_to FROM settings WHERE company_id=? AND branch_id=? LIMIT 1`, companyID, branchID).Scan(&workFrom, &workTo); err != nil {
+		if err != sql.ErrNoRows {
+			return nil, err
+		}
+	} else {
+		if workFrom.Valid && workFrom.String != "" {
+			adminTFrom = workFrom.String
+		}
+		if workTo.Valid && workTo.String != "" {
+			adminTTo = workTo.String
+		}
+	}
+
+	condAdmin, adminArgs := buildTimeCondition("b.start_time", from, to, adminTFrom, adminTTo)
 	condAdmin = "b.company_id=? AND b.branch_id=? AND " + condAdmin + " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
+
+	shiftDateExpr := "DATE(b.start_time)"
+	shiftArgs := make([]interface{}, 0, 1)
+	if adminTFrom > adminTTo {
+		shiftDateExpr = "DATE(CASE WHEN TIME(b.start_time) >= ? THEN b.start_time ELSE DATE_SUB(b.start_time, INTERVAL 1 DAY) END)"
+		shiftArgs = append(shiftArgs, adminTFrom)
+	}
+
 	query := fmt.Sprintf(`
     WITH filtered_bookings AS (
-        SELECT b.id, b.user_id, DATE(b.start_time) AS shift_date, COALESCE(pt.hold_percent, 0) AS hold_percent
+        SELECT b.id, b.user_id, %s AS shift_date, COALESCE(pt.hold_percent, 0) AS hold_percent
         FROM bookings b
         LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
         WHERE %s
@@ -365,8 +389,10 @@ func (r *ReportRepository) AdminsReport(ctx context.Context, from, to time.Time,
     FROM users u
     LEFT JOIN shifts s ON u.id = s.user_id
     LEFT JOIN items ON u.id = items.user_id
-    WHERE u.role = 'admin' AND u.company_id=? AND u.branch_id=?`, condAdmin)
-	args := append([]interface{}{companyID, branchID}, adminArgs...)
+    WHERE u.role = 'admin' AND u.company_id=? AND u.branch_id=?`, shiftDateExpr, condAdmin)
+	args := append([]interface{}{}, shiftArgs...)
+	args = append(args, companyID, branchID)
+	args = append(args, adminArgs...)
 	args = append(args, companyID, branchID)
 	args = append(args, companyID, branchID)
 	if userID > 0 {
