@@ -555,29 +555,68 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 	var users []models.UserSales
 	for rows.Next() {
 		var (
-			id          int
-			name        string
-			days        int
-			hookahs     int
-			sets        int
-			hookahRev   float64
-			setRev      float64
-			shiftSalary int
-			hookahValue float64
-			hookahType  string
-			setPercent  float64
+			id           int
+			name         string
+			days         int
+			hookahsValue sql.NullInt64
+			setsValue    sql.NullInt64
+			hookahRevVal sql.NullFloat64
+			setRevVal    sql.NullFloat64
+			shiftSalary  sql.NullInt64
+			hookahValue  sql.NullFloat64
+			hookahType   sql.NullString
+			setPercent   sql.NullFloat64
 		)
-		if err := rows.Scan(&id, &name, &days, &hookahs, &sets, &hookahRev, &setRev, &shiftSalary, &hookahValue, &hookahType, &setPercent); err != nil {
+		if err := rows.Scan(&id, &name, &days, &hookahsValue, &setsValue, &hookahRevVal, &setRevVal, &shiftSalary, &hookahValue, &hookahType, &setPercent); err != nil {
 			return nil, err
 		}
-		shiftTotal := days * shiftSalary
-		var hookahTotal int
-		if hookahType == "percent" {
-			hookahTotal = int(hookahRev * hookahValue / 100)
-		} else {
-			hookahTotal = int(float64(hookahs) * hookahValue)
+
+		hookahs := 0
+		if hookahsValue.Valid {
+			hookahs = int(hookahsValue.Int64)
 		}
-		setTotal := int(setRev * setPercent / 100)
+
+		sets := 0
+		if setsValue.Valid {
+			sets = int(setsValue.Int64)
+		}
+
+		hookahRev := 0.0
+		if hookahRevVal.Valid {
+			hookahRev = hookahRevVal.Float64
+		}
+
+		setRev := 0.0
+		if setRevVal.Valid {
+			setRev = setRevVal.Float64
+		}
+		shiftTotal := 0
+		if shiftSalary.Valid {
+			shiftTotal = days * int(shiftSalary.Int64)
+		}
+
+		hv := 0.0
+		if hookahValue.Valid {
+			hv = hookahValue.Float64
+		}
+
+		hookahTypeValue := ""
+		if hookahType.Valid {
+			hookahTypeValue = hookahType.String
+		}
+
+		setPercentValue := 0.0
+		if setPercent.Valid {
+			setPercentValue = setPercent.Float64
+		}
+
+		var hookahTotal int
+		if hookahTypeValue == "percent" {
+			hookahTotal = int(hookahRev * hv / 100)
+		} else {
+			hookahTotal = int(float64(hookahs) * hv)
+		}
+		setTotal := int(setRev * setPercentValue / 100)
 		users = append(users, models.UserSales{
 			Name:        name,
 			DaysWorked:  days,
@@ -585,6 +624,10 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 			SetsSold:    sets,
 			Salary:      float64(shiftTotal + hookahTotal + setTotal),
 		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	condExp, expArgs := buildTimeCondition("e.date", from, to, tFrom, tTo)
