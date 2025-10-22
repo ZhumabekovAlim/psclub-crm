@@ -59,22 +59,41 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	// Calculate total cost for Bar and Hookah categories
 	condCost, costArgs := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
 	condCost = "b.company_id=? AND b.branch_id=? AND " + condCost + " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
-	costQuery := fmt.Sprintf(`
-        SELECT COALESCE(SUM(
-            bi.price * (1 - bi.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100) -
-            bi.quantity * pi.buy_price
-        ),0)
-        FROM booking_items bi
-        LEFT JOIN bookings b ON bi.booking_id = b.id
-        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
-        LEFT JOIN price_items pi ON bi.item_id = pi.id
-        LEFT JOIN categories c ON pi.category_id = c.id
-       WHERE %s AND (c.name = 'Бар' OR c.name = 'Кальян')`, condCost)
-	costArgs = append([]interface{}{companyID, branchID}, costArgs...)
 	if userID > 0 {
-		costQuery += " AND b.user_id = ?"
+		condCost += " AND b.user_id = ?"
 		costArgs = append(costArgs, userID)
 	}
+	costQuery := fmt.Sprintf(`
+        WITH item_costs AS (
+            SELECT
+                bi.id,
+                CASE
+                    WHEN pi.is_set = 0 THEN bi.quantity * pi.buy_price
+                    ELSE bi.quantity * (
+                        SELECT COALESCE(SUM(si.quantity * pi2.buy_price), 0)
+                        FROM set_items si
+                        JOIN price_items pi2 ON si.item_id = pi2.id
+                        JOIN categories c2 ON pi2.category_id = c2.id
+                        WHERE si.price_set_id = pi.id AND (c2.name = 'Бар' OR c2.name = 'Кальян')
+                    )
+                END AS cost
+            FROM booking_items bi
+            JOIN bookings b ON bi.booking_id = b.id
+            LEFT JOIN price_items pi ON bi.item_id = pi.id
+            LEFT JOIN categories c ON pi.category_id = c.id
+            WHERE %s AND (
+                (pi.is_set = 0 AND (c.name = 'Бар' OR c.name = 'Кальян')) OR
+                (pi.is_set = 1 AND EXISTS (
+                    SELECT 1
+                    FROM set_items si
+                    JOIN price_items pi2 ON si.item_id = pi2.id
+                    JOIN categories c2 ON pi2.category_id = c2.id
+                    WHERE si.price_set_id = pi.id AND (c2.name = 'Бар' OR c2.name = 'Кальян')
+                ))
+            )
+        )
+        SELECT COALESCE(SUM(cost), 0) FROM item_costs`, condCost)
+	costArgs = append([]interface{}{companyID, branchID}, costArgs...)
 	_ = r.db.QueryRowContext(ctx, costQuery, costArgs...).Scan(&result.TotalCost)
 
 	// Calculate load percent
@@ -198,7 +217,7 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	condCat, catArgs := buildTimeCondition("bookings.start_time", from, to, tFrom, tTo)
 	condCat = "bookings.company_id=? AND bookings.branch_id=? AND " + condCat + " AND bookings.payment_status <> 'UNPAID' AND bookings.payment_type_id <> 0"
 	catQuery := fmt.Sprintf(`
-               SELECT categories.name, SUM(booking_items.price  * (1 - booking_items.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100))
+               SELECT categories.name, SUM(booking_items.quantity * booking_items.price  * (1 - booking_items.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100))
                FROM booking_items
                LEFT JOIN bookings ON booking_items.booking_id = bookings.id
                LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
@@ -224,48 +243,46 @@ func (r *ReportRepository) SummaryReport(ctx context.Context, from, to time.Time
 	// Top items by profit
 	condItem, itemArgs := buildTimeCondition("bookings.start_time", from, to, tFrom, tTo)
 	condItem = "bookings.company_id=? AND bookings.branch_id=? AND " + condItem + " AND bookings.payment_status <> 'UNPAID' AND bookings.payment_type_id <> 0"
-	itemQuery := fmt.Sprintf(`
-    SELECT
-        price_items.name,
-        SUM(booking_items.quantity),
-        SUM(
-            CASE
-                WHEN categories.name = 'Часы' THEN (booking_items.price * (1 - booking_items.discount / 100)) * (1 - IFNULL(pt.hold_percent,0)/100)
-                ELSE booking_items.price  * (1 - booking_items.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100)
-            END
-        ),
-        SUM(
-            CASE 
-                WHEN categories.name = 'Часы' THEN price_items.buy_price
-                ELSE price_items.buy_price
-            END
-        ),
-        SUM(
-            CASE
-                WHEN categories.name = 'Часы' THEN (booking_items.price * (1 - booking_items.discount / 100))*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
-                ELSE (booking_items.price * (1 - booking_items.discount / 100))*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
-            END
-        )
-    FROM booking_items
-    LEFT JOIN bookings ON booking_items.booking_id = bookings.id
-    LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
-    LEFT JOIN price_items ON booking_items.item_id = price_items.id
-    LEFT JOIN categories ON price_items.category_id = categories.id
-    WHERE %s`, condItem)
-	itemArgs = append([]interface{}{companyID, branchID}, itemArgs...)
 	if userID > 0 {
-		itemQuery += " AND bookings.user_id = ?"
+		condItem += " AND bookings.user_id = ?"
 		itemArgs = append(itemArgs, userID)
 	}
-
-	itemQuery += `
-    GROUP BY price_items.name
-    ORDER BY SUM(
-        CASE
-            WHEN categories.name = 'Часы' THEN (booking_items.price * (1 - booking_items.discount / 100))*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
-            ELSE (booking_items.price * (1 - booking_items.discount / 100))*(1 - IFNULL(pt.hold_percent,0)/100) - price_items.buy_price
-        END
-    ) DESC`
+	itemQuery := fmt.Sprintf(`
+    SELECT
+        pi.name,
+        SUM(bi.quantity) AS total_qty,
+        SUM(bi.quantity * bi.price * (1 - bi.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100)) AS revenue,
+        SUM(
+            CASE
+                WHEN pi.is_set = 0 THEN bi.quantity * pi.buy_price
+                ELSE bi.quantity * (
+                    SELECT COALESCE(SUM(si.quantity * pi2.buy_price), 0)
+                    FROM set_items si
+                    JOIN price_items pi2 ON si.item_id = pi2.id
+                    WHERE si.price_set_id = pi.id
+                )
+            END
+        ) AS expense,
+        SUM(
+            bi.quantity * bi.price * (1 - bi.discount / 100) * (1 - IFNULL(pt.hold_percent,0)/100) -
+            CASE
+                WHEN pi.is_set = 0 THEN bi.quantity * pi.buy_price
+                ELSE bi.quantity * (
+                    SELECT COALESCE(SUM(si.quantity * pi2.buy_price), 0)
+                    FROM set_items si
+                    JOIN price_items pi2 ON si.item_id = pi2.id
+                    WHERE si.price_set_id = pi.id
+                )
+            END
+        ) AS profit
+    FROM booking_items bi
+    JOIN bookings ON bi.booking_id = bookings.id
+    LEFT JOIN payment_types pt ON bookings.payment_type_id = pt.id
+    JOIN price_items pi ON bi.item_id = pi.id
+    WHERE %s
+    GROUP BY pi.name
+    ORDER BY profit DESC`, condItem)
+	itemArgs = append([]interface{}{companyID, branchID}, itemArgs...)
 
 	itemRows, err := r.db.QueryContext(ctx, itemQuery, itemArgs...)
 	if err != nil {
@@ -598,21 +615,79 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 
 	condCat2, catArgs2 := buildTimeCondition("b.start_time", from, to, tFrom, tTo)
 	condCat2 = "b.company_id=? AND b.branch_id=? AND " + condCat2 + " AND b.payment_status <> 'UNPAID' AND b.payment_type_id <> 0"
-	catQuery2 := fmt.Sprintf(`
-        SELECT categories.name, SUM((bi.price * (1 - bi.discount / 100)) * (1 - IFNULL(pt.hold_percent,0)/100))
-        FROM booking_items bi
-        LEFT JOIN bookings b ON bi.booking_id = b.id
-        LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
-        LEFT JOIN price_items pi ON bi.item_id = pi.id
-        LEFT JOIN categories ON pi.category_id = categories.id
-        WHERE %s`, condCat2)
-	catArgs2 = append([]interface{}{companyID, branchID}, catArgs2...)
 	if userID > 0 {
-		catQuery2 += " AND b.user_id = ?"
+		condCat2 += " AND b.user_id = ?"
 		catArgs2 = append(catArgs2, userID)
 	}
-	catQuery2 += `
-        GROUP BY categories.name`
+	catQuery2 := fmt.Sprintf(`
+        WITH booking_data AS (
+            SELECT
+                bi.id,
+                bi.quantity,
+                bi.price,
+                bi.discount,
+                pi.id AS price_item_id,
+                pi.is_set,
+                categories.name AS category_name,
+                COALESCE(pt.hold_percent, 0) AS hold_percent
+            FROM booking_items bi
+            JOIN bookings b ON bi.booking_id = b.id
+            LEFT JOIN payment_types pt ON b.payment_type_id = pt.id
+            JOIN price_items pi ON bi.item_id = pi.id
+            LEFT JOIN categories ON pi.category_id = categories.id
+            WHERE %s
+        ),
+        non_set AS (
+            SELECT
+                IFNULL(category_name, '') AS category,
+                SUM(quantity * price * (1 - discount / 100) * (1 - hold_percent / 100)) AS revenue
+            FROM booking_data
+            WHERE is_set = 0
+            GROUP BY IFNULL(category_name, '')
+        ),
+        set_component_price AS (
+            SELECT si.price_set_id,
+                   SUM(si.quantity * COALESCE(pi2.price, 0)) AS total_component_price
+            FROM set_items si
+            JOIN price_items pi2 ON si.item_id = pi2.id
+            GROUP BY si.price_set_id
+        ),
+        set_component_count AS (
+            SELECT si.price_set_id,
+                   SUM(si.quantity) AS total_component_qty
+            FROM set_items si
+            GROUP BY si.price_set_id
+        ),
+        set_expanded AS (
+            SELECT
+                IFNULL(c2.name, '') AS category,
+                SUM(
+                    bd.quantity * bd.price * (1 - bd.discount / 100) * (1 - bd.hold_percent / 100) *
+                    CASE
+                        WHEN scp.total_component_price > 0 THEN
+                            (si.quantity * COALESCE(pi2.price, 0)) / scp.total_component_price
+                        WHEN scc.total_component_qty > 0 THEN
+                            si.quantity / scc.total_component_qty
+                        ELSE 0
+                    END
+                ) AS revenue
+            FROM booking_data bd
+            JOIN set_items si ON bd.price_item_id = si.price_set_id
+            JOIN price_items pi2 ON si.item_id = pi2.id
+            LEFT JOIN categories c2 ON pi2.category_id = c2.id
+            LEFT JOIN set_component_price scp ON si.price_set_id = scp.price_set_id
+            LEFT JOIN set_component_count scc ON si.price_set_id = scc.price_set_id
+            WHERE bd.is_set = 1
+            GROUP BY IFNULL(c2.name, '')
+        )
+        SELECT category, SUM(revenue) AS revenue
+        FROM (
+            SELECT category, revenue FROM non_set
+            UNION ALL
+            SELECT category, revenue FROM set_expanded
+        ) combined
+        GROUP BY category`, condCat2)
+	catArgs2 = append([]interface{}{companyID, branchID}, catArgs2...)
 	catRows, err := r.db.QueryContext(ctx, catQuery2, catArgs2...)
 	if err != nil {
 		return nil, err
@@ -621,12 +696,20 @@ func (r *ReportRepository) SalesReport(ctx context.Context, from, to time.Time, 
 	var incomes []models.CategoryIncome
 	var totalInc float64
 	for catRows.Next() {
-		var inc models.CategoryIncome
-		if err := catRows.Scan(&inc.Category, &inc.Total); err != nil {
+		var (
+			category sql.NullString
+			total    float64
+		)
+		if err := catRows.Scan(&category, &total); err != nil {
 			return nil, err
 		}
+		name := ""
+		if category.Valid {
+			name = category.String
+		}
+		inc := models.CategoryIncome{Category: name, Total: total}
 		incomes = append(incomes, inc)
-		totalInc += inc.Total
+		totalInc += total
 	}
 
 	// Income by payment type
