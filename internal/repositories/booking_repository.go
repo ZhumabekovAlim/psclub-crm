@@ -46,7 +46,14 @@ func (r *BookingRepository) CreateWithItems(ctx context.Context, companyID, bran
 		tableID = nil
 	}
 
-	res, err := tx.ExecContext(ctx, query, companyID, branchID, clientID, tableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID)
+	var userID interface{}
+	if b.UserID > 0 {
+		userID = b.UserID
+	} else {
+		userID = nil
+	}
+
+	res, err := tx.ExecContext(ctx, query, companyID, branchID, clientID, tableID, userID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID)
 	if err != nil {
 		log.Printf("insert booking error: %v", err)
 		return 0, err
@@ -96,8 +103,9 @@ func (r *BookingRepository) GetAll(ctx context.Context, companyID, branchID int)
 		var b models.Booking
 		var clientID sql.NullInt64
 		var tableID sql.NullInt64
+		var userID sql.NullInt64
 		var channelName sql.NullString
-		err := rows.Scan(&b.ID, &b.CompanyID, &b.BranchID, &clientID, &tableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.ClientName, &b.ClientPhone, &b.PaymentType, &channelName)
+		err := rows.Scan(&b.ID, &b.CompanyID, &b.BranchID, &clientID, &tableID, &userID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.ClientName, &b.ClientPhone, &b.PaymentType, &channelName)
 		if err != nil {
 			log.Printf("scan booking error: %v", err)
 			return nil, err
@@ -107,6 +115,9 @@ func (r *BookingRepository) GetAll(ctx context.Context, companyID, branchID int)
 		}
 		if tableID.Valid {
 			b.TableID = int(tableID.Int64)
+		}
+		if userID.Valid {
+			b.UserID = int(userID.Int64)
 		}
 		if channelName.Valid {
 			b.ChannelName = channelName.String
@@ -137,8 +148,9 @@ func (r *BookingRepository) GetByClientID(ctx context.Context, companyID, branch
 		var b models.Booking
 		var cID sql.NullInt64
 		var tableID sql.NullInt64
+		var userID sql.NullInt64
 		var channelName sql.NullString
-		if err := rows.Scan(&b.ID, &b.CompanyID, &b.BranchID, &cID, &tableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.ClientName, &b.ClientPhone, &b.PaymentType, &channelName); err != nil {
+		if err := rows.Scan(&b.ID, &b.CompanyID, &b.BranchID, &cID, &tableID, &userID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt, &b.ClientName, &b.ClientPhone, &b.PaymentType, &channelName); err != nil {
 			log.Printf("scan booking by client error: %v", err)
 			return nil, err
 		}
@@ -147,6 +159,9 @@ func (r *BookingRepository) GetByClientID(ctx context.Context, companyID, branch
 		}
 		if tableID.Valid {
 			b.TableID = int(tableID.Int64)
+		}
+		if userID.Valid {
+			b.UserID = int(userID.Int64)
 		}
 		if channelName.Valid {
 			b.ChannelName = channelName.String
@@ -168,8 +183,9 @@ func (r *BookingRepository) GetByID(ctx context.Context, companyID, branchID, id
 	var clientID sql.NullInt64
 	var tableID sql.NullInt64
 	var channelName sql.NullString
+	var userID sql.NullInt64
 	err := r.db.QueryRowContext(ctx, query, id, companyID, branchID).Scan(
-		&b.ID, &b.CompanyID, &b.BranchID, &clientID, &tableID, &b.UserID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason,
+		&b.ID, &b.CompanyID, &b.BranchID, &clientID, &tableID, &userID, &b.StartTime, &b.EndTime, &b.Note, &b.Discount, &b.DiscountReason,
 		&b.TotalAmount, &b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt,
 		&b.PaymentType, &channelName, &b.ClientName, &b.ClientPhone,
 	)
@@ -182,6 +198,9 @@ func (r *BookingRepository) GetByID(ctx context.Context, companyID, branchID, id
 	}
 	if tableID.Valid {
 		b.TableID = int(tableID.Int64)
+	}
+	if userID.Valid {
+		b.UserID = int(userID.Int64)
 	}
 	if channelName.Valid {
 		b.ChannelName = channelName.String
@@ -206,7 +225,14 @@ func (r *BookingRepository) Update(ctx context.Context, companyID, branchID int,
 		tableID = nil
 	}
 
-	_, err := r.db.ExecContext(ctx, query, companyID, branchID, clientID, tableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID, companyID, branchID)
+	var userID interface{}
+	if b.UserID > 0 {
+		userID = b.UserID
+	} else {
+		userID = nil
+	}
+
+	_, err := r.db.ExecContext(ctx, query, companyID, branchID, clientID, tableID, userID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID, companyID, branchID)
 	if err != nil {
 		log.Printf("update booking error: %v", err)
 	}
@@ -242,7 +268,14 @@ func (r *BookingRepository) UpdateWithItems(ctx context.Context, companyID, bran
 		tableID = nil
 	}
 
-	_, err = tx.ExecContext(ctx, query, companyID, branchID, clientID, tableID, b.UserID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID, companyID, branchID)
+	var userID interface{}
+	if b.UserID > 0 {
+		userID = b.UserID
+	} else {
+		userID = nil
+	}
+
+	_, err = tx.ExecContext(ctx, query, companyID, branchID, clientID, tableID, userID, b.StartTime, b.EndTime, b.Note, b.Discount, b.DiscountReason, b.TotalAmount, b.BonusUsed, b.PaymentStatus, b.PaymentTypeID, b.ID, companyID, branchID)
 	if err != nil {
 		log.Printf("update booking error: %v", err)
 		return err

@@ -848,7 +848,8 @@ func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Ti
 	for orderRows.Next() {
 		var b models.Booking
 		var clientID, tableID sql.NullInt64
-		if err := orderRows.Scan(&b.ID, &clientID, &tableID, &b.UserID, &b.StartTime,
+		var userID sql.NullInt64
+		if err := orderRows.Scan(&b.ID, &clientID, &tableID, &userID, &b.StartTime,
 			&b.EndTime, &b.Note, &b.Discount, &b.DiscountReason, &b.TotalAmount,
 			&b.BonusUsed, &b.PaymentStatus, &b.PaymentTypeID, &b.CreatedAt, &b.UpdatedAt); err != nil {
 			return nil, err
@@ -858,6 +859,9 @@ func (r *ReportRepository) DiscountsReport(ctx context.Context, from, to time.Ti
 		}
 		if tableID.Valid {
 			b.TableID = int(tableID.Int64)
+		}
+		if userID.Valid {
+			b.UserID = int(userID.Int64)
 		}
 		orders = append(orders, b)
 	}
